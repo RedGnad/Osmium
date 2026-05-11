@@ -1,0 +1,29 @@
+{
+  "robinhoodTestnet": {
+    "name": "Robinhood Chain Testnet",
+    "chainId": 46630,
+    "rpcUrl": "https://rpc.testnet.chain.robinhood.com",
+    "explorer": "https://explorer.testnet.chain.robinhood.com",
+    "faucet": "https://faucet.testnet.chain.robinhood.com",
+    "tokens": {
+      "WETH": "0x7943e237c7F95DA44E0301572D358911207852Fa",
+      "USDG": "0x7E955252E15c84f5768B83c41a71F9eba181802F",
+      "TSLA": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+      "AMZN": "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+      "PLTR": "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0",
+      "NFLX": "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93",
+      "AMD": "0x71178BAc73cBeb415514eB542a8995b82669778d"
+    },
+    "precompiles": {
+      "ArbWasm": "0x0000000000000000000000000000000000000071",
+      "ArbWasmCache": "0x0000000000000000000000000000000000000072"
+    }
+  },
+  "arbitrumSepolia": {
+    "name": "Arbitrum Sepolia",
+    "chainId": 421614,
+    "rpcUrl": "https://sepolia-rollup.arbitrum.io/rpc",
+    "explorer": "https://sepolia.arbiscan.io"
+  }
+}
+

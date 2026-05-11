@@ -1,0 +1,26 @@
+[package]
+name = "osmium-stylus"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+alloy-sol-types = { version = "1.5.7", default-features = false }
+stylus-sdk = { version = "0.10.5", default-features = false }
+
+[features]
+default = ["mini-alloc"]
+export-abi = ["stylus-sdk/export-abi"]
+debug = ["stylus-sdk/debug"]
+mini-alloc = ["stylus-sdk/mini-alloc"]
+contract-client-gen = []
+stylus-test = ["stylus-sdk/stylus-test"]
+
+[profile.release]
+codegen-units = 1
+strip = true
+lto = true
+panic = "abort"
+opt-level = 3

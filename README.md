@@ -34,6 +34,11 @@ The Solidity reference implementation and demo token are:
 
 The Solidity contract is useful for fast local tests and as an ERC20 custody reference. The Stylus contract is the Robinhood/Arbitrum-native policy engine.
 
+The offchain demo components are:
+
+- `apps/agent-runner`: Express service for local/Render agent execution.
+- `apps/web`: Vite/React firewall dashboard.
+
 ## Robinhood Chain Testnet
 
 - Chain ID: `46630`
@@ -48,6 +53,8 @@ Useful testnet assets include `USDG`, `WETH`, and stock tokens like `TSLA`, `AMZ
 ```bash
 forge build
 forge test
+pnpm agent:typecheck
+pnpm web:build
 ```
 
 Stylus commands:
@@ -60,7 +67,20 @@ cargo stylus check --endpoint https://rpc.testnet.chain.robinhood.com
 cargo stylus deploy --endpoint https://rpc.testnet.chain.robinhood.com --private-key $PRIVATE_KEY
 ```
 
-The current Stylus check passes on Robinhood Chain Testnet with a 19.2 KB contract and an estimated activation data fee of about 0.000117 ETH.
+The current Stylus check passes on Robinhood Chain Testnet with a 23.8 KB contract and an estimated activation data fee of about 0.000137 ETH.
+
+## Prompt Injection Guardrail
+
+Osmium does not try to classify prompts. It constrains what a compromised agent can do economically.
+
+The `intentHash` path lets a user pre-approve a bounded payment intent:
+
+- policy id
+- context hash
+- max amount
+- expiry
+
+The agent must call `authorizePaymentWithIntent`. If prompt injection changes the merchant, amount, token, receipt, expiry, or replay context, the onchain policy blocks the action.
 
 ## Demo Story
 

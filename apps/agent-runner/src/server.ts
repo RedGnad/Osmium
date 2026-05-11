@@ -5,6 +5,14 @@ import { runDemo } from "./demo.js";
 const config = loadConfig();
 const app = express();
 
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "content-type,x-osmium-api-key");
+  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 app.use(express.json());
 
 function requireApiKey(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -47,4 +55,3 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 app.listen(config.port, "0.0.0.0", () => {
   console.log(`Osmium agent runner listening on 0.0.0.0:${config.port}`);
 });
-

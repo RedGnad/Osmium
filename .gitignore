@@ -2,6 +2,7 @@ out/
 cache/
 node_modules/
 target/
+dist/
 .env
 .DS_Store
 deployments/*.json

@@ -11,6 +11,7 @@
    - Period budget: 25 per day
    - Merchant: verified API/data provider
    - Receipt required: yes
+   - Intent hash required: yes
 4. Run agent payment to verified merchant with receipt hash.
 5. Show `PaymentApproved`.
 6. Run agent payment to unknown merchant.
@@ -23,4 +24,3 @@
 ## Core Pitch
 
 Osmium is not an AI wallet. It is an onchain policy firewall that lets autonomous agents spend safely through enforceable budget, merchant, receipt, and replay rules.
-

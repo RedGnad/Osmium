@@ -16,6 +16,19 @@ contract AgentCaller {
     ) external returns (bool) {
         return vault.executePayment(policyId, merchant, token, amount, paymentId, receiptHash);
     }
+
+    function executeWithIntent(
+        OsmiumPolicyVault vault,
+        uint256 policyId,
+        bytes32 intentHash,
+        address merchant,
+        address token,
+        uint256 amount,
+        bytes32 paymentId,
+        bytes32 receiptHash
+    ) external returns (bool) {
+        return vault.executePaymentWithIntent(policyId, intentHash, merchant, token, amount, paymentId, receiptHash);
+    }
 }
 
 contract OsmiumPolicyVaultTest {
@@ -115,6 +128,64 @@ contract OsmiumPolicyVaultTest {
 
         require(!ok, "MISSING_RECEIPT_ALLOWED");
         require(token.balanceOf(merchant) == 0, "MISSING_RECEIPT_PAID");
+    }
+
+    function testAllowsPreApprovedIntent() public {
+        uint256 policyId = _createPolicy(10 ether, 25 ether);
+        bytes32 intentHash = keccak256("intent-safe-api-call");
+        vault.approveIntent(policyId, intentHash, keccak256("task:api-data"), 6 ether, uint64(block.timestamp + 1 days));
+
+        bool ok = agent.executeWithIntent(
+            vault,
+            policyId,
+            intentHash,
+            merchant,
+            address(token),
+            5 ether,
+            keccak256("payment-intent-ok"),
+            keccak256("receipt-intent-ok")
+        );
+
+        require(ok, "INTENT_PAYMENT_BLOCKED");
+        require(token.balanceOf(merchant) == 5 ether, "INTENT_MERCHANT_BALANCE");
+    }
+
+    function testBlocksMissingIntent() public {
+        uint256 policyId = _createPolicy(10 ether, 25 ether);
+
+        bool ok = agent.executeWithIntent(
+            vault,
+            policyId,
+            keccak256("missing-intent"),
+            merchant,
+            address(token),
+            5 ether,
+            keccak256("payment-missing-intent"),
+            keccak256("receipt-missing-intent")
+        );
+
+        require(!ok, "MISSING_INTENT_ALLOWED");
+        require(token.balanceOf(merchant) == 0, "MISSING_INTENT_PAID");
+    }
+
+    function testBlocksIntentAmountExceeded() public {
+        uint256 policyId = _createPolicy(10 ether, 25 ether);
+        bytes32 intentHash = keccak256("intent-low-cap");
+        vault.approveIntent(policyId, intentHash, keccak256("task:low-cap"), 3 ether, uint64(block.timestamp + 1 days));
+
+        bool ok = agent.executeWithIntent(
+            vault,
+            policyId,
+            intentHash,
+            merchant,
+            address(token),
+            4 ether,
+            keccak256("payment-intent-over"),
+            keccak256("receipt-intent-over")
+        );
+
+        require(!ok, "INTENT_OVERAGE_ALLOWED");
+        require(token.balanceOf(merchant) == 0, "INTENT_OVERAGE_PAID");
     }
 
     function _createPolicy(uint256 maxPerTx, uint256 periodLimit) private returns (uint256) {

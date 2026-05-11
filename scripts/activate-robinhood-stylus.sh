@@ -10,6 +10,12 @@ if [[ -f "$ROOT/.env" ]]; then
   set +a
 fi
 
+CONTRACT_ADDRESS="${1:-${OSMIUM_POLICY_ENGINE_ADDRESS:-}}"
+if [[ -z "$CONTRACT_ADDRESS" || "$CONTRACT_ADDRESS" == "0x0000000000000000000000000000000000000000" ]]; then
+  echo "Usage: scripts/activate-robinhood-stylus.sh <contract-address>" >&2
+  exit 1
+fi
+
 DEPLOYER_PRIVATE_KEY="${PRIVATE_KEY:-}"
 if [[ -z "$DEPLOYER_PRIVATE_KEY" || "$DEPLOYER_PRIVATE_KEY" == "0x" ]]; then
   DEPLOYER_PRIVATE_KEY="${ADMIN_PRIVATE_KEY:-}"
@@ -31,5 +37,6 @@ RPC_URL="${RH_RPC_URL:-https://rpc.testnet.chain.robinhood.com}"
 
 cd "$ROOT/contracts/osmium-stylus"
 
-echo "Deploying Osmium Stylus PolicyEngine to Robinhood Chain Testnet..."
-cargo stylus deploy --endpoint "$RPC_URL" --private-key "$DEPLOYER_PRIVATE_KEY"
+echo "Activating Osmium Stylus PolicyEngine on Robinhood Chain Testnet..."
+cargo stylus activate --endpoint "$RPC_URL" --address "$CONTRACT_ADDRESS" --private-key "$DEPLOYER_PRIVATE_KEY"
+

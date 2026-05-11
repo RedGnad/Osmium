@@ -18,7 +18,10 @@ contract OsmiumPolicyVault {
         Expired,
         Replay,
         MissingReceipt,
-        InsufficientVaultBalance
+        InsufficientVaultBalance,
+        InvalidIntent,
+        IntentExpired,
+        IntentAmountExceeded
     }
 
     struct Policy {
@@ -45,11 +48,20 @@ contract OsmiumPolicyVault {
 
     struct Receipt {
         uint256 policyId;
+        bytes32 intentHash;
         address merchant;
         address token;
         uint256 amount;
         bytes32 receiptHash;
         uint64 paidAt;
+    }
+
+    struct Intent {
+        uint256 policyId;
+        bytes32 contextHash;
+        uint256 maxAmount;
+        uint64 validUntil;
+        bool active;
     }
 
     address private immutable ADMIN;
@@ -59,6 +71,7 @@ contract OsmiumPolicyVault {
     mapping(address => Merchant) public merchants;
     mapping(uint256 => Policy) public policies;
     mapping(uint256 => SpendState) public spendStates;
+    mapping(bytes32 => Intent) public intents;
     mapping(bytes32 => bool) public usedPaymentIds;
     mapping(bytes32 => Receipt) public receipts;
 
@@ -77,6 +90,10 @@ contract OsmiumPolicyVault {
         uint64 validUntil
     );
     event PolicyStatusChanged(uint256 indexed policyId, bool active);
+    event IntentApproved(
+        uint256 indexed policyId, bytes32 indexed intentHash, bytes32 contextHash, uint256 maxAmount, uint64 validUntil
+    );
+    event IntentRevoked(uint256 indexed policyId, bytes32 indexed intentHash);
     event PaymentApproved(
         uint256 indexed policyId,
         address indexed agent,
@@ -84,7 +101,8 @@ contract OsmiumPolicyVault {
         address token,
         uint256 amount,
         bytes32 paymentId,
-        bytes32 receiptHash
+        bytes32 receiptHash,
+        bytes32 intentHash
     );
     event PaymentBlocked(
         uint256 indexed policyId,
@@ -185,6 +203,32 @@ contract OsmiumPolicyVault {
         emit PolicyStatusChanged(policyId, active);
     }
 
+    function approveIntent(
+        uint256 policyId,
+        bytes32 intentHash,
+        bytes32 contextHash,
+        uint256 maxAmount,
+        uint64 validUntil
+    ) external {
+        Policy memory policy = policies[policyId];
+        if (msg.sender != policy.owner) revert NotPolicyOwner();
+        require(intentHash != bytes32(0) && contextHash != bytes32(0) && maxAmount > 0, "INVALID_INTENT");
+        require(validUntil <= policy.validUntil, "INTENT_AFTER_POLICY");
+
+        intents[intentHash] = Intent({
+            policyId: policyId, contextHash: contextHash, maxAmount: maxAmount, validUntil: validUntil, active: true
+        });
+        emit IntentApproved(policyId, intentHash, contextHash, maxAmount, validUntil);
+    }
+
+    function revokeIntent(uint256 policyId, bytes32 intentHash) external {
+        Policy memory policy = policies[policyId];
+        if (msg.sender != policy.owner) revert NotPolicyOwner();
+
+        intents[intentHash].active = false;
+        emit IntentRevoked(policyId, intentHash);
+    }
+
     function previewPayment(
         uint256 policyId,
         address agent,
@@ -195,6 +239,22 @@ contract OsmiumPolicyVault {
         bytes32 receiptHash
     ) external view returns (bool allowed, BlockReason reason) {
         reason = _validatePayment(policyId, agent, merchant, token, amount, paymentId, receiptHash);
+        allowed = reason == BlockReason.None;
+    }
+
+    function previewPaymentWithIntent(
+        uint256 policyId,
+        bytes32 intentHash,
+        address agent,
+        address merchant,
+        address token,
+        uint256 amount,
+        bytes32 paymentId,
+        bytes32 receiptHash
+    ) external view returns (bool allowed, BlockReason reason) {
+        reason = _validatePaymentWithIntent(
+            policyId, intentHash, agent, merchant, token, amount, paymentId, receiptHash
+        );
         allowed = reason == BlockReason.None;
     }
 
@@ -212,26 +272,28 @@ contract OsmiumPolicyVault {
             return false;
         }
 
-        Policy memory policy = policies[policyId];
-        SpendState storage state = spendStates[policyId];
-        (uint64 periodStartedAt, uint256 spentInPeriod) = _currentPeriod(policyId);
+        _recordPayment(policyId, bytes32(0), msg.sender, merchant, token, amount, paymentId, receiptHash);
+        return true;
+    }
 
-        state.periodStartedAt = periodStartedAt;
-        state.spentInPeriod = spentInPeriod + amount;
-        usedPaymentIds[paymentId] = true;
-        vaultBalance[policy.owner][token] -= amount;
-        receipts[paymentId] = Receipt({
-            policyId: policyId,
-            merchant: merchant,
-            token: token,
-            amount: amount,
-            receiptHash: receiptHash,
-            paidAt: uint64(block.timestamp)
-        });
+    function executePaymentWithIntent(
+        uint256 policyId,
+        bytes32 intentHash,
+        address merchant,
+        address token,
+        uint256 amount,
+        bytes32 paymentId,
+        bytes32 receiptHash
+    ) external returns (bool) {
+        BlockReason reason = _validatePaymentWithIntent(
+            policyId, intentHash, msg.sender, merchant, token, amount, paymentId, receiptHash
+        );
+        if (reason != BlockReason.None) {
+            emit PaymentBlocked(policyId, msg.sender, merchant, reason, token, amount, paymentId);
+            return false;
+        }
 
-        if (!IERC20(token).transfer(merchant, amount)) revert TransferFailed();
-
-        emit PaymentApproved(policyId, msg.sender, merchant, token, amount, paymentId, receiptHash);
+        _recordPayment(policyId, intentHash, msg.sender, merchant, token, amount, paymentId, receiptHash);
         return true;
     }
 
@@ -264,6 +326,62 @@ contract OsmiumPolicyVault {
         if (spentInPeriod + amount > policy.periodLimit) return BlockReason.OverBudget;
 
         return BlockReason.None;
+    }
+
+    function _validatePaymentWithIntent(
+        uint256 policyId,
+        bytes32 intentHash,
+        address agent,
+        address merchant,
+        address token,
+        uint256 amount,
+        bytes32 paymentId,
+        bytes32 receiptHash
+    ) internal view returns (BlockReason) {
+        BlockReason baseReason = _validatePayment(policyId, agent, merchant, token, amount, paymentId, receiptHash);
+        if (baseReason != BlockReason.None) return baseReason;
+
+        Intent memory intent = intents[intentHash];
+        if (intentHash == bytes32(0) || !intent.active || intent.policyId != policyId) {
+            return BlockReason.InvalidIntent;
+        }
+        if (block.timestamp > intent.validUntil) return BlockReason.IntentExpired;
+        if (amount > intent.maxAmount) return BlockReason.IntentAmountExceeded;
+
+        return BlockReason.None;
+    }
+
+    function _recordPayment(
+        uint256 policyId,
+        bytes32 intentHash,
+        address agent,
+        address merchant,
+        address token,
+        uint256 amount,
+        bytes32 paymentId,
+        bytes32 receiptHash
+    ) internal {
+        Policy memory policy = policies[policyId];
+        SpendState storage state = spendStates[policyId];
+        (uint64 periodStartedAt, uint256 spentInPeriod) = _currentPeriod(policyId);
+
+        state.periodStartedAt = periodStartedAt;
+        state.spentInPeriod = spentInPeriod + amount;
+        usedPaymentIds[paymentId] = true;
+        vaultBalance[policy.owner][token] -= amount;
+        receipts[paymentId] = Receipt({
+            policyId: policyId,
+            intentHash: intentHash,
+            merchant: merchant,
+            token: token,
+            amount: amount,
+            receiptHash: receiptHash,
+            paidAt: uint64(block.timestamp)
+        });
+
+        if (!IERC20(token).transfer(merchant, amount)) revert TransferFailed();
+
+        emit PaymentApproved(policyId, agent, merchant, token, amount, paymentId, receiptHash, intentHash);
     }
 
     function _currentPeriod(uint256 policyId) internal view returns (uint64 periodStartedAt, uint256 spentInPeriod) {

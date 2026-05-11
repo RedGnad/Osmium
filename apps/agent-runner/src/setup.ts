@@ -1,4 +1,3 @@
-import { maxUint256 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { osmiumPolicyEngineAbi } from "./abi.js";
 import { publicClient, walletClient } from "./client.js";
@@ -40,6 +39,11 @@ async function main() {
   console.log(`registerMerchant: ${merchantHash}`);
 
   const validUntil = BigInt(Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60);
+  const policyId = await reader.readContract({
+    address: config.engineAddress,
+    abi: osmiumPolicyEngineAbi,
+    functionName: "nextPolicyId"
+  });
   const policyHash = await admin.writeContract({
     address: config.engineAddress,
     abi: osmiumPolicyEngineAbi,
@@ -54,15 +58,20 @@ async function main() {
     ]
   });
   await reader.waitForTransactionReceipt({ hash: policyHash });
-  console.log(`createPolicy owner=${account.address}: ${policyHash}`);
-  console.log(`Use POLICY_ID from nextPolicyId logs or call nextPolicyId and subtract 1.`);
+  console.log(`createPolicy id=${policyId} owner=${account.address}: ${policyHash}`);
 
-  // Keeps maxUint256 imported intentionally visible for future settlement adapter setup.
-  void maxUint256;
+  const intentHash = await admin.writeContract({
+    address: config.engineAddress,
+    abi: osmiumPolicyEngineAbi,
+    functionName: "approveIntent",
+    args: [policyId, config.demoIntentHash, hashLabel("task:osmium-demo-agent-payment"), config.maxPerTxWei, validUntil]
+  });
+  await reader.waitForTransactionReceipt({ hash: intentHash });
+  console.log(`approveIntent policy=${policyId} intent=${config.demoIntentHash}: ${intentHash}`);
+  console.log(`Set POLICY_ID=${policyId} in .env for demo runs.`);
 }
 
 main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-

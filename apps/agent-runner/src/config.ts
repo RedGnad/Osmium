@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { keccak256, toBytes } from "viem";
 import type { Address, Hex } from "viem";
 
 export type RunnerConfig = {
@@ -9,6 +10,7 @@ export type RunnerConfig = {
   agentPrivateKey?: Hex;
   agentAddress?: Address;
   policyId: bigint;
+  demoIntentHash: Hex;
   tokenAddress: Address;
   merchantAddress: Address;
   unknownMerchantAddress: Address;
@@ -42,6 +44,10 @@ export function loadConfig(): RunnerConfig {
     agentPrivateKey: optionalHex("AGENT_PRIVATE_KEY"),
     agentAddress: process.env.AGENT_ADDRESS as Address | undefined,
     policyId: BigInt(env("POLICY_ID", "1")),
+    demoIntentHash:
+      (process.env.DEMO_INTENT_HASH && process.env.DEMO_INTENT_HASH !== "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ? process.env.DEMO_INTENT_HASH
+        : keccak256(toBytes("osmium-demo-intent"))) as Hex,
     tokenAddress: env("TOKEN_ADDRESS") as Address,
     merchantAddress: env("MERCHANT_ADDRESS") as Address,
     unknownMerchantAddress: env("UNKNOWN_MERCHANT_ADDRESS", env("MERCHANT_ADDRESS")) as Address,
@@ -51,4 +57,3 @@ export function loadConfig(): RunnerConfig {
     port: Number(env("PORT", "10000"))
   };
 }
-

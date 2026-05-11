@@ -31,6 +31,8 @@ Never commit `.env`.
 - `POST /demo/preview`: runs view-only authorization previews.
 - `POST /demo/run`: sends authorization transactions from the agent wallet.
 
+The demo path uses `authorizePaymentWithIntent`, so setup must approve `DEMO_INTENT_HASH` for the active `POLICY_ID`.
+
 If `RUNNER_API_KEY` is set, protected requests need:
 
 ```http
@@ -53,4 +55,3 @@ This is the core Osmium thesis: agents and agent infrastructure can fail, but ec
 ## Render Free Tier Notes
 
 Render's official docs currently say Hobby workspaces support up to 25 services, and free web services spin down after 15 minutes without inbound traffic. Free web services get 750 free instance hours per workspace per calendar month and have an ephemeral filesystem. That is acceptable for a hackathon demo because Osmium state lives onchain, not on Render's disk.
-

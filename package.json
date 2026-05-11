@@ -7,10 +7,12 @@
     "agent:dev": "pnpm --filter @osmium/agent-runner dev",
     "agent:demo": "pnpm --filter @osmium/agent-runner demo",
     "agent:setup": "pnpm --filter @osmium/agent-runner setup",
-    "agent:typecheck": "pnpm --filter @osmium/agent-runner typecheck"
+    "agent:typecheck": "pnpm --filter @osmium/agent-runner typecheck",
+    "web:dev": "pnpm --filter @osmium/web dev",
+    "web:build": "pnpm --filter @osmium/web build",
+    "web:typecheck": "pnpm --filter @osmium/web typecheck"
   },
   "engines": {
     "node": ">=22"
   }
 }
-

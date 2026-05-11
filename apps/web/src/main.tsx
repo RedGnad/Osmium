@@ -36,6 +36,7 @@ const robinhoodTestnet = {
 } as const;
 
 function short(value: string) {
+  if (value === "not connected") return "Connect";
   if (!value || value === "0x0000000000000000000000000000000000000000") return "unset";
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }

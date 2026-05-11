@@ -17,6 +17,8 @@ Use Render as a small Express service:
 - Health check path: `/health`
 - Port: `10000`
 
+Use an Alchemy or QuickNode Robinhood Testnet RPC in `RH_RPC_URL` for deployed demos. The public Robinhood RPC is useful for light reads, but deployment and activation can hit `429 Too Many Requests`.
+
 Use Render secret environment variables for:
 
 - `ADMIN_PRIVATE_KEY`

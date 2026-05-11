@@ -46,6 +46,8 @@ The offchain demo components are:
 - Explorer: `https://explorer.testnet.chain.robinhood.com`
 - Faucet: `https://faucet.testnet.chain.robinhood.com`
 
+The public RPC is rate-limited. For deployment and activation, set `RH_RPC_URL` in `.env` to an Alchemy or QuickNode Robinhood Testnet endpoint.
+
 Useful testnet assets include `USDG`, `WETH`, and stock tokens like `TSLA`, `AMZN`, `PLTR`, `NFLX`, and `AMD`.
 
 ## Commands

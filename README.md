@@ -36,12 +36,13 @@ The demo keeps one clear workflow but shows multi-asset capability: TSLA is the 
 
 ## MVP Surface
 
-1. `SpendOps Console`: operators see agent, policy, settlement, receipt, replay, and audit state.
+1. `SpendOps Console`: operators see overview, agents, policies, merchants, live spend, audit state, and developer integration.
 2. `SettlementRouter`: user deposits funds and settlement only happens after policy approval.
 3. `PolicyEngine`: deterministic onchain checks before funds move.
-4. `MerchantRegistry`: allowlisted merchants with category and metadata hashes.
-5. `ReceiptGate`: payment requires a receipt hash and unique payment id.
-6. `RiskEvents`: blocked attempts emit explicit events instead of silently failing.
+4. `Merchant API`: a verified market-data service returns quotes, receipt hashes, and unlocks data after settlement proof.
+5. `MerchantRegistry`: allowlisted merchants with category and metadata hashes.
+6. `ReceiptGate`: payment requires a receipt hash and unique payment id.
+7. `RiskEvents`: blocked attempts emit explicit events instead of silently failing.
 
 ## Current Implementation
 
@@ -85,6 +86,14 @@ The offchain demo components are:
 
 - `apps/agent-runner`: Express service for local/Render agent execution.
 - `apps/web`: Vite/React firewall dashboard.
+
+The runner also exposes a mini verified merchant surface:
+
+- `GET /merchant/quote?asset=TSLA`
+- `GET /merchant/quote?asset=AMD`
+- `POST /merchant/receipt`
+
+This turns the demo from "agent sends a token" into "agent buys a verified market-data service, settles through Osmium, then unlocks data with a receipt proof."
 
 ## Robinhood Chain Testnet
 

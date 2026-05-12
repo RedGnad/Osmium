@@ -35,8 +35,13 @@ Never commit `.env`.
 - `POST /demo/preview`: public view-only authorization previews.
 - `POST /demo/live-settlement/preview`: public read-only balances, latest receipt, and replay proof.
 - `POST /demo/live-settlement/run`: protected endpoint that settles TSLA through the router.
+- `GET /merchant/quote?asset=TSLA`: public verified market-data quote.
+- `GET /merchant/quote?asset=AMD`: public verified market-data quote.
+- `POST /merchant/receipt`: verifies the latest receipt and unlocks the demo data payload.
 
 The preview path uses `previewAuthorizationWithIntent`. The state-changing path uses `OsmiumSettlementRouter.settleWithIntent`, which calls `authorizePaymentForAgent` on the Stylus engine.
+
+The merchant path is intentionally small: it models one verified Market Data API instead of a full marketplace. The agent asks for a TSLA or AMD quote, receives a price, merchant address, service id, data hash, and receipt requirement, then Osmium settlement unlocks the data once the receipt is visible onchain.
 
 ## Live Settlement Script
 

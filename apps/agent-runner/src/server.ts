@@ -2,6 +2,7 @@ import express from "express";
 import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
 import { readLiveSettlementProof, runLiveSettlement } from "./liveSettlement.js";
+import { marketDataQuote, unlockMarketData } from "./merchant.js";
 
 const config = loadConfig();
 if (config.requireRunnerApiKey && !config.runnerApiKey) {
@@ -62,6 +63,22 @@ app.post("/demo/live-settlement/preview", async (_req, res, next) => {
 app.post("/demo/live-settlement/run", requireApiKey, async (_req, res, next) => {
   try {
     res.json(await runLiveSettlement());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/merchant/quote", (req, res, next) => {
+  try {
+    res.json(marketDataQuote(config, req.query.asset));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/merchant/receipt", async (req, res, next) => {
+  try {
+    res.json(await unlockMarketData(config, req.body ?? {}));
   } catch (error) {
     next(error);
   }

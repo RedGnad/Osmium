@@ -6,14 +6,19 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   CircleDollarSign,
+  Code2,
   Database,
   ExternalLink,
   FileCheck2,
   KeyRound,
+  Layers3,
+  ListChecks,
   LockKeyhole,
+  PlayCircle,
   Radio,
   ShieldCheck,
   SlidersHorizontal,
+  Store,
   Wallet,
   XCircle
 } from "lucide-react";
@@ -56,6 +61,37 @@ type LiveSettlement = {
     merchantToken: string;
     routerVault: string;
   };
+};
+
+type MerchantQuote = {
+  asset: AssetSymbol;
+  service: string;
+  title: string;
+  price: string;
+  priceWei: string;
+  token: string;
+  merchant: string;
+  serviceId: string;
+  dataHash: string;
+  receiptHash: string;
+  receiptMode: string;
+};
+
+type MerchantUnlock = {
+  asset: AssetSymbol;
+  service: string;
+  unlocked: boolean;
+  dataHash: string;
+  payload: { symbol: string; snapshot: string; settlement: string } | null;
+};
+
+type SpendEvent = {
+  status: "Settled" | "Blocked" | "Unlocked";
+  detail: string;
+  reason?: string;
+  tx?: string;
+  receipt?: string;
+  ok: boolean;
 };
 
 const config = {
@@ -117,10 +153,12 @@ function txUrl(hash: string) {
   return `${config.explorerUrl}/tx/${hash}`;
 }
 
-async function callRunner(path: string) {
+async function callRunner(path: string, body?: unknown) {
+  const isGet = path === "/health" || path.startsWith("/merchant/quote");
   const response = await fetch(`${config.runnerUrl}${path}`, {
-    method: path === "/health" ? "GET" : "POST",
-    headers: { "content-type": "application/json" }
+    method: isGet ? "GET" : "POST",
+    headers: { "content-type": "application/json" },
+    body: body && !isGet ? JSON.stringify(body) : undefined
   });
   if (!response.ok) throw new Error(await response.text());
   return response.json();
@@ -133,6 +171,9 @@ function App() {
   const [activeAsset, setActiveAsset] = useState<AssetSymbol>("TSLA");
   const [demo, setDemo] = useState<DemoPreview[]>([]);
   const [settlement, setSettlement] = useState<LiveSettlement | null>(null);
+  const [quote, setQuote] = useState<MerchantQuote | null>(null);
+  const [unlock, setUnlock] = useState<MerchantUnlock | null>(null);
+  const [spendEvents, setSpendEvents] = useState<SpendEvent[]>([]);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -189,10 +230,91 @@ function App() {
     }
   }
 
+  async function loadMerchantQuote(asset = activeAsset) {
+    const nextQuote = (await callRunner(`/merchant/quote?asset=${asset}`)) as MerchantQuote;
+    setQuote(nextQuote);
+    return nextQuote;
+  }
+
+  function addSpendEvent(event: SpendEvent) {
+    setSpendEvents((events) => [event, ...events].slice(0, 8));
+  }
+
+  async function payVerifiedMerchant() {
+    setError("");
+    try {
+      setBusy("pay");
+      const nextQuote = await loadMerchantQuote(activeAsset);
+      const proof = (await callRunner("/demo/live-settlement/preview")) as LiveSettlement;
+      setSettlement(proof);
+      const unlocked = (await callRunner("/merchant/receipt", {
+        asset: "TSLA",
+        paymentId: proof.paymentId,
+        receiptHash: proof.receiptHash
+      })) as MerchantUnlock;
+      setUnlock(unlocked);
+      addSpendEvent({
+        status: unlocked.unlocked ? "Unlocked" : "Settled",
+        detail: `${nextQuote.title} / ${formatToken(proof.amount)}`,
+        tx: proof.transactions.settle,
+        receipt: proof.receiptHash,
+        ok: true
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Merchant payment failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function previewBlockedScenario(kind: "unknown" | "missing" | "over") {
+    setError("");
+    try {
+      setBusy(kind);
+      const previews = (await callRunner("/demo/preview")) as DemoPreview[];
+      setDemo(previews);
+      const match = previews.find((item) =>
+        kind === "unknown" ? item.label.includes("unknown") : kind === "missing" ? item.label.includes("missing") : item.label.includes("over")
+      );
+      if (match) {
+        addSpendEvent({
+          status: match.preview.allowed ? "Settled" : "Blocked",
+          detail: match.label,
+          reason: match.preview.reasonName,
+          ok: match.preview.allowed
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Blocked scenario preview failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function replayLastPayment() {
+    setError("");
+    try {
+      setBusy("replay");
+      const proof = settlement ?? ((await callRunner("/demo/live-settlement/preview")) as LiveSettlement);
+      setSettlement(proof);
+      addSpendEvent({
+        status: proof.replay.blocked ? "Blocked" : "Settled",
+        detail: `payment ${short(proof.paymentId)}`,
+        reason: proof.replay.reasonName,
+        receipt: proof.receiptHash,
+        ok: !proof.replay.blocked
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Replay check failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   const allowed = demo.filter((item) => item.preview.allowed).length;
   const blocked = demo.length - allowed;
   const activeAssetConfig = assets.find((asset) => asset.symbol === activeAsset) ?? assets[0];
-  const auditRows = useMemo(() => buildAuditRows(demo, settlement), [demo, settlement]);
+  const auditRows = useMemo(() => buildAuditRows(demo, settlement, spendEvents), [demo, settlement, spendEvents]);
 
   return (
     <main className="appShell">
@@ -208,25 +330,33 @@ function App() {
         </div>
 
         <nav className="railNav" aria-label="Console sections">
-          <a className="active" href="#wedge">
-            <ShieldCheck size={17} />
-            Wedge
+          <a className="active" href="#overview">
+            <Layers3 size={17} />
+            Overview
           </a>
-          <a href="#agent">
+          <a href="#agents">
             <Database size={17} />
-            Agent
+            Agents
           </a>
-          <a href="#policy">
+          <a href="#policies">
             <SlidersHorizontal size={17} />
-            Policy
+            Policies
+          </a>
+          <a href="#merchants">
+            <Store size={17} />
+            Merchants
           </a>
           <a href="#settlement">
             <ArrowRightLeft size={17} />
-            Settlement
+            Live Spend
           </a>
           <a href="#audit">
             <FileCheck2 size={17} />
             Audit
+          </a>
+          <a href="#developer">
+            <Code2 size={17} />
+            Developer
           </a>
         </nav>
 
@@ -256,6 +386,7 @@ function App() {
           <Metric icon={<Activity size={17} />} label="Runner" value={runnerStatus} detail="preview + live proof" />
         </section>
 
+        <OverviewPanel demo={demo} settlement={settlement} quote={quote} unlock={unlock} />
         <WedgePanel />
 
         <section className="mainGrid">
@@ -268,7 +399,7 @@ function App() {
               setActiveAsset={setActiveAsset}
             />
             <PolicyPanel activeAsset={activeAsset} />
-            <MerchantPanel activeAsset={activeAsset} />
+            <MerchantPanel activeAsset={activeAsset} quote={quote} unlock={unlock} onQuote={() => loadMerchantQuote(activeAsset)} busy={busy !== ""} />
           </div>
 
           <section className="decisionDesk" id="settlement">
@@ -293,7 +424,14 @@ function App() {
               </div>
             </div>
 
-            <ScenarioRail />
+            <ScenarioRail
+              busy={busy}
+              onPay={payVerifiedMerchant}
+              onUnknown={() => previewBlockedScenario("unknown")}
+              onMissing={() => previewBlockedScenario("missing")}
+              onOver={() => previewBlockedScenario("over")}
+              onReplay={replayLastPayment}
+            />
 
             {error ? <div className="error">{error}</div> : null}
 
@@ -320,6 +458,8 @@ function App() {
           <SettlementPanel settlement={settlement} />
           <AuditTrail rows={auditRows} />
         </section>
+
+        <DeveloperPanel />
       </section>
     </main>
   );
@@ -339,7 +479,7 @@ function AgentPanel({
   setActiveAsset: (asset: AssetSymbol) => void;
 }) {
   return (
-    <section className="panel" id="agent">
+    <section className="panel" id="agents">
       <div className="panelHeader">
         <div>
           <span>AI Finance Agent</span>
@@ -380,7 +520,7 @@ function AgentPanel({
 function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
   const asset = assets.find((item) => item.symbol === activeAsset) ?? assets[0];
   return (
-    <section className="panel" id="policy">
+    <section className="panel" id="policies">
       <div className="panelHeader">
         <div>
           <span>Policy</span>
@@ -427,9 +567,21 @@ function WedgePanel() {
   );
 }
 
-function MerchantPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
+function MerchantPanel({
+  activeAsset,
+  quote,
+  unlock,
+  onQuote,
+  busy
+}: {
+  activeAsset: AssetSymbol;
+  quote: MerchantQuote | null;
+  unlock: MerchantUnlock | null;
+  onQuote: () => void;
+  busy: boolean;
+}) {
   return (
-    <section className="panel">
+    <section className="panel" id="merchants">
       <div className="panelHeader">
         <div>
           <span>Merchant Scenario</span>
@@ -438,31 +590,49 @@ function MerchantPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
         <CircleDollarSign size={20} />
       </div>
       <dl className="infoList">
-        <InfoRow label="Service" value={`${activeAsset} signal package`} />
-        <InfoRow label="Settlement" value="0.25 token" />
-        <InfoRow label="Evidence" value="receipt hash" />
-        <InfoRow label="Bad paths" value="unknown / missing / over max" />
+        <InfoRow label="Service" value={quote?.title ?? `${activeAsset} signal package`} />
+        <InfoRow label="Price" value={quote ? `${quote.price} ${quote.asset}` : "0.25 token"} />
+        <InfoRow label="Receipt" value={quote ? short(quote.receiptHash) : "required"} />
+        <InfoRow label="Data" value={unlock?.unlocked ? "unlocked" : "locked"} />
       </dl>
+      <button onClick={onQuote} disabled={busy} title="Request merchant quote">
+        <Store size={17} />
+        Request quote
+      </button>
     </section>
   );
 }
 
-function ScenarioRail() {
+function ScenarioRail({
+  busy,
+  onPay,
+  onUnknown,
+  onMissing,
+  onOver,
+  onReplay
+}: {
+  busy: string;
+  onPay: () => void;
+  onUnknown: () => void;
+  onMissing: () => void;
+  onOver: () => void;
+  onReplay: () => void;
+}) {
   const scenarios = [
-    { label: "Valid merchant", state: "allow" },
-    { label: "Unknown merchant", state: "block" },
-    { label: "Missing receipt", state: "block" },
-    { label: "Over max", state: "block" },
-    { label: "Replay proof", state: "live" }
+    { label: "Pay verified merchant", state: "allow", action: onPay },
+    { label: "Try unknown merchant", state: "block", action: onUnknown },
+    { label: "Try missing receipt", state: "block", action: onMissing },
+    { label: "Try over max", state: "block", action: onOver },
+    { label: "Replay last payment", state: "live", action: onReplay }
   ];
 
   return (
     <div className="scenarioRail" aria-label="Spend scenarios">
       {scenarios.map((scenario) => (
-        <div className={`scenarioChip ${scenario.state}`} key={scenario.label}>
+        <button className={`scenarioChip ${scenario.state}`} disabled={busy !== ""} key={scenario.label} onClick={scenario.action}>
           {scenario.state === "allow" ? <CheckCircle2 size={15} /> : scenario.state === "live" ? <FileCheck2 size={15} /> : <XCircle size={15} />}
           <span>{scenario.label}</span>
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -485,6 +655,32 @@ function Kpi({ label, value }: { label: string; value: string }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function OverviewPanel({
+  demo,
+  settlement,
+  quote,
+  unlock
+}: {
+  demo: DemoPreview[];
+  settlement: LiveSettlement | null;
+  quote: MerchantQuote | null;
+  unlock: MerchantUnlock | null;
+}) {
+  const blocked = demo.filter((item) => !item.preview.allowed).length + (settlement?.replay.blocked ? 1 : 0);
+  return (
+    <section className="overviewGrid" id="overview">
+      <div className="overviewHero">
+        <span className="eyebrow">Product state</span>
+        <strong>Osmium controls how AI finance agents spend tokenized assets.</strong>
+      </div>
+      <Metric icon={<CircleDollarSign size={17} />} label="Protected Spend" value={settlement ? formatToken(settlement.amount) : "0.25 TSLA"} detail="latest live proof" />
+      <Metric icon={<CheckCircle2 size={17} />} label="Settled Payments" value={settlement ? "1" : "0"} detail={quote?.title ?? "market data service"} />
+      <Metric icon={<XCircle size={17} />} label="Blocked Attempts" value={String(blocked)} detail={settlement?.replay.reasonName ?? "policy reasons"} />
+      <Metric icon={<FileCheck2 size={17} />} label="Latest Receipt" value={settlement ? short(settlement.receiptHash) : "pending"} detail={unlock?.unlocked ? "data unlocked" : "receipt gate"} />
+    </section>
   );
 }
 
@@ -585,6 +781,52 @@ function AuditTrail({ rows }: { rows: Array<{ status: string; detail: string; ok
   );
 }
 
+function DeveloperPanel() {
+  return (
+    <section className="developerPanel" id="developer">
+      <div className="panelHeader">
+        <div>
+          <span>Developer Surface</span>
+          <strong>Integrate an agent in 10 minutes</strong>
+        </div>
+        <Code2 size={20} />
+      </div>
+      <div className="developerGrid">
+        <div className="setupList">
+          <div>
+            <ListChecks size={17} />
+            <span>Connect operator wallet</span>
+          </div>
+          <div>
+            <ListChecks size={17} />
+            <span>Select TSLA or AMD policy template</span>
+          </div>
+          <div>
+            <ListChecks size={17} />
+            <span>Attach verified merchant and receipt rule</span>
+          </div>
+          <div>
+            <ListChecks size={17} />
+            <span>Route agent spend through SettlementRouter</span>
+          </div>
+        </div>
+        <pre>
+          <code>{`const quote = await merchant.quote("TSLA");
+const intent = await osmium.requestSpend({
+  agent: marketDataAgent,
+  merchant: quote.merchant,
+  token: quote.token,
+  amount: quote.priceWei,
+  receiptHash: quote.receiptHash
+});
+
+await osmium.settleWithIntent(intent);`}</code>
+        </pre>
+      </div>
+    </section>
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="infoRow">
@@ -604,8 +846,9 @@ function LedgerRow({ label, value, detail }: { label: string; value: string; det
   );
 }
 
-function buildAuditRows(demo: DemoPreview[], settlement: LiveSettlement | null) {
+function buildAuditRows(demo: DemoPreview[], settlement: LiveSettlement | null, spendEvents: SpendEvent[]) {
   return [
+    ...spendEvents,
     ...(settlement
       ? [
           {

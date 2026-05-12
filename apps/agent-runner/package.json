@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "demo": "tsx src/demo.ts",
+    "live-settlement": "tsx src/liveSettlement.ts",
     "setup": "tsx src/setup.ts",
     "typecheck": "tsc --noEmit"
   },
@@ -21,4 +22,3 @@
     "typescript": "^5.7.2"
   }
 }
-

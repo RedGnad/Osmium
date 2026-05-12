@@ -493,12 +493,7 @@ impl OsmiumPolicyEngine {
 impl OsmiumPolicyEngine {
     fn ensure_admin(&mut self) -> Result<(), Vec<u8>> {
         if self.admin.get() == Address::ZERO {
-            let sender = self.vm().msg_sender();
-            self.admin.set(sender);
-            if self.next_policy_id.get() == U256::ZERO {
-                self.next_policy_id.set(U256::from(1));
-            }
-            self.vm().log(AdminInitialized { admin: sender });
+            return Err(b"NOT_INITIALIZED".to_vec());
         }
 
         if self.admin.get() != self.vm().msg_sender() {

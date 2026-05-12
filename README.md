@@ -39,17 +39,18 @@ The Solidity contracts are useful for fast local tests, ERC20 custody, and Stylu
 
 Robinhood Chain Testnet:
 
-- Stylus `PolicyEngine`: `0x2db67dafbeaa8ca9787a7de4198b1a5413fe08ca`
-- Solidity `SettlementRouter`: `0x50f2fdB5A5E0a2490655e5208bE17e0e6bDC6E2b`
-- Deployment tx: `0x4bbe05f16daa75bc15a3a6aa72f32a674849f610f3c6e6408c0e45261c324c2b`
-- Activation tx: `0x0f7b193f2bdfdff80b5c1999af7746db5c40989f6c13fac1717df711298992d7`
-- SettlementRouter deployment tx: `0x1fc26656a412688ce1235807fe3b3d176163c3b5f7a126b4a4977ea0a2cebcef`
-- Set settlement router tx: `0x9b72ad0e012c960921fb6fa7b9ed61a27a737198abf4df2ba173ebcf200aa89f`
-- Init tx: `0xea827c837410c91525cbf67a4c8ae19814ce0bc18b3bc491a43c1330ae591992`
-- Register merchant tx: `0x8383c074e9ccb7db9bf317121fda2bdcd8d2d4b13e510db680bfbaef5be04e35`
-- Create policy tx: `0x6cb4ee7daa72aba1f5d41769811a801d1e3ec7a5175998c5d8593a9a2116bf27`
-- Approve intent tx: `0x1ab71aff514a6327e14059d50bf22121e4c189ed5dba91c5d9ee8dd072a4907d`
-- Current demo policy id: `1`
+- Stylus `PolicyEngine`: `0x415e775269a1d0d63f272256371aa64705eea2e2`
+- Solidity `SettlementRouter`: `0x8F0BC7570135b42DF062359Bf3e7b5A9d490a262`
+- PolicyEngine deployment tx: `0x0faa69962af176f9465e2e6680d1402d776d02aff9f35b98a7594b01582f5e71`
+- PolicyEngine activation tx: `0xcb1608fe82345de7d029ee2a569f4ccf97728c019065f30643e4b4c76ef33ecc`
+- SettlementRouter deployment tx: `0xc36d7dfe1046d63dae89676cecce6775d0a8cc0b7bd4b7f6fe6b5b782062c0ae`
+- Set settlement router tx: `0x54d69af3393bbc655d540b8ad65dc0f271bfbff190bf8440e3c75d559f7970e7`
+- Init tx: `0x40ae7e6adb7a81a6e348c125aff1bdd94ae58b9a4be14e1dc0fe3570c0cee3f3`
+- Register USDG merchant tx: `0x3e908f0090b5070f3ae6d2f54da49d2c2e75452a55bb423fb7d2cb3607333e50`
+- Create USDG policy tx: `0x8c5eaef3ae7a4fcc4bf8f4d6e12d8bdc44f45b2a1a957818a84a3e1062761fc2`
+- Approve USDG intent tx: `0x672d9518846e8cea8db002231f927c9259ee4b0a7dd20bf944e31e8c03672553`
+- USDG policy id: `1`
+- Active TSLA demo policy id: `2`
 - Settlement demo policy id: `2`
 - Demo merchant: `0x000000000000000000000000000000000000beef`
 - Demo token/USDG: `0x7E955252E15c84f5768B83c41a71F9eba181802F`
@@ -92,7 +93,7 @@ cargo stylus check --endpoint https://rpc.testnet.chain.robinhood.com
 cargo stylus deploy --endpoint https://rpc.testnet.chain.robinhood.com --private-key $PRIVATE_KEY
 ```
 
-The current Stylus check passes on Robinhood Chain Testnet with a 23.3 KB contract and an estimated activation data fee of about 0.000133 ETH.
+The current Stylus check passes on Robinhood Chain Testnet with a 23.2 KB contract and an estimated activation data fee of about 0.000132 ETH.
 
 ## Prompt Injection Guardrail
 
@@ -120,14 +121,32 @@ For USDG-specific demos, fund the wallet with test USDG through the Paxos faucet
 
 Live TSLA settlement proof:
 
-- TSLA policy setup tx: `0x5ebeeb289a60c2e8d9819b2ccff61025ad6ef2556b79134d6e10ee4deb9eca48`
-- TSLA intent approval tx: `0xeb48423db3a963be8a153338f6aab1a61b7f3a09f44d95287f2d84b14f11be8c`
-- TSLA router approve tx: `0x64b7c245727a100edb83dbd78ead2b17420a76da4fc3f4b74b0613a1d2225004`
-- TSLA router deposit tx: `0x372786a9deaa867c40005833f045f20e89e0becde500dc00fcd0d3991e95d27f`
-- TSLA settled payment tx: `0x4cf0ce861139227b57747b20de548a800c3fd450f6be28f81c59f90d18dd2cbf`
+- TSLA policy setup tx: `0xedb485d4a0283836e7cb6d5677d80195fd4309abaac97febf7fb4992136013d6`
+- TSLA intent approval tx: `0xac7d05a3140e617596319ec4a68fdad1d12124ca581e6566d65c56b04cba8775`
+- TSLA router approve tx: `0x070889d7b8ae29949d853961f73ae47d89b1032adbe47368f3031c5280310a72`
+- TSLA router deposit tx: `0xf53fb7ec623c5f31c72baf2b8b97937006b0ed84901af394fd8599fa8017aa80`
+- TSLA settled payment tx: `0xe015a5af95bc9b11491ba083c42a2ec4f34e977e5491eae1e260bdad1cd20513`
 - Settled amount: `0.25 TSLA`
-- Router vault remaining balance: `0.75 TSLA`
-- Merchant TSLA balance after settlement: `0.25 TSLA`
+- Replay check after settlement: `Replay`
+- Router vault remaining balance after latest run: `0.5 TSLA`
+- Merchant TSLA balance after latest run: `1.0 TSLA`
+
+Run the full live proof with:
+
+```bash
+pnpm agent:live-settlement
+```
+
+It prints owner, router, and merchant balances before and after settlement, the approval/deposit/settlement transaction hashes, the stored PolicyEngine receipt, and a replay preview showing `reasonName: "Replay"`.
+
+## Known Limitations
+
+- Osmium is a hackathon prototype, not audited production infrastructure.
+- Merchant categories are stored as metadata, but current policy enforcement is merchant allowlist based rather than category based.
+- Intent hashes are globally unique in the current engine; use a distinct intent hash per live policy, or point the runner at the active TSLA policy as this demo does.
+- Receipts prove that an agent supplied a receipt hash; they do not independently verify offchain service quality.
+- Merchant real-world identity/KYB, x402 facilitator integration, private policy rules, and cross-chain settlement are out of scope for this MVP.
+- The public dashboard should not expose runner secrets. Keep `/demo/run` local, server-side, or protected by a private operator flow.
 
 ## Demo Story
 

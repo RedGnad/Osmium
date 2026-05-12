@@ -36,6 +36,22 @@ Never commit `.env`.
 
 The demo path uses `authorizePaymentWithIntent`, so setup must approve `DEMO_INTENT_HASH` for the active `POLICY_ID`.
 
+## Live Settlement Script
+
+Run:
+
+```bash
+pnpm agent:live-settlement
+```
+
+The script performs the TSLA settlement proof against the deployed router:
+
+- reads owner, router vault, and merchant balances;
+- approves and deposits TSLA into the `OsmiumSettlementRouter`;
+- calls `settleWithIntent`;
+- reads the stored PolicyEngine receipt;
+- previews the same payment id again and expects `Replay`.
+
 Protected requests need:
 
 ```http

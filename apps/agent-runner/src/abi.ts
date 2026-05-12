@@ -90,6 +90,21 @@ export const osmiumPolicyEngineAbi = [
       { name: "receipt_hash", type: "bytes32" }
     ],
     outputs: [{ type: "bool" }]
+  },
+  {
+    type: "function",
+    name: "getReceipt",
+    stateMutability: "view",
+    inputs: [{ name: "payment_id", type: "bytes32" }],
+    outputs: [
+      { type: "uint256" },
+      { type: "bytes32" },
+      { type: "address" },
+      { type: "address" },
+      { type: "uint256" },
+      { type: "bytes32" },
+      { type: "uint64" }
+    ]
   }
 ] as const;
 

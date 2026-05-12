@@ -6,6 +6,7 @@
   "scripts": {
     "agent:dev": "pnpm --filter @osmium/agent-runner run dev",
     "agent:demo": "pnpm --filter @osmium/agent-runner run demo",
+    "agent:live-settlement": "pnpm --filter @osmium/agent-runner run live-settlement",
     "agent:setup": "pnpm --filter @osmium/agent-runner run setup",
     "agent:typecheck": "pnpm --filter @osmium/agent-runner run typecheck",
     "web:dev": "pnpm --filter @osmium/web run dev",

@@ -31,6 +31,9 @@ export type RunnerConfig = {
   policyId: bigint;
   demoIntentHash: Hex;
   tokenAddress: Address;
+  settlementRouterAddress?: Address;
+  settlementDemoPolicyId: bigint;
+  settlementDemoTokenAddress: Address;
   merchantAddress: Address;
   unknownMerchantAddress: Address;
   maxPerTxWei: bigint;
@@ -71,6 +74,13 @@ export function loadConfig(): RunnerConfig {
         ? process.env.DEMO_INTENT_HASH
         : keccak256(toBytes("osmium-demo-intent"))) as Hex,
     tokenAddress: env("TOKEN_ADDRESS") as Address,
+    settlementRouterAddress:
+      process.env.OSMIUM_SETTLEMENT_ROUTER_ADDRESS &&
+      process.env.OSMIUM_SETTLEMENT_ROUTER_ADDRESS !== "0x0000000000000000000000000000000000000000"
+        ? (process.env.OSMIUM_SETTLEMENT_ROUTER_ADDRESS as Address)
+        : undefined,
+    settlementDemoPolicyId: BigInt(env("SETTLEMENT_DEMO_POLICY_ID", env("POLICY_ID", "1"))),
+    settlementDemoTokenAddress: env("SETTLEMENT_DEMO_TOKEN_ADDRESS", env("TOKEN_ADDRESS")) as Address,
     merchantAddress: env("MERCHANT_ADDRESS") as Address,
     unknownMerchantAddress: env("UNKNOWN_MERCHANT_ADDRESS", env("MERCHANT_ADDRESS")) as Address,
     maxPerTxWei: BigInt(env("MAX_PER_TX_WEI", "1000000000000000000")),

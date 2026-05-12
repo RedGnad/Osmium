@@ -95,6 +95,18 @@ The runner also exposes a mini verified merchant surface:
 
 This turns the demo from "agent sends a token" into "agent buys a verified market-data service, settles through Osmium, then unlocks data with a receipt proof."
 
+Developer integration starts in `packages/osmium-sdk`:
+
+```ts
+import { OsmiumClient } from "@osmium/sdk";
+
+const osmium = new OsmiumClient({ runnerUrl: "https://your-runner.example" });
+const quote = await osmium.getQuote("TSLA");
+const previews = await osmium.previewSpend();
+```
+
+Operator-only execution can pass `operatorApiKey` server-side or in a local judged console session. Do not embed it in public frontend environment variables.
+
 ## Robinhood Chain Testnet
 
 - Chain ID: `46630`

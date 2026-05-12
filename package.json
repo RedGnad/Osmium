@@ -11,7 +11,8 @@
     "agent:typecheck": "pnpm --filter @osmium/agent-runner run typecheck",
     "web:dev": "pnpm --filter @osmium/web run dev",
     "web:build": "pnpm --filter @osmium/web run build",
-    "web:typecheck": "pnpm --filter @osmium/web run typecheck"
+    "web:typecheck": "pnpm --filter @osmium/web run typecheck",
+    "sdk:typecheck": "apps/web/node_modules/.bin/tsc -p packages/osmium-sdk/tsconfig.json --noEmit"
   },
   "engines": {
     "node": ">=22"

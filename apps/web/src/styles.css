@@ -41,6 +41,22 @@ button {
   padding: 0 14px;
 }
 
+input {
+  background: #ffffff;
+  border: 1px solid #d8d3c9;
+  border-radius: 8px;
+  color: #202321;
+  font: inherit;
+  min-height: 42px;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+input:focus {
+  border-color: #146b55;
+  outline: 2px solid #d7f5e4;
+}
+
 button:hover {
   border-color: #8d877c;
 }
@@ -444,6 +460,12 @@ button.scenarioChip {
   color: #146b55;
 }
 
+.scenarioChip.execute {
+  background: #123d31;
+  border-color: #123d31;
+  color: #ffffff;
+}
+
 .scenarioChip.block {
   background: #fff0e6;
   border-color: #edc3a8;
@@ -460,6 +482,31 @@ button.scenarioChip {
   border-top: 1px solid #ece7dc;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+}
+
+.operatorPanel {
+  align-items: end;
+  background: #fbfaf7;
+  border: 1px solid #ece7dc;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.72fr);
+  padding: 12px;
+}
+
+.operatorPanel div {
+  display: grid;
+  gap: 5px;
+}
+
+.operatorPanel span {
+  color: #6b665e;
+  font-size: 13px;
+}
+
+.operatorPanel strong {
+  font-size: 16px;
 }
 
 .decisionSummary div {
@@ -756,7 +803,8 @@ code {
   }
 
   .decisionSummary,
-  .assetTabs {
+  .assetTabs,
+  .operatorPanel {
     grid-template-columns: 1fr;
   }
 

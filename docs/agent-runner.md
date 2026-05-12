@@ -38,10 +38,13 @@ Never commit `.env`.
 - `GET /merchant/quote?asset=TSLA`: public verified market-data quote.
 - `GET /merchant/quote?asset=AMD`: public verified market-data quote.
 - `POST /merchant/receipt`: verifies the latest receipt and unlocks the demo data payload.
+- `GET /merchant/audit`: in-memory settlement/unlock audit records for the running demo service.
 
 The preview path uses `previewAuthorizationWithIntent`. The state-changing path uses `OsmiumSettlementRouter.settleWithIntent`, which calls `authorizePaymentForAgent` on the Stylus engine.
 
 The merchant path is intentionally small: it models one verified Market Data API instead of a full marketplace. The agent asks for a TSLA or AMD quote, receives a price, merchant address, service id, data hash, and receipt requirement, then Osmium settlement unlocks the data once the receipt is visible onchain.
+
+The runner keeps a small in-memory audit store keyed by `paymentId`. It records operator-triggered settlements and receipt unlocks. This is hackathon-grade observability rather than a production database; durable storage belongs in a hosted demo deployment or indexer.
 
 ## Live Settlement Script
 

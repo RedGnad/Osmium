@@ -4,6 +4,7 @@ import { blockReasons, osmiumPolicyEngineAbi } from "./abi.js";
 import { publicClient, walletClient } from "./client.js";
 import { loadConfig } from "./config.js";
 import { hashLabel } from "./osmium.js";
+import { recordSettlement } from "./auditStore.js";
 
 const CONTEXT_HASH = hashLabel("task:osmium-demo-agent-payment");
 
@@ -222,6 +223,15 @@ export async function runLiveSettlement() {
   process.env.LATEST_SETTLEMENT_TX = settleTx;
   process.env.LATEST_SETTLEMENT_PAYMENT_ID = paymentId;
   process.env.LATEST_SETTLEMENT_RECEIPT_HASH = receiptHash;
+  recordSettlement({
+    paymentId,
+    asset: "TSLA",
+    token,
+    receiptHash,
+    txHash: settleTx,
+    amount: amount.toString(),
+    merchant: config.merchantAddress
+  });
 
   return stringify({
     policyId: config.settlementDemoPolicyId,

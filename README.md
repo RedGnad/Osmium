@@ -179,13 +179,16 @@ Live TSLA settlement proof:
 
 - TSLA policy setup tx: `0x17d5c72af5b23d9d6b3f143627cbcab271a5ab93ae90b84210816e92f8dab214`
 - TSLA intent approval tx: `0x86d8d024b690562bb0570563c199c2040a566866be846522a27f74acba5a66ed`
-- TSLA router approve tx: `0xfdc6f4391645c495c93b83704486ece9c7452e6bd191699f1a27d0b629c466df`
-- TSLA router deposit tx: `0xc9416f784bf015aa232574e4e31c3d5a86a98536fad86211142d55477c97592e`
-- TSLA settled payment tx: `0x81e2afb3362aada2ccf361d9d45707c323a630a514dbaf0d4f1d1721cf99522a`
+- Latest TSLA router approve tx: `0xc1f3dd6e2329c0f0fb26bc6e7fe44c38f0ac704407c33badfd8dfada0f5b5436`
+- Latest TSLA router deposit tx: `0x49620dae5c966bd2239e1e4b04822b24e7e3e8ed96de358b9b6752bc0ac3198b`
+- Latest TSLA settled payment tx: `0x5ca16275547d0e2ec347a10a2962443000119ca211fab80608ac1b94d86f4cc4`
+- Latest payment id: `0xed5a3b5ea4ba085a67aa0cc8e778c65cbd1c7a6cfdbe091c12d152431771792c`
+- Latest receipt hash: `0x043d45e765abcf54425e1c93aeae7dd069e29b5e3cdd508ca1e272285afc5dee`
 - Settled amount: `0.25 TSLA`
 - Replay check after settlement: `Replay`
-- Router vault remaining balance after latest run: `0.5 TSLA`
-- Merchant TSLA balance after latest run: `1.0 TSLA`
+- Router vault remaining balance after latest run: `1.0 TSLA`
+- Merchant TSLA balance after latest run: `2.25 TSLA`
+- Merchant data unlock after settlement: `true`
 
 Run the full live proof with:
 

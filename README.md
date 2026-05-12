@@ -50,8 +50,10 @@ Robinhood Chain Testnet:
 - Create policy tx: `0x6cb4ee7daa72aba1f5d41769811a801d1e3ec7a5175998c5d8593a9a2116bf27`
 - Approve intent tx: `0x1ab71aff514a6327e14059d50bf22121e4c189ed5dba91c5d9ee8dd072a4907d`
 - Current demo policy id: `1`
+- Settlement demo policy id: `2`
 - Demo merchant: `0x000000000000000000000000000000000000beef`
 - Demo token/USDG: `0x7E955252E15c84f5768B83c41a71F9eba181802F`
+- Settlement demo token/TSLA: `0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E`
 
 The live deployed engine proves Stylus-native authorization, runtime context enforcement, receipts, replay protection, and audit events. The live `OsmiumSettlementRouter` adds real ERC20 custody and settlement in Solidity against the Stylus engine interface. The router is registered on the engine with `setSettlementRouter`.
 
@@ -114,7 +116,18 @@ The payment path now has two layers:
 
 If the engine returns `true`, the router transfers the token to the merchant and emits `PaymentSettled`. If the engine returns `false`, no funds move and the router emits `PaymentDenied`. This demonstrates the intended Arbitrum Stylus interop model: policy logic in Rust/Stylus, settlement in Solidity.
 
-The current demo wallet has no USDG balance yet, so the next live settlement step is to fund the wallet with test USDG, approve the router, deposit into the router vault, and call `settleWithIntent`.
+For USDG-specific demos, fund the wallet with test USDG through the Paxos faucet, approve the router, deposit into the router vault, and call `settleWithIntent`. The live TSLA flow below already proves real token custody and settlement on Robinhood Chain.
+
+Live TSLA settlement proof:
+
+- TSLA policy setup tx: `0x5ebeeb289a60c2e8d9819b2ccff61025ad6ef2556b79134d6e10ee4deb9eca48`
+- TSLA intent approval tx: `0xeb48423db3a963be8a153338f6aab1a61b7f3a09f44d95287f2d84b14f11be8c`
+- TSLA router approve tx: `0x64b7c245727a100edb83dbd78ead2b17420a76da4fc3f4b74b0613a1d2225004`
+- TSLA router deposit tx: `0x372786a9deaa867c40005833f045f20e89e0becde500dc00fcd0d3991e95d27f`
+- TSLA settled payment tx: `0x4cf0ce861139227b57747b20de548a800c3fd450f6be28f81c59f90d18dd2cbf`
+- Settled amount: `0.25 TSLA`
+- Router vault remaining balance: `0.75 TSLA`
+- Merchant TSLA balance after settlement: `0.25 TSLA`
 
 ## Demo Story
 

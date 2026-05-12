@@ -21,13 +21,14 @@ contract AgentCaller {
         OsmiumPolicyVault vault,
         uint256 policyId,
         bytes32 intentHash,
+        bytes32 contextHash,
         address merchant,
         address token,
         uint256 amount,
         bytes32 paymentId,
         bytes32 receiptHash
     ) external returns (bool) {
-        return vault.executePaymentWithIntent(policyId, intentHash, merchant, token, amount, paymentId, receiptHash);
+        return vault.executePaymentWithIntent(policyId, intentHash, contextHash, merchant, token, amount, paymentId, receiptHash);
     }
 }
 
@@ -133,12 +134,14 @@ contract OsmiumPolicyVaultTest {
     function testAllowsPreApprovedIntent() public {
         uint256 policyId = _createPolicy(10 ether, 25 ether);
         bytes32 intentHash = keccak256("intent-safe-api-call");
-        vault.approveIntent(policyId, intentHash, keccak256("task:api-data"), 6 ether, uint64(block.timestamp + 1 days));
+        bytes32 contextHash = keccak256("task:api-data");
+        vault.approveIntent(policyId, intentHash, contextHash, 6 ether, uint64(block.timestamp + 1 days));
 
         bool ok = agent.executeWithIntent(
             vault,
             policyId,
             intentHash,
+            contextHash,
             merchant,
             address(token),
             5 ether,
@@ -157,6 +160,7 @@ contract OsmiumPolicyVaultTest {
             vault,
             policyId,
             keccak256("missing-intent"),
+            keccak256("task:api-data"),
             merchant,
             address(token),
             5 ether,
@@ -171,12 +175,14 @@ contract OsmiumPolicyVaultTest {
     function testBlocksIntentAmountExceeded() public {
         uint256 policyId = _createPolicy(10 ether, 25 ether);
         bytes32 intentHash = keccak256("intent-low-cap");
-        vault.approveIntent(policyId, intentHash, keccak256("task:low-cap"), 3 ether, uint64(block.timestamp + 1 days));
+        bytes32 contextHash = keccak256("task:low-cap");
+        vault.approveIntent(policyId, intentHash, contextHash, 3 ether, uint64(block.timestamp + 1 days));
 
         bool ok = agent.executeWithIntent(
             vault,
             policyId,
             intentHash,
+            contextHash,
             merchant,
             address(token),
             4 ether,
@@ -186,6 +192,29 @@ contract OsmiumPolicyVaultTest {
 
         require(!ok, "INTENT_OVERAGE_ALLOWED");
         require(token.balanceOf(merchant) == 0, "INTENT_OVERAGE_PAID");
+    }
+
+    function testBlocksWrongContextHash() public {
+        uint256 policyId = _createPolicy(10 ether, 25 ether);
+        bytes32 intentHash = keccak256("intent-bound-context");
+        vault.approveIntent(
+            policyId, intentHash, keccak256("task:trusted-context"), 6 ether, uint64(block.timestamp + 1 days)
+        );
+
+        bool ok = agent.executeWithIntent(
+            vault,
+            policyId,
+            intentHash,
+            keccak256("task:prompt-injected-context"),
+            merchant,
+            address(token),
+            5 ether,
+            keccak256("payment-wrong-context"),
+            keccak256("receipt-wrong-context")
+        );
+
+        require(!ok, "WRONG_CONTEXT_ALLOWED");
+        require(token.balanceOf(merchant) == 0, "WRONG_CONTEXT_PAID");
     }
 
     function _createPolicy(uint256 maxPerTx, uint256 periodLimit) private returns (uint256) {

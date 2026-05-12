@@ -60,26 +60,12 @@ export const osmiumPolicyEngineAbi = [
   },
   {
     type: "function",
-    name: "previewAuthorization",
-    stateMutability: "view",
-    inputs: [
-      { name: "policy_id", type: "uint256" },
-      { name: "agent", type: "address" },
-      { name: "merchant", type: "address" },
-      { name: "token", type: "address" },
-      { name: "amount", type: "uint256" },
-      { name: "payment_id", type: "bytes32" },
-      { name: "receipt_hash", type: "bytes32" }
-    ],
-    outputs: [{ type: "bool" }, { type: "uint8" }]
-  },
-  {
-    type: "function",
     name: "previewAuthorizationWithIntent",
     stateMutability: "view",
     inputs: [
       { name: "policy_id", type: "uint256" },
       { name: "intent_hash", type: "bytes32" },
+      { name: "context_hash", type: "bytes32" },
       { name: "agent", type: "address" },
       { name: "merchant", type: "address" },
       { name: "token", type: "address" },
@@ -88,20 +74,6 @@ export const osmiumPolicyEngineAbi = [
       { name: "receipt_hash", type: "bytes32" }
     ],
     outputs: [{ type: "bool" }, { type: "uint8" }]
-  },
-  {
-    type: "function",
-    name: "authorizePayment",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "policy_id", type: "uint256" },
-      { name: "merchant", type: "address" },
-      { name: "token", type: "address" },
-      { name: "amount", type: "uint256" },
-      { name: "payment_id", type: "bytes32" },
-      { name: "receipt_hash", type: "bytes32" }
-    ],
-    outputs: [{ type: "bool" }]
   },
   {
     type: "function",
@@ -110,6 +82,7 @@ export const osmiumPolicyEngineAbi = [
     inputs: [
       { name: "policy_id", type: "uint256" },
       { name: "intent_hash", type: "bytes32" },
+      { name: "context_hash", type: "bytes32" },
       { name: "merchant", type: "address" },
       { name: "token", type: "address" },
       { name: "amount", type: "uint256" },
@@ -133,5 +106,6 @@ export const blockReasons: Record<number, string> = {
   9: "MissingReceipt",
   10: "InvalidIntent",
   11: "IntentExpired",
-  12: "IntentAmountExceeded"
+  12: "IntentAmountExceeded",
+  13: "ContextMismatch"
 };

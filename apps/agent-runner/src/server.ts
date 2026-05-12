@@ -3,6 +3,10 @@ import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
 
 const config = loadConfig();
+if (config.requireRunnerApiKey && !config.runnerApiKey) {
+  throw new Error("RUNNER_API_KEY is required when RUNNER_REQUIRE_API_KEY=true or RENDER=true");
+}
+
 const app = express();
 
 app.use((req, res, next) => {
@@ -16,7 +20,9 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 function requireApiKey(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!config.runnerApiKey) return next();
+  if (!config.runnerApiKey) {
+    return res.status(503).json({ error: "runner api key is not configured" });
+  }
   if (req.header("x-osmium-api-key") !== config.runnerApiKey) {
     return res.status(401).json({ error: "unauthorized" });
   }
@@ -31,7 +37,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.post("/demo/preview", requireApiKey, async (_req, res, next) => {
+app.post("/demo/preview", async (_req, res, next) => {
   try {
     res.json(await runDemo({ sendTransactions: false }));
   } catch (error) {

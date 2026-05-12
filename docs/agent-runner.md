@@ -24,22 +24,25 @@ Use Render secret environment variables for:
 - `ADMIN_PRIVATE_KEY`
 - `AGENT_PRIVATE_KEY`
 - `RUNNER_API_KEY`
+- `RUNNER_REQUIRE_API_KEY=true`
 
 Never commit `.env`.
 
 ## Endpoints
 
 - `GET /health`: no transaction, safe liveness check.
-- `POST /demo/preview`: runs view-only authorization previews.
-- `POST /demo/run`: sends authorization transactions from the agent wallet.
+- `POST /demo/preview`: public view-only authorization previews.
+- `POST /demo/run`: protected endpoint that sends authorization transactions from the agent wallet.
 
 The demo path uses `authorizePaymentWithIntent`, so setup must approve `DEMO_INTENT_HASH` for the active `POLICY_ID`.
 
-If `RUNNER_API_KEY` is set, protected requests need:
+Protected requests need:
 
 ```http
 x-osmium-api-key: your-secret
 ```
+
+Do not expose this value through `VITE_` frontend variables. Vite embeds `VITE_*` values in the browser bundle, so the public dashboard only calls `/health` and `/demo/preview` by default. Keep `/demo/run` local, server-side, or behind an operator-only trigger for judged demos.
 
 ## Why An External Runner Is Fine
 

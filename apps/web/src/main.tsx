@@ -24,8 +24,7 @@ const config = {
   rpcUrl: import.meta.env.VITE_RH_RPC_URL ?? "https://rpc.testnet.chain.robinhood.com",
   engineAddress: (import.meta.env.VITE_OSMIUM_POLICY_ENGINE_ADDRESS ??
     "0x0000000000000000000000000000000000000000") as Address,
-  runnerUrl: import.meta.env.VITE_AGENT_RUNNER_URL ?? "http://127.0.0.1:10000",
-  runnerApiKey: import.meta.env.VITE_RUNNER_API_KEY
+  runnerUrl: import.meta.env.VITE_AGENT_RUNNER_URL ?? "http://127.0.0.1:10000"
 };
 
 const robinhoodTestnet = {
@@ -45,8 +44,7 @@ async function callRunner(path: string) {
   const response = await fetch(`${config.runnerUrl}${path}`, {
     method: path === "/health" ? "GET" : "POST",
     headers: {
-      "content-type": "application/json",
-      ...(config.runnerApiKey ? { "x-osmium-api-key": config.runnerApiKey } : {})
+      "content-type": "application/json"
     }
   });
   if (!response.ok) throw new Error(await response.text());

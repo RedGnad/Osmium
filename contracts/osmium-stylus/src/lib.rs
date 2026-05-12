@@ -23,11 +23,13 @@ const REASON_MISSING_RECEIPT: u8 = 9;
 const REASON_INVALID_INTENT: u8 = 10;
 const REASON_INTENT_EXPIRED: u8 = 11;
 const REASON_INTENT_AMOUNT_EXCEEDED: u8 = 12;
+const REASON_CONTEXT_MISMATCH: u8 = 13;
 
 sol_storage! {
     #[entrypoint]
     pub struct OsmiumPolicyEngine {
         address admin;
+        address settlement_router;
         uint256 next_policy_id;
         mapping(address => Merchant) merchants;
         mapping(uint256 => Policy) policies;
@@ -80,6 +82,7 @@ sol_storage! {
 
 sol! {
     event AdminInitialized(address indexed admin);
+    event SettlementRouterSet(address indexed router);
     event MerchantRegistered(address indexed merchant, bytes32 indexed category, bytes32 metadata_hash);
     event MerchantStatusChanged(address indexed merchant, bool active);
     event PolicyCreated(
@@ -138,6 +141,17 @@ impl OsmiumPolicyEngine {
 
     pub fn admin(&self) -> Address {
         self.admin.get()
+    }
+
+    pub fn settlement_router(&self) -> Address {
+        self.settlement_router.get()
+    }
+
+    pub fn set_settlement_router(&mut self, router: Address) -> Result<(), Vec<u8>> {
+        self.ensure_admin()?;
+        self.settlement_router.set(router);
+        self.vm().log(SettlementRouterSet { router });
+        Ok(())
     }
 
     pub fn next_policy_id(&self) -> U256 {
@@ -332,32 +346,11 @@ impl OsmiumPolicyEngine {
         self.current_period_inner(policy_id)
     }
 
-    pub fn preview_authorization(
-        &self,
-        policy_id: U256,
-        agent: Address,
-        merchant: Address,
-        token: Address,
-        amount: U256,
-        payment_id: B256,
-        receipt_hash: B256,
-    ) -> (bool, u8) {
-        let reason = self.validate_authorization(
-            policy_id,
-            agent,
-            merchant,
-            token,
-            amount,
-            payment_id,
-            receipt_hash,
-        );
-        (reason == REASON_NONE, reason)
-    }
-
     pub fn preview_authorization_with_intent(
         &self,
         policy_id: U256,
         intent_hash: B256,
+        context_hash: B256,
         agent: Address,
         merchant: Address,
         token: Address,
@@ -368,6 +361,7 @@ impl OsmiumPolicyEngine {
         let reason = self.validate_authorization_with_intent(
             policy_id,
             intent_hash,
+            context_hash,
             agent,
             merchant,
             token,
@@ -378,9 +372,11 @@ impl OsmiumPolicyEngine {
         (reason == REASON_NONE, reason)
     }
 
-    pub fn authorize_payment(
+    pub fn authorize_payment_with_intent(
         &mut self,
         policy_id: U256,
+        intent_hash: B256,
+        context_hash: B256,
         merchant: Address,
         token: Address,
         amount: U256,
@@ -388,8 +384,10 @@ impl OsmiumPolicyEngine {
         receipt_hash: B256,
     ) -> Result<bool, Vec<u8>> {
         let agent = self.vm().msg_sender();
-        let reason = self.validate_authorization(
+        let reason = self.validate_authorization_with_intent(
             policy_id,
+            intent_hash,
+            context_hash,
             agent,
             merchant,
             token,
@@ -413,7 +411,7 @@ impl OsmiumPolicyEngine {
 
         self.record_authorization(
             policy_id,
-            B256::ZERO,
+            intent_hash,
             agent,
             merchant,
             token,
@@ -424,20 +422,26 @@ impl OsmiumPolicyEngine {
         Ok(true)
     }
 
-    pub fn authorize_payment_with_intent(
+    pub fn authorize_payment_for_agent(
         &mut self,
         policy_id: U256,
         intent_hash: B256,
+        context_hash: B256,
+        agent: Address,
         merchant: Address,
         token: Address,
         amount: U256,
         payment_id: B256,
         receipt_hash: B256,
     ) -> Result<bool, Vec<u8>> {
-        let agent = self.vm().msg_sender();
+        if self.vm().msg_sender() != self.settlement_router.get() {
+            return Err(b"NOT_SETTLEMENT_ROUTER".to_vec());
+        }
+
         let reason = self.validate_authorization_with_intent(
             policy_id,
             intent_hash,
+            context_hash,
             agent,
             merchant,
             token,
@@ -561,6 +565,7 @@ impl OsmiumPolicyEngine {
         &self,
         policy_id: U256,
         intent_hash: B256,
+        context_hash: B256,
         agent: Address,
         merchant_address: Address,
         token: Address,
@@ -585,6 +590,9 @@ impl OsmiumPolicyEngine {
         if intent_hash == B256::ZERO || !intent.active.get() || intent.policy_id.get() != policy_id
         {
             return REASON_INVALID_INTENT;
+        }
+        if context_hash == B256::ZERO || context_hash != intent.context_hash.get() {
+            return REASON_CONTEXT_MISMATCH;
         }
         if self.vm().block_timestamp() > intent.valid_until.get().to::<u64>() {
             return REASON_INTENT_EXPIRED;

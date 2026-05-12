@@ -33,13 +33,15 @@ interface IOsmiumPolicyEngine {
 
     function currentPeriod(uint256 policy_id) external view returns (uint64, uint256);
 
-    function previewAuthorization(uint256 policy_id, address agent, address merchant, address token, uint256 amount, bytes32 payment_id, bytes32 receipt_hash) external view returns (bool, uint8);
+    function settlementRouter() external view returns (address);
 
-    function previewAuthorizationWithIntent(uint256 policy_id, bytes32 intent_hash, address agent, address merchant, address token, uint256 amount, bytes32 payment_id, bytes32 receipt_hash) external view returns (bool, uint8);
+    function setSettlementRouter(address router) external;
 
-    function authorizePayment(uint256 policy_id, address merchant, address token, uint256 amount, bytes32 payment_id, bytes32 receipt_hash) external returns (bool);
+    function previewAuthorizationWithIntent(uint256 policy_id, bytes32 intent_hash, bytes32 context_hash, address agent, address merchant, address token, uint256 amount, bytes32 payment_id, bytes32 receipt_hash) external view returns (bool, uint8);
 
-    function authorizePaymentWithIntent(uint256 policy_id, bytes32 intent_hash, address merchant, address token, uint256 amount, bytes32 payment_id, bytes32 receipt_hash) external returns (bool);
+    function authorizePaymentWithIntent(uint256 policy_id, bytes32 intent_hash, bytes32 context_hash, address merchant, address token, uint256 amount, bytes32 payment_id, bytes32 receipt_hash) external returns (bool);
+
+    function authorizePaymentForAgent(uint256 policy_id, bytes32 intent_hash, bytes32 context_hash, address agent, address merchant, address token, uint256 amount, bytes32 payment_id, bytes32 receipt_hash) external returns (bool);
 
     function getReceipt(bytes32 payment_id) external view returns (uint256, bytes32, address, address, uint256, bytes32, uint64);
 }

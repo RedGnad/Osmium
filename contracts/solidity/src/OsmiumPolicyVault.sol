@@ -21,7 +21,8 @@ contract OsmiumPolicyVault {
         InsufficientVaultBalance,
         InvalidIntent,
         IntentExpired,
-        IntentAmountExceeded
+        IntentAmountExceeded,
+        ContextMismatch
     }
 
     struct Policy {
@@ -245,6 +246,7 @@ contract OsmiumPolicyVault {
     function previewPaymentWithIntent(
         uint256 policyId,
         bytes32 intentHash,
+        bytes32 contextHash,
         address agent,
         address merchant,
         address token,
@@ -253,7 +255,7 @@ contract OsmiumPolicyVault {
         bytes32 receiptHash
     ) external view returns (bool allowed, BlockReason reason) {
         reason = _validatePaymentWithIntent(
-            policyId, intentHash, agent, merchant, token, amount, paymentId, receiptHash
+            policyId, intentHash, contextHash, agent, merchant, token, amount, paymentId, receiptHash
         );
         allowed = reason == BlockReason.None;
     }
@@ -279,6 +281,7 @@ contract OsmiumPolicyVault {
     function executePaymentWithIntent(
         uint256 policyId,
         bytes32 intentHash,
+        bytes32 contextHash,
         address merchant,
         address token,
         uint256 amount,
@@ -286,7 +289,7 @@ contract OsmiumPolicyVault {
         bytes32 receiptHash
     ) external returns (bool) {
         BlockReason reason = _validatePaymentWithIntent(
-            policyId, intentHash, msg.sender, merchant, token, amount, paymentId, receiptHash
+            policyId, intentHash, contextHash, msg.sender, merchant, token, amount, paymentId, receiptHash
         );
         if (reason != BlockReason.None) {
             emit PaymentBlocked(policyId, msg.sender, merchant, reason, token, amount, paymentId);
@@ -331,6 +334,7 @@ contract OsmiumPolicyVault {
     function _validatePaymentWithIntent(
         uint256 policyId,
         bytes32 intentHash,
+        bytes32 contextHash,
         address agent,
         address merchant,
         address token,
@@ -345,6 +349,7 @@ contract OsmiumPolicyVault {
         if (intentHash == bytes32(0) || !intent.active || intent.policyId != policyId) {
             return BlockReason.InvalidIntent;
         }
+        if (contextHash == bytes32(0) || contextHash != intent.contextHash) return BlockReason.ContextMismatch;
         if (block.timestamp > intent.validUntil) return BlockReason.IntentExpired;
         if (amount > intent.maxAmount) return BlockReason.IntentAmountExceeded;
 

@@ -6,6 +6,7 @@ import type { RunnerConfig } from "./config.js";
 export type AuthorizationAttempt = {
   label: string;
   intentHash: Hex;
+  contextHash: Hex;
   merchant: Address;
   token: Address;
   amount: bigint;
@@ -27,6 +28,7 @@ export async function previewAuthorization(config: RunnerConfig, attempt: Author
     args: [
       config.policyId,
       attempt.intentHash,
+      attempt.contextHash,
       agentAddress,
       attempt.merchant,
       attempt.token,
@@ -57,6 +59,7 @@ export async function authorizePayment(config: RunnerConfig, attempt: Authorizat
     args: [
       config.policyId,
       attempt.intentHash,
+      attempt.contextHash,
       attempt.merchant,
       attempt.token,
       attempt.amount,
@@ -76,11 +79,13 @@ export async function authorizePayment(config: RunnerConfig, attempt: Authorizat
 export function demoAttempts(config: RunnerConfig): AuthorizationAttempt[] {
   const runId = Date.now();
   const replayId = hashLabel(`osmium:${runId}:replay`);
+  const approvedContextHash = hashLabel("task:osmium-demo-agent-payment");
 
   return [
     {
       label: "allowed verified merchant with receipt",
       intentHash: config.demoIntentHash,
+      contextHash: approvedContextHash,
       merchant: config.merchantAddress,
       token: config.tokenAddress,
       amount: config.maxPerTxWei / 2n,
@@ -90,6 +95,7 @@ export function demoAttempts(config: RunnerConfig): AuthorizationAttempt[] {
     {
       label: "blocked unknown merchant",
       intentHash: config.demoIntentHash,
+      contextHash: approvedContextHash,
       merchant: config.unknownMerchantAddress,
       token: config.tokenAddress,
       amount: config.maxPerTxWei / 2n,
@@ -99,6 +105,7 @@ export function demoAttempts(config: RunnerConfig): AuthorizationAttempt[] {
     {
       label: "blocked missing receipt",
       intentHash: config.demoIntentHash,
+      contextHash: approvedContextHash,
       merchant: config.merchantAddress,
       token: config.tokenAddress,
       amount: config.maxPerTxWei / 2n,
@@ -108,6 +115,7 @@ export function demoAttempts(config: RunnerConfig): AuthorizationAttempt[] {
     {
       label: "blocked over max tx",
       intentHash: config.demoIntentHash,
+      contextHash: approvedContextHash,
       merchant: config.merchantAddress,
       token: config.tokenAddress,
       amount: config.maxPerTxWei + 1n,
@@ -117,6 +125,7 @@ export function demoAttempts(config: RunnerConfig): AuthorizationAttempt[] {
     {
       label: "allowed replay seed",
       intentHash: config.demoIntentHash,
+      contextHash: approvedContextHash,
       merchant: config.merchantAddress,
       token: config.tokenAddress,
       amount: config.maxPerTxWei / 3n,
@@ -126,6 +135,7 @@ export function demoAttempts(config: RunnerConfig): AuthorizationAttempt[] {
     {
       label: "blocked replay",
       intentHash: config.demoIntentHash,
+      contextHash: approvedContextHash,
       merchant: config.merchantAddress,
       token: config.tokenAddress,
       amount: config.maxPerTxWei / 3n,

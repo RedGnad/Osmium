@@ -36,6 +36,7 @@ export type RunnerConfig = {
   maxPerTxWei: bigint;
   periodLimitWei: bigint;
   runnerApiKey?: string;
+  requireRunnerApiKey: boolean;
   port: number;
 };
 
@@ -75,6 +76,7 @@ export function loadConfig(): RunnerConfig {
     maxPerTxWei: BigInt(env("MAX_PER_TX_WEI", "1000000000000000000")),
     periodLimitWei: BigInt(env("PERIOD_LIMIT_WEI", "3000000000000000000")),
     runnerApiKey: process.env.RUNNER_API_KEY,
+    requireRunnerApiKey: process.env.RUNNER_REQUIRE_API_KEY === "true" || process.env.RENDER === "true",
     port: Number(env("PORT", "10000"))
   };
 }

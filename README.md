@@ -16,6 +16,16 @@ Osmium:
 Agent intent -> SettlementRouter -> Stylus PolicyEngine -> allow / deny -> settlement + receipt
 ```
 
+## Positioning
+
+Osmium is not a generic treasury execution firewall and it is not an AI wallet. The wedge is narrower:
+
+> Onchain SpendOps for AI finance agents on Robinhood Chain.
+
+The primary user is a builder or operator running an AI finance agent that needs to pay for data, APIs, MCP tools, or services without receiving unrestricted wallet authority. The first workflow is a market-data agent buying a verified data service for a Robinhood stock token. Osmium enforces merchant, token, amount, receipt, budget, context, and replay constraints before settlement can move funds.
+
+The demo keeps one clear workflow but shows multi-asset capability: TSLA is the live settlement proof, while the same policy model supports Robinhood test assets such as AMD, AMZN, PLTR, and NFLX.
+
 ## Hackathon Target
 
 - Event: Arbitrum Open House London Online Buildathon

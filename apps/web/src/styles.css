@@ -217,6 +217,68 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.wedgePanel {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #ded8cd;
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  padding: 16px;
+}
+
+.wedgeCopy {
+  display: grid;
+  gap: 7px;
+}
+
+.wedgeCopy strong {
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.flowCompare {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr);
+}
+
+.flowCompare > svg {
+  color: #817a70;
+  justify-self: center;
+}
+
+.flowCard {
+  border: 1px solid #ece7dc;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-height: 108px;
+  padding: 13px;
+}
+
+.flowCard span,
+.flowCard small {
+  color: #6b665e;
+  font-size: 13px;
+}
+
+.flowCard strong {
+  font-size: 17px;
+}
+
+.flowCard.weak {
+  background: #fffaf5;
+  border-color: #edc3a8;
+}
+
+.flowCard.strong {
+  background: #eff8f4;
+  border-color: #a8d3c1;
+}
+
 .mainGrid {
   display: grid;
   gap: 14px;
@@ -322,6 +384,42 @@ button.assetTab.active {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.scenarioRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scenarioChip {
+  align-items: center;
+  border: 1px solid #e2dbcf;
+  border-radius: 8px;
+  color: #4d5752;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.scenarioChip.allow {
+  background: #e7f4ef;
+  border-color: #a8d3c1;
+  color: #146b55;
+}
+
+.scenarioChip.block {
+  background: #fff0e6;
+  border-color: #edc3a8;
+  color: #a9471a;
+}
+
+.scenarioChip.live {
+  background: #f6f3ec;
+  color: #514a41;
 }
 
 .decisionSummary {
@@ -522,9 +620,18 @@ button.assetTab.active {
 
 @media (max-width: 900px) {
   .systemStrip,
+  .wedgePanel,
   .mainGrid,
   .evidenceGrid {
     grid-template-columns: 1fr;
+  }
+
+  .flowCompare {
+    grid-template-columns: 1fr;
+  }
+
+  .flowCompare > svg {
+    transform: rotate(90deg);
   }
 
   .metric {

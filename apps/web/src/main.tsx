@@ -208,7 +208,11 @@ function App() {
         </div>
 
         <nav className="railNav" aria-label="Console sections">
-          <a className="active" href="#agent">
+          <a className="active" href="#wedge">
+            <ShieldCheck size={17} />
+            Wedge
+          </a>
+          <a href="#agent">
             <Database size={17} />
             Agent
           </a>
@@ -252,6 +256,8 @@ function App() {
           <Metric icon={<Activity size={17} />} label="Runner" value={runnerStatus} detail="preview + live proof" />
         </section>
 
+        <WedgePanel />
+
         <section className="mainGrid">
           <div className="leftColumn">
             <AgentPanel
@@ -262,6 +268,7 @@ function App() {
               setActiveAsset={setActiveAsset}
             />
             <PolicyPanel activeAsset={activeAsset} />
+            <MerchantPanel activeAsset={activeAsset} />
           </div>
 
           <section className="decisionDesk" id="settlement">
@@ -286,6 +293,8 @@ function App() {
               </div>
             </div>
 
+            <ScenarioRail />
+
             {error ? <div className="error">{error}</div> : null}
 
             <div className="decisionSummary">
@@ -298,7 +307,7 @@ function App() {
               {demo.length === 0 ? (
                 <div className="emptyState">
                   <ShieldCheck size={42} />
-                  <span>Policy decisions will appear here.</span>
+                  <span>Preview the merchant spend path to load allow/block decisions.</span>
                 </div>
               ) : (
                 demo.map((item) => <AttemptRow key={item.label} item={item} />)
@@ -340,7 +349,7 @@ function AgentPanel({
       </div>
 
       <dl className="infoList">
-        <InfoRow label="Mission" value="Verified market data" />
+        <InfoRow label="Mission" value="Buy verified market data" />
         <InfoRow label="Wallet" value={short(account)} />
         <InfoRow label="Gas" value={nativeBalance} />
         <InfoRow label="Policy" value="2" />
@@ -382,13 +391,80 @@ function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
 
       <dl className="infoList">
         <InfoRow label="Token" value={short(asset.address)} />
+        <InfoRow label="Allowlist" value="TSLA / AMD" />
         <InfoRow label="Merchant" value="verified" />
         <InfoRow label="Max Payment" value="0.50 token" />
+        <InfoRow label="Period Budget" value="3.00 token" />
         <InfoRow label="Receipt" value="required" />
         <InfoRow label="Replay" value="blocked" />
         <InfoRow label="Context" value="bound" />
       </dl>
     </section>
+  );
+}
+
+function WedgePanel() {
+  return (
+    <section className="wedgePanel" id="wedge">
+      <div className="wedgeCopy">
+        <span className="eyebrow">Agent spending controls</span>
+        <strong>Give AI finance agents a budget, not a blank check.</strong>
+      </div>
+      <div className="flowCompare" aria-label="Normal agent wallet versus Osmium">
+        <div className="flowCard weak">
+          <span>Normal agent wallet</span>
+          <strong>Agent key signs transfer</strong>
+          <small>No merchant receipt, no deterministic spend audit.</small>
+        </div>
+        <ArrowRightLeft size={22} />
+        <div className="flowCard strong">
+          <span>Osmium path</span>
+          <strong>Intent to policy to settlement</strong>
+          <small>Merchant, token, amount, receipt, budget and replay checks.</small>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MerchantPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
+  return (
+    <section className="panel">
+      <div className="panelHeader">
+        <div>
+          <span>Merchant Scenario</span>
+          <strong>Verified Market Data API</strong>
+        </div>
+        <CircleDollarSign size={20} />
+      </div>
+      <dl className="infoList">
+        <InfoRow label="Service" value={`${activeAsset} signal package`} />
+        <InfoRow label="Settlement" value="0.25 token" />
+        <InfoRow label="Evidence" value="receipt hash" />
+        <InfoRow label="Bad paths" value="unknown / missing / over max" />
+      </dl>
+    </section>
+  );
+}
+
+function ScenarioRail() {
+  const scenarios = [
+    { label: "Valid merchant", state: "allow" },
+    { label: "Unknown merchant", state: "block" },
+    { label: "Missing receipt", state: "block" },
+    { label: "Over max", state: "block" },
+    { label: "Replay proof", state: "live" }
+  ];
+
+  return (
+    <div className="scenarioRail" aria-label="Spend scenarios">
+      {scenarios.map((scenario) => (
+        <div className={`scenarioChip ${scenario.state}`} key={scenario.label}>
+          {scenario.state === "allow" ? <CheckCircle2 size={15} /> : scenario.state === "live" ? <FileCheck2 size={15} /> : <XCircle size={15} />}
+          <span>{scenario.label}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 

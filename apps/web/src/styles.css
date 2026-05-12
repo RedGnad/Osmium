@@ -128,10 +128,26 @@ h1 {
   padding: 16px;
 }
 
+.consoleGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #ded9cf;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  justify-content: flex-end;
 }
 
 .summary {
@@ -241,6 +257,34 @@ h1 {
   padding: 16px;
 }
 
+.dataGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.assetTabs {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+button.assetTab {
+  justify-content: space-between;
+}
+
+button.assetTab.active {
+  background: #e7f4ef;
+  border-color: #9acbb9;
+  color: #146b55;
+}
+
+.assetTab span {
+  color: #6b665e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .panelHeader {
   align-items: center;
   display: flex;
@@ -301,6 +345,36 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.auditRows {
+  display: grid;
+  gap: 8px;
+}
+
+.auditRow {
+  align-items: center;
+  border: 1px solid #ebe7df;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 38px 110px minmax(0, 1fr);
+  min-height: 58px;
+  padding: 10px;
+}
+
+.auditRow span {
+  color: #6b665e;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.emptyAudit {
+  border: 1px dashed #cfc8bb;
+  border-radius: 8px;
+  color: #6b665e;
+  padding: 18px;
+  text-align: center;
+}
+
 @media (max-width: 860px) {
   .shell {
     padding: 18px;
@@ -319,6 +393,10 @@ h1 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .consoleGrid {
+    grid-template-columns: 1fr;
+  }
+
   .settlementGrid,
   .evidence {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -328,9 +406,19 @@ h1 {
 @media (max-width: 560px) {
   .statusGrid,
   .summary,
+  .dataGrid,
   .settlementGrid,
   .evidence {
     grid-template-columns: 1fr;
+  }
+
+  .panelHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .toolbar {
+    justify-content: flex-start;
   }
 
   .attemptRow {
@@ -338,6 +426,14 @@ h1 {
   }
 
   .attemptRow code {
+    grid-column: 1 / -1;
+  }
+
+  .auditRow {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .auditRow span {
     grid-column: 1 / -1;
   }
 }

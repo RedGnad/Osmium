@@ -34,6 +34,9 @@ export type RunnerConfig = {
   settlementRouterAddress?: Address;
   settlementDemoPolicyId: bigint;
   settlementDemoTokenAddress: Address;
+  latestSettlementTx?: Hex;
+  latestSettlementPaymentId?: Hex;
+  latestSettlementReceiptHash?: Hex;
   merchantAddress: Address;
   unknownMerchantAddress: Address;
   maxPerTxWei: bigint;
@@ -82,13 +85,16 @@ export function loadConfig(): RunnerConfig {
         : undefined,
     settlementDemoPolicyId: BigInt(env("SETTLEMENT_DEMO_POLICY_ID", env("POLICY_ID", "1"))),
     settlementDemoTokenAddress: env("SETTLEMENT_DEMO_TOKEN_ADDRESS", env("TOKEN_ADDRESS")) as Address,
+    latestSettlementTx: optionalHex("LATEST_SETTLEMENT_TX"),
+    latestSettlementPaymentId: optionalHex("LATEST_SETTLEMENT_PAYMENT_ID"),
+    latestSettlementReceiptHash: optionalHex("LATEST_SETTLEMENT_RECEIPT_HASH"),
     merchantAddress: env("MERCHANT_ADDRESS") as Address,
     unknownMerchantAddress: env("UNKNOWN_MERCHANT_ADDRESS", env("MERCHANT_ADDRESS")) as Address,
     maxPerTxWei: BigInt(env("MAX_PER_TX_WEI", "1000000000000000000")),
     periodLimitWei: BigInt(env("PERIOD_LIMIT_WEI", "3000000000000000000")),
     runnerApiKey: process.env.RUNNER_API_KEY,
     requireRunnerApiKey: process.env.RUNNER_REQUIRE_API_KEY === "true" || process.env.RENDER === "true",
-    allowedOrigin: env("RUNNER_ALLOWED_ORIGIN", "http://127.0.0.1:5173"),
+    allowedOrigin: env("RUNNER_ALLOWED_ORIGIN", "http://127.0.0.1:5173,http://localhost:5173"),
     port: Number(env("PORT", "10000"))
   };
 }

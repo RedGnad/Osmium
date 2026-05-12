@@ -1,8 +1,20 @@
 # Osmium
 
-Stylus-native policy firewall for autonomous agent payments on Arbitrum and Robinhood Chain.
+Onchain SpendOps for AI finance agents on Arbitrum and Robinhood Chain.
 
-Osmium lets a user fund an autonomous agent without giving it unlimited spending power. The agent can only spend through policies enforced onchain: verified merchants, token constraints, max transaction size, rolling budgets, receipt hashes, replay protection, and auditable blocked-risk events.
+Osmium lets builders of AI finance agents enforce deterministic onchain spending policies before agents can settle tokenized-asset payments. An agent can only move assets through policies enforced onchain: verified merchants, token constraints, max transaction size, rolling budgets, receipt hashes, replay protection, and auditable blocked-risk events.
+
+Normal agent wallet:
+
+```text
+LLM -> private key -> direct transfer
+```
+
+Osmium:
+
+```text
+Agent intent -> SettlementRouter -> Stylus PolicyEngine -> allow / deny -> settlement + receipt
+```
 
 ## Hackathon Target
 
@@ -14,11 +26,12 @@ Osmium lets a user fund an autonomous agent without giving it unlimited spending
 
 ## MVP Surface
 
-1. `SettlementRouter`: user deposits funds and settlement only happens after policy approval.
-2. `PolicyEngine`: deterministic onchain checks before funds move.
-3. `MerchantRegistry`: allowlisted merchants with category and metadata hashes.
-4. `ReceiptGate`: payment requires a receipt hash and unique payment id.
-5. `RiskEvents`: blocked attempts emit explicit events instead of silently failing.
+1. `SpendOps Console`: operators see agent, policy, settlement, receipt, replay, and audit state.
+2. `SettlementRouter`: user deposits funds and settlement only happens after policy approval.
+3. `PolicyEngine`: deterministic onchain checks before funds move.
+4. `MerchantRegistry`: allowlisted merchants with category and metadata hashes.
+5. `ReceiptGate`: payment requires a receipt hash and unique payment id.
+6. `RiskEvents`: blocked attempts emit explicit events instead of silently failing.
 
 ## Current Implementation
 
@@ -137,7 +150,7 @@ Live TSLA settlement proof:
 - TSLA intent approval tx: `0x86d8d024b690562bb0570563c199c2040a566866be846522a27f74acba5a66ed`
 - TSLA router approve tx: `0xfdc6f4391645c495c93b83704486ece9c7452e6bd191699f1a27d0b629c466df`
 - TSLA router deposit tx: `0xc9416f784bf015aa232574e4e31c3d5a86a98536fad86211142d55477c97592e`
-- TSLA settled payment tx: `0xc1f0f2240664a63c960803fdf1742c850f809340b542df529301eced499d8349`
+- TSLA settled payment tx: `0x81e2afb3362aada2ccf361d9d45707c323a630a514dbaf0d4f1d1721cf99522a`
 - Settled amount: `0.25 TSLA`
 - Replay check after settlement: `Replay`
 - Router vault remaining balance after latest run: `0.5 TSLA`

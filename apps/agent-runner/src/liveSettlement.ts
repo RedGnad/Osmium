@@ -20,6 +20,93 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export async function readLiveSettlementProof() {
+  const config = loadConfig();
+  if (!config.settlementRouterAddress) throw new Error("OSMIUM_SETTLEMENT_ROUTER_ADDRESS is required");
+  if (!config.agentAddress) throw new Error("AGENT_ADDRESS is required");
+
+  const client = publicClient(config);
+  const token = config.settlementDemoTokenAddress;
+  const amount = BigInt(process.env.SETTLEMENT_DEMO_AMOUNT_WEI ?? "250000000000000000");
+  const paymentId = config.latestSettlementPaymentId ?? "0x0000000000000000000000000000000000000000000000000000000000000000";
+  const receiptHash = config.latestSettlementReceiptHash ?? "0x0000000000000000000000000000000000000000000000000000000000000000";
+  const [replayAllowed, replayReason] =
+    paymentId === "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ? [true, 0]
+      : await client.readContract({
+          address: config.engineAddress,
+          abi: osmiumPolicyEngineAbi,
+          functionName: "previewAuthorizationWithIntent",
+          args: [
+            config.settlementDemoPolicyId,
+            config.demoIntentHash,
+            CONTEXT_HASH,
+            config.agentAddress,
+            config.merchantAddress,
+            token,
+            amount,
+            paymentId,
+            receiptHash
+          ]
+        });
+
+  return stringify({
+    policyId: config.settlementDemoPolicyId,
+    token,
+    amount,
+    intentHash: config.demoIntentHash,
+    contextHash: CONTEXT_HASH,
+    paymentId,
+    receiptHash,
+    before: {
+      merchantToken: await client.readContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [config.merchantAddress]
+      }),
+      routerVault: await client.readContract({
+        address: config.settlementRouterAddress,
+        abi: settlementRouterAbi,
+        functionName: "vaultBalance",
+        args: [config.agentAddress, token]
+      })
+    },
+    transactions: {
+      settle: config.latestSettlementTx ?? "",
+      settleBlock: ""
+    },
+    replay: {
+      blocked: !replayAllowed,
+      reason: replayReason,
+      reasonName: blockReasons[replayReason] ?? `Unknown(${replayReason})`
+    },
+    after: {
+      merchantToken: await client.readContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [config.merchantAddress]
+      }),
+      routerVault: await client.readContract({
+        address: config.settlementRouterAddress,
+        abi: settlementRouterAbi,
+        functionName: "vaultBalance",
+        args: [config.agentAddress, token]
+      }),
+      receipt:
+        paymentId === "0x0000000000000000000000000000000000000000000000000000000000000000"
+          ? []
+          : await client.readContract({
+              address: config.engineAddress,
+              abi: osmiumPolicyEngineAbi,
+              functionName: "getReceipt",
+              args: [paymentId]
+            })
+    }
+  });
+}
+
 export async function runLiveSettlement() {
   const config = loadConfig();
   if (!config.agentPrivateKey) throw new Error("AGENT_PRIVATE_KEY is required");
@@ -132,6 +219,10 @@ export async function runLiveSettlement() {
     })
   };
 
+  process.env.LATEST_SETTLEMENT_TX = settleTx;
+  process.env.LATEST_SETTLEMENT_PAYMENT_ID = paymentId;
+  process.env.LATEST_SETTLEMENT_RECEIPT_HASH = receiptHash;
+
   return stringify({
     policyId: config.settlementDemoPolicyId,
     token,
@@ -160,7 +251,9 @@ async function main() {
   console.log(JSON.stringify(await runLiveSettlement(), null, 2));
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

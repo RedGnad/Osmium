@@ -1,7 +1,7 @@
 import express from "express";
 import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
-import { runLiveSettlement } from "./liveSettlement.js";
+import { readLiveSettlementProof, runLiveSettlement } from "./liveSettlement.js";
 
 const config = loadConfig();
 if (config.requireRunnerApiKey && !config.runnerApiKey) {
@@ -12,8 +12,9 @@ const app = express();
 
 app.use((req, res, next) => {
   const origin = req.header("origin");
-  if (!origin || origin === config.allowedOrigin) {
-    res.header("Access-Control-Allow-Origin", origin ?? config.allowedOrigin);
+  const allowedOrigins = new Set(config.allowedOrigin.split(",").map((item) => item.trim()).filter(Boolean));
+  if (!origin || allowedOrigins.has(origin)) {
+    res.header("Access-Control-Allow-Origin", origin ?? [...allowedOrigins][0]);
   }
   res.header("Vary", "Origin");
   res.header("Access-Control-Allow-Headers", "content-type,x-osmium-api-key");
@@ -45,6 +46,14 @@ app.get("/health", (_req, res) => {
 app.post("/demo/preview", async (_req, res, next) => {
   try {
     res.json(await runDemo({ sendTransactions: false }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/demo/live-settlement/preview", async (_req, res, next) => {
+  try {
+    res.json(await readLiveSettlementProof());
   } catch (error) {
     next(error);
   }

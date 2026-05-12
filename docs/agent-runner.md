@@ -33,6 +33,7 @@ Never commit `.env`.
 
 - `GET /health`: no transaction, safe liveness check.
 - `POST /demo/preview`: public view-only authorization previews.
+- `POST /demo/live-settlement/preview`: public read-only balances, latest receipt, and replay proof.
 - `POST /demo/live-settlement/run`: protected endpoint that settles TSLA through the router.
 
 The preview path uses `previewAuthorizationWithIntent`. The state-changing path uses `OsmiumSettlementRouter.settleWithIntent`, which calls `authorizePaymentForAgent` on the Stylus engine.
@@ -61,7 +62,7 @@ Protected requests need:
 x-osmium-api-key: your-secret
 ```
 
-Do not expose this value through `VITE_` frontend variables. Vite embeds `VITE_*` values in the browser bundle, so the public dashboard only calls `/health` and `/demo/preview` by default. Keep `/demo/run` local, server-side, or behind an operator-only trigger for judged demos.
+Do not expose this value through `VITE_` frontend variables. Vite embeds `VITE_*` values in the browser bundle, so the public dashboard only calls `/health`, `/demo/preview`, and `/demo/live-settlement/preview`. Keep `/demo/live-settlement/run` local, server-side, or behind an operator-only trigger for judged demos.
 
 `RUNNER_ALLOWED_ORIGIN` controls CORS. Local development defaults to `http://127.0.0.1:5173`.
 

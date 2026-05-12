@@ -55,6 +55,27 @@ export type UnlockResult = {
   payload: unknown;
 };
 
+export type MarketDataResponse =
+  | UnlockResult
+  | {
+      error: "payment_required";
+      protocol: "x402-style-demo";
+      asset: OsmiumAsset;
+      service: string;
+      payment: {
+        network: string;
+        chainId: number;
+        token: string;
+        merchant: string;
+        amount: string;
+        displayAmount: string;
+        serviceId: string;
+        dataHash: string;
+        receiptHash: string;
+        settlement: string;
+      };
+    };
+
 export class OsmiumClient {
   private readonly runnerUrl: string;
   private readonly operatorApiKey?: string;
@@ -83,7 +104,20 @@ export class OsmiumClient {
     return this.request("/merchant/receipt", "POST", input);
   }
 
-  private async request<T>(path: string, method: "GET" | "POST", body?: unknown, apiKey?: string): Promise<T> {
+  getMarketData(input: { asset: OsmiumAsset; paymentId?: string; receiptHash?: string }): Promise<MarketDataResponse> {
+    const params = new URLSearchParams({ asset: input.asset });
+    if (input.paymentId) params.set("paymentId", input.paymentId);
+    if (input.receiptHash) params.set("receiptHash", input.receiptHash);
+    return this.request(`/merchant/market-data?${params.toString()}`, "GET", undefined, undefined, [200, 402]);
+  }
+
+  private async request<T>(
+    path: string,
+    method: "GET" | "POST",
+    body?: unknown,
+    apiKey?: string,
+    okStatuses = [200]
+  ): Promise<T> {
     const headers: Record<string, string> = { "content-type": "application/json" };
     if (apiKey) headers["x-osmium-api-key"] = apiKey;
     const response = await fetch(`${this.runnerUrl}${path}`, {
@@ -91,7 +125,7 @@ export class OsmiumClient {
       headers,
       body: body ? JSON.stringify(body) : undefined
     });
-    if (!response.ok) throw new Error(await response.text());
+    if (!okStatuses.includes(response.status)) throw new Error(await response.text());
     return (await response.json()) as T;
   }
 }

@@ -39,12 +39,13 @@ Never commit `.env`.
 - `GET /merchant/quote?asset=AMD`: public verified market-data quote.
 - `POST /merchant/receipt`: verifies the latest receipt and unlocks the demo data payload.
 - `GET /merchant/audit`: in-memory settlement/unlock audit records for the running demo service.
+- `GET /merchant/market-data?asset=TSLA`: x402-style resource endpoint. Without proof it returns `402 Payment Required` with payment instructions; with `paymentId` and `receiptHash` it returns unlocked data.
 
 The preview path uses `previewAuthorizationWithIntent`. The state-changing path uses `OsmiumSettlementRouter.settleWithIntent`, which calls `authorizePaymentForAgent` on the Stylus engine.
 
 The merchant path is intentionally small: it models one verified Market Data API instead of a full marketplace. The agent asks for a TSLA or AMD quote, receives a price, merchant address, service id, data hash, and receipt requirement, then Osmium settlement unlocks the data once the receipt is visible onchain.
 
-The runner keeps a small in-memory audit store keyed by `paymentId`. It records operator-triggered settlements and receipt unlocks. This is hackathon-grade observability rather than a production database; durable storage belongs in a hosted demo deployment or indexer.
+The runner keeps a small JSON-backed audit store keyed by `paymentId`. It records operator-triggered settlements and receipt unlocks. This is hackathon-grade observability rather than a production database; a hosted demo can set `AUDIT_STORE_PATH` to a persistent disk path, while a future production system should use an indexer or durable database.
 
 ## Live Settlement Script
 

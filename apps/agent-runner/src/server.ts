@@ -2,7 +2,7 @@ import express from "express";
 import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
 import { readLiveSettlementProof, runLiveSettlement } from "./liveSettlement.js";
-import { marketDataQuote, merchantAuditLog, unlockMarketData } from "./merchant.js";
+import { marketDataQuote, marketDataResource, merchantAuditLog, unlockMarketData } from "./merchant.js";
 
 const config = loadConfig();
 if (config.requireRunnerApiKey && !config.runnerApiKey) {
@@ -86,6 +86,15 @@ app.post("/merchant/receipt", async (req, res, next) => {
 
 app.get("/merchant/audit", (_req, res) => {
   res.json(merchantAuditLog());
+});
+
+app.get("/merchant/market-data", async (req, res, next) => {
+  try {
+    const result = await marketDataResource(config, req.query);
+    res.status(result.status).json(result.body);
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

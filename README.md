@@ -103,6 +103,7 @@ import { OsmiumClient } from "@osmium/sdk";
 const osmium = new OsmiumClient({ runnerUrl: "https://your-runner.example" });
 const quote = await osmium.getQuote("TSLA");
 const previews = await osmium.previewSpend();
+const required = await osmium.getMarketData({ asset: "TSLA" }); // 402-style payment instructions
 ```
 
 Operator-only execution can pass `operatorApiKey` server-side or in a local judged console session. Do not embed it in public frontend environment variables.

@@ -99,6 +99,41 @@ export async function unlockMarketData(config: RunnerConfig, body: { asset?: unk
   };
 }
 
+export async function marketDataResource(config: RunnerConfig, query: { asset?: unknown; paymentId?: unknown; receiptHash?: unknown }) {
+  const quote = marketDataQuote(config, query.asset);
+  const paymentId = typeof query.paymentId === "string" && query.paymentId.startsWith("0x") ? (query.paymentId as Hex) : undefined;
+  const receiptHash = typeof query.receiptHash === "string" && query.receiptHash.startsWith("0x") ? (query.receiptHash as Hex) : undefined;
+
+  if (paymentId && receiptHash) {
+    const unlocked = await unlockMarketData(config, { asset: quote.asset, paymentId, receiptHash });
+    if (unlocked.unlocked) {
+      return { status: 200, body: unlocked };
+    }
+  }
+
+  return {
+    status: 402,
+    body: {
+      error: "payment_required",
+      protocol: "x402-style-demo",
+      asset: quote.asset,
+      service: quote.service,
+      payment: {
+        network: "robinhood-chain-testnet",
+        chainId: config.chainId,
+        token: quote.token,
+        merchant: quote.merchant,
+        amount: quote.priceWei,
+        displayAmount: `${quote.price} ${quote.asset}`,
+        serviceId: quote.serviceId,
+        dataHash: quote.dataHash,
+        receiptHash: quote.receiptHash,
+        settlement: "OsmiumSettlementRouter"
+      }
+    }
+  };
+}
+
 export function merchantAuditLog() {
   return listSettlementRecords();
 }

@@ -2,7 +2,7 @@
   "name": "osmium",
   "private": true,
   "version": "0.1.0",
-  "description": "Stylus-native policy firewall for autonomous agent payments on Arbitrum and Robinhood Chain.",
+  "description": "Onchain SpendOps for AI finance agents on Arbitrum and Robinhood Chain.",
   "scripts": {
     "agent:dev": "pnpm --filter @osmium/agent-runner run dev",
     "agent:demo": "pnpm --filter @osmium/agent-runner run demo",

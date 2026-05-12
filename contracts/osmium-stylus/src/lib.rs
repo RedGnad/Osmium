@@ -374,52 +374,16 @@ impl OsmiumPolicyEngine {
 
     pub fn authorize_payment_with_intent(
         &mut self,
-        policy_id: U256,
-        intent_hash: B256,
-        context_hash: B256,
-        merchant: Address,
-        token: Address,
-        amount: U256,
-        payment_id: B256,
-        receipt_hash: B256,
+        _policy_id: U256,
+        _intent_hash: B256,
+        _context_hash: B256,
+        _merchant: Address,
+        _token: Address,
+        _amount: U256,
+        _payment_id: B256,
+        _receipt_hash: B256,
     ) -> Result<bool, Vec<u8>> {
-        let agent = self.vm().msg_sender();
-        let reason = self.validate_authorization_with_intent(
-            policy_id,
-            intent_hash,
-            context_hash,
-            agent,
-            merchant,
-            token,
-            amount,
-            payment_id,
-            receipt_hash,
-        );
-
-        if reason != REASON_NONE {
-            self.vm().log(AuthorizationBlocked {
-                policy_id,
-                agent,
-                merchant,
-                reason,
-                token,
-                amount,
-                payment_id,
-            });
-            return Ok(false);
-        }
-
-        self.record_authorization(
-            policy_id,
-            intent_hash,
-            agent,
-            merchant,
-            token,
-            amount,
-            payment_id,
-            receipt_hash,
-        );
-        Ok(true)
+        Err(b"USE_SETTLEMENT_ROUTER".to_vec())
     }
 
     pub fn authorize_payment_for_agent(

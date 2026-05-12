@@ -16,7 +16,7 @@ function stringify(value: unknown): unknown {
   return value;
 }
 
-async function main() {
+export async function runLiveSettlement() {
   const config = loadConfig();
   if (!config.agentPrivateKey) throw new Error("AGENT_PRIVATE_KEY is required");
   if (!config.settlementRouterAddress) throw new Error("OSMIUM_SETTLEMENT_ROUTER_ADDRESS is required");
@@ -122,34 +122,32 @@ async function main() {
     })
   };
 
-  console.log(
-    JSON.stringify(
-      stringify({
-        policyId: config.settlementDemoPolicyId,
-        token,
-        amount,
-        intentHash: config.demoIntentHash,
-        contextHash: CONTEXT_HASH,
-        paymentId,
-        receiptHash,
-        before,
-        transactions: {
-          approve: approveTx,
-          deposit: depositTx,
-          settle: settleTx,
-          settleBlock: settleReceipt.blockNumber
-        },
-        replay: {
-          blocked: !replayAllowed,
-          reason: replayReason,
-          reasonName: blockReasons[replayReason] ?? `Unknown(${replayReason})`
-        },
-        after
-      }),
-      null,
-      2
-    )
-  );
+  return stringify({
+    policyId: config.settlementDemoPolicyId,
+    token,
+    amount,
+    intentHash: config.demoIntentHash,
+    contextHash: CONTEXT_HASH,
+    paymentId,
+    receiptHash,
+    before,
+    transactions: {
+      approve: approveTx,
+      deposit: depositTx,
+      settle: settleTx,
+      settleBlock: settleReceipt.blockNumber
+    },
+    replay: {
+      blocked: !replayAllowed,
+      reason: replayReason,
+      reasonName: blockReasons[replayReason] ?? `Unknown(${replayReason})`
+    },
+    after
+  });
+}
+
+async function main() {
+  console.log(JSON.stringify(await runLiveSettlement(), null, 2));
 }
 
 main().catch((error) => {

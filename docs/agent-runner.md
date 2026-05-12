@@ -32,9 +32,9 @@ Never commit `.env`.
 
 - `GET /health`: no transaction, safe liveness check.
 - `POST /demo/preview`: public view-only authorization previews.
-- `POST /demo/run`: protected endpoint that sends authorization transactions from the agent wallet.
+- `POST /demo/live-settlement/run`: protected endpoint that settles TSLA through the router.
 
-The demo path uses `authorizePaymentWithIntent`, so setup must approve `DEMO_INTENT_HASH` for the active `POLICY_ID`.
+The preview path uses `previewAuthorizationWithIntent`. The state-changing path uses `OsmiumSettlementRouter.settleWithIntent`, which calls `authorizePaymentForAgent` on the Stylus engine.
 
 ## Live Settlement Script
 
@@ -51,6 +51,8 @@ The script performs the TSLA settlement proof against the deployed router:
 - calls `settleWithIntent`;
 - reads the stored PolicyEngine receipt;
 - previews the same payment id again and expects `Replay`.
+
+Direct state-changing authorization is intentionally disabled on the PolicyEngine. Use previews for dry runs and router settlement for any transaction that should consume budget, replay, and receipt state.
 
 Protected requests need:
 

@@ -1,5 +1,5 @@
 import { keccak256, toBytes, type Address, type Hex } from "viem";
-import { publicClient, walletClient } from "./client.js";
+import { publicClient } from "./client.js";
 import { blockReasons, osmiumPolicyEngineAbi } from "./abi.js";
 import type { RunnerConfig } from "./config.js";
 
@@ -46,34 +46,7 @@ export async function previewAuthorization(config: RunnerConfig, attempt: Author
 }
 
 export async function authorizePayment(config: RunnerConfig, attempt: AuthorizationAttempt) {
-  if (!config.agentPrivateKey) {
-    throw new Error("AGENT_PRIVATE_KEY is required for authorizePayment");
-  }
-
-  const wallet = walletClient(config, config.agentPrivateKey);
-  const client = publicClient(config);
-  const hash = await wallet.writeContract({
-    address: config.engineAddress,
-    abi: osmiumPolicyEngineAbi,
-    functionName: "authorizePaymentWithIntent",
-    args: [
-      config.policyId,
-      attempt.intentHash,
-      attempt.contextHash,
-      attempt.merchant,
-      attempt.token,
-      attempt.amount,
-      attempt.paymentId,
-      attempt.receiptHash
-    ]
-  });
-  const receipt = await client.waitForTransactionReceipt({ hash });
-
-  return {
-    hash,
-    status: receipt.status,
-    blockNumber: receipt.blockNumber.toString()
-  };
+  throw new Error(`Direct authorization is disabled for ${attempt.label}; use SettlementRouter settlement.`);
 }
 
 export function demoAttempts(config: RunnerConfig): AuthorizationAttempt[] {

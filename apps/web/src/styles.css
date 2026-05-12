@@ -232,6 +232,75 @@ h1 {
   padding: 12px;
 }
 
+.settlement {
+  background: #ffffff;
+  border: 1px solid #ded9cf;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.panelHeader {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.panelHeader div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.panelHeader span,
+.dataPoint span {
+  color: #6b665e;
+  font-size: 13px;
+}
+
+.panelHeader strong {
+  font-size: 20px;
+}
+
+.badge {
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 10px;
+}
+
+.badge.ok {
+  background: #e7f4ef;
+  color: #146b55;
+}
+
+.badge.blocked {
+  background: #fff0e6;
+  color: #a9471a;
+}
+
+.settlementGrid,
+.evidence {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dataPoint {
+  border: 1px solid #ebe7df;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-height: 72px;
+  padding: 12px;
+}
+
+.dataPoint strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 860px) {
   .shell {
     padding: 18px;
@@ -249,11 +318,18 @@ h1 {
   .statusGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .settlementGrid,
+  .evidence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 560px) {
   .statusGrid,
-  .summary {
+  .summary,
+  .settlementGrid,
+  .evidence {
     grid-template-columns: 1fr;
   }
 

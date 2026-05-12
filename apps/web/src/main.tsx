@@ -19,6 +19,30 @@ type DemoPreview = {
   };
 };
 
+type LiveSettlement = {
+  policyId: string;
+  token: string;
+  amount: string;
+  paymentId: string;
+  receiptHash: string;
+  before: {
+    merchantToken: string;
+    routerVault: string;
+  };
+  transactions: {
+    settle: string;
+    settleBlock: string;
+  };
+  replay: {
+    blocked: boolean;
+    reasonName: string;
+  };
+  after: {
+    merchantToken: string;
+    routerVault: string;
+  };
+};
+
 const config = {
   chainId: Number(import.meta.env.VITE_CHAIN_ID ?? "46630"),
   rpcUrl: import.meta.env.VITE_RH_RPC_URL ?? "https://rpc.testnet.chain.robinhood.com",
@@ -56,6 +80,7 @@ function App() {
   const [nativeBalance, setNativeBalance] = useState<string>("--");
   const [runnerStatus, setRunnerStatus] = useState<"unknown" | "online" | "offline">("unknown");
   const [demo, setDemo] = useState<DemoPreview[]>([]);
+  const [settlement, setSettlement] = useState<LiveSettlement | null>(null);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -104,9 +129,9 @@ function App() {
     setError("");
     try {
       setBusy("run");
-      setDemo((await callRunner("/demo/run")) as DemoPreview[]);
+      setSettlement((await callRunner("/demo/live-settlement/run")) as LiveSettlement);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Demo run failed.");
+      setError(err instanceof Error ? err.message : "Settlement failed.");
     } finally {
       setBusy("");
     }
@@ -155,7 +180,7 @@ function App() {
           </button>
           <button className="primary" onClick={runDemo} disabled={busy !== ""}>
             <Flame size={17} />
-            Run Demo
+            Settle
           </button>
         </div>
 
@@ -187,6 +212,8 @@ function App() {
           )}
         </div>
       </section>
+
+      {settlement ? <SettlementPanel settlement={settlement} /> : null}
     </main>
   );
 }
@@ -212,6 +239,48 @@ function AttemptRow({ item }: { item: DemoPreview }) {
         <span>{ok ? "Authorized by policy" : item.preview.reasonName}</span>
       </div>
       <code>{item.transaction?.hash ? short(item.transaction.hash) : `reason ${item.preview.reason}`}</code>
+    </div>
+  );
+}
+
+function formatTsla(value: string) {
+  return `${(Number(BigInt(value)) / 1e18).toFixed(2)} TSLA`;
+}
+
+function SettlementPanel({ settlement }: { settlement: LiveSettlement }) {
+  return (
+    <section className="settlement">
+      <div className="panelHeader">
+        <div>
+          <span>Live Settlement</span>
+          <strong>Policy {settlement.policyId} / TSLA</strong>
+        </div>
+        <div className={settlement.replay.blocked ? "badge ok" : "badge blocked"}>{settlement.replay.reasonName}</div>
+      </div>
+
+      <div className="settlementGrid">
+        <DataPoint label="Amount" value={formatTsla(settlement.amount)} />
+        <DataPoint label="Merchant Before" value={formatTsla(settlement.before.merchantToken)} />
+        <DataPoint label="Merchant After" value={formatTsla(settlement.after.merchantToken)} />
+        <DataPoint label="Router Before" value={formatTsla(settlement.before.routerVault)} />
+        <DataPoint label="Router After" value={formatTsla(settlement.after.routerVault)} />
+        <DataPoint label="Settle Block" value={settlement.transactions.settleBlock} />
+      </div>
+
+      <div className="evidence">
+        <DataPoint label="Settle Tx" value={short(settlement.transactions.settle)} />
+        <DataPoint label="Receipt Hash" value={short(settlement.receiptHash)} />
+        <DataPoint label="Payment Id" value={short(settlement.paymentId)} />
+      </div>
+    </section>
+  );
+}
+
+function DataPoint({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="dataPoint">
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }

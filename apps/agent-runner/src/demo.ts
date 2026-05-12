@@ -1,5 +1,5 @@
 import { loadConfig } from "./config.js";
-import { authorizePayment, demoAttempts, previewAuthorization } from "./osmium.js";
+import { demoAttempts, previewAuthorization } from "./osmium.js";
 
 export async function runDemo({ sendTransactions }: { sendTransactions: boolean }) {
   const config = loadConfig();
@@ -18,11 +18,7 @@ export async function runDemo({ sendTransactions }: { sendTransactions: boolean 
     }
 
     if (sendTransactions) {
-      try {
-        result.transaction = await authorizePayment(config, attempt);
-      } catch (error) {
-        result.transactionError = error instanceof Error ? error.message : String(error);
-      }
+      result.transactionError = "Direct authorization is disabled; use /demo/live-settlement/run.";
     }
 
     results.push(result);

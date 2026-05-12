@@ -1,6 +1,7 @@
 import express from "express";
 import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
+import { runLiveSettlement } from "./liveSettlement.js";
 
 const config = loadConfig();
 if (config.requireRunnerApiKey && !config.runnerApiKey) {
@@ -45,9 +46,9 @@ app.post("/demo/preview", async (_req, res, next) => {
   }
 });
 
-app.post("/demo/run", requireApiKey, async (_req, res, next) => {
+app.post("/demo/live-settlement/run", requireApiKey, async (_req, res, next) => {
   try {
-    res.json(await runDemo({ sendTransactions: true }));
+    res.json(await runLiveSettlement());
   } catch (error) {
     next(error);
   }

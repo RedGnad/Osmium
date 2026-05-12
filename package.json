@@ -4,13 +4,13 @@
   "version": "0.1.0",
   "description": "Stylus-native policy firewall for autonomous agent payments on Arbitrum and Robinhood Chain.",
   "scripts": {
-    "agent:dev": "pnpm --filter @osmium/agent-runner dev",
-    "agent:demo": "pnpm --filter @osmium/agent-runner demo",
-    "agent:setup": "pnpm --filter @osmium/agent-runner setup",
-    "agent:typecheck": "pnpm --filter @osmium/agent-runner typecheck",
-    "web:dev": "pnpm --filter @osmium/web dev",
-    "web:build": "pnpm --filter @osmium/web build",
-    "web:typecheck": "pnpm --filter @osmium/web typecheck"
+    "agent:dev": "pnpm --filter @osmium/agent-runner run dev",
+    "agent:demo": "pnpm --filter @osmium/agent-runner run demo",
+    "agent:setup": "pnpm --filter @osmium/agent-runner run setup",
+    "agent:typecheck": "pnpm --filter @osmium/agent-runner run typecheck",
+    "web:dev": "pnpm --filter @osmium/web run dev",
+    "web:build": "pnpm --filter @osmium/web run build",
+    "web:typecheck": "pnpm --filter @osmium/web run typecheck"
   },
   "engines": {
     "node": ">=22"

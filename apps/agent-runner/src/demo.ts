@@ -13,8 +13,16 @@ export async function runDemo({ sendTransactions }: { sendTransactions: boolean 
       preview
     };
 
+    if (!sendTransactions && attempt.label === "blocked replay") {
+      result.note = "Replay is enforced after the first state-changing authorization consumes the payment id.";
+    }
+
     if (sendTransactions) {
-      result.transaction = await authorizePayment(config, attempt);
+      try {
+        result.transaction = await authorizePayment(config, attempt);
+      } catch (error) {
+        result.transactionError = error instanceof Error ? error.message : String(error);
+      }
     }
 
     results.push(result);
@@ -34,4 +42,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       process.exit(1);
     });
 }
-

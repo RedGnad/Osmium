@@ -1,6 +1,25 @@
-import "dotenv/config";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { config as loadDotenv } from "dotenv";
 import { keccak256, toBytes } from "viem";
 import type { Address, Hex } from "viem";
+
+function loadNearestEnv(startDir = process.cwd()) {
+  let current = startDir;
+  while (true) {
+    const candidate = resolve(current, ".env");
+    if (existsSync(candidate)) {
+      loadDotenv({ path: candidate });
+      return;
+    }
+
+    const parent = dirname(current);
+    if (parent === current) return;
+    current = parent;
+  }
+}
+
+loadNearestEnv();
 
 export type RunnerConfig = {
   rpcUrl: string;
@@ -36,11 +55,13 @@ function optionalHex(name: string): Hex | undefined {
 }
 
 export function loadConfig(): RunnerConfig {
+  const adminPrivateKey = optionalHex("ADMIN_PRIVATE_KEY") ?? optionalHex("PRIVATE_KEY") ?? optionalHex("AGENT_PRIVATE_KEY");
+
   return {
     rpcUrl: env("RH_RPC_URL", "https://rpc.testnet.chain.robinhood.com"),
     chainId: Number(env("CHAIN_ID", "46630")),
     engineAddress: env("OSMIUM_POLICY_ENGINE_ADDRESS") as Address,
-    adminPrivateKey: optionalHex("ADMIN_PRIVATE_KEY"),
+    adminPrivateKey,
     agentPrivateKey: optionalHex("AGENT_PRIVATE_KEY"),
     agentAddress: process.env.AGENT_ADDRESS as Address | undefined,
     policyId: BigInt(env("POLICY_ID", "1")),

@@ -13,10 +13,6 @@ export async function runDemo({ sendTransactions }: { sendTransactions: boolean 
       preview
     };
 
-    if (!sendTransactions && attempt.label === "blocked replay") {
-      result.note = "Replay is enforced after the first state-changing authorization consumes the payment id.";
-    }
-
     if (sendTransactions) {
       result.transactionError = "Direct authorization is disabled; use /demo/live-settlement/run.";
     }

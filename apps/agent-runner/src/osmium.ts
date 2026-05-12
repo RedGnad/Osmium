@@ -51,7 +51,6 @@ export async function authorizePayment(config: RunnerConfig, attempt: Authorizat
 
 export function demoAttempts(config: RunnerConfig): AuthorizationAttempt[] {
   const runId = Date.now();
-  const replayId = hashLabel(`osmium:${runId}:replay`);
   const approvedContextHash = hashLabel("task:osmium-demo-agent-payment");
 
   return [
@@ -94,26 +93,6 @@ export function demoAttempts(config: RunnerConfig): AuthorizationAttempt[] {
       amount: config.maxPerTxWei + 1n,
       paymentId: hashLabel(`osmium:${runId}:over-max`),
       receiptHash: hashLabel(`receipt:${runId}:over-max`)
-    },
-    {
-      label: "allowed replay seed",
-      intentHash: config.demoIntentHash,
-      contextHash: approvedContextHash,
-      merchant: config.merchantAddress,
-      token: config.tokenAddress,
-      amount: config.maxPerTxWei / 3n,
-      paymentId: replayId,
-      receiptHash: hashLabel(`receipt:${runId}:replay-1`)
-    },
-    {
-      label: "blocked replay",
-      intentHash: config.demoIntentHash,
-      contextHash: approvedContextHash,
-      merchant: config.merchantAddress,
-      token: config.tokenAddress,
-      amount: config.maxPerTxWei / 3n,
-      paymentId: replayId,
-      receiptHash: hashLabel(`receipt:${runId}:replay-2`)
     }
   ];
 }

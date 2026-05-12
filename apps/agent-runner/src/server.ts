@@ -11,7 +11,11 @@ if (config.requireRunnerApiKey && !config.runnerApiKey) {
 const app = express();
 
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
+  const origin = req.header("origin");
+  if (!origin || origin === config.allowedOrigin) {
+    res.header("Access-Control-Allow-Origin", origin ?? config.allowedOrigin);
+  }
+  res.header("Vary", "Origin");
   res.header("Access-Control-Allow-Headers", "content-type,x-osmium-api-key");
   res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   if (req.method === "OPTIONS") return res.sendStatus(204);

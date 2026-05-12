@@ -4,6 +4,19 @@ pragma solidity ^0.8.24;
 import {MockERC20} from "../src/MockERC20.sol";
 import {IOsmiumPolicyEngine, OsmiumSettlementRouter} from "../src/OsmiumSettlementRouter.sol";
 
+interface IDirectAuthorization {
+    function authorizePaymentWithIntent(
+        uint256 policyId,
+        bytes32 intentHash,
+        bytes32 contextHash,
+        address merchant,
+        address token,
+        uint256 amount,
+        bytes32 paymentId,
+        bytes32 receiptHash
+    ) external returns (bool);
+}
+
 contract MockPolicyEngine is IOsmiumPolicyEngine {
     address public owner;
     address public agent;
@@ -69,6 +82,31 @@ contract SettlementAgent {
         bytes32 receiptHash
     ) external returns (bool) {
         return router.settleWithIntent(policyId, intentHash, contextHash, merchant, token, amount, paymentId, receiptHash);
+    }
+}
+
+contract DirectAuthorizationDisabled {
+    function authorizePaymentWithIntent(
+        uint256,
+        bytes32,
+        bytes32,
+        address,
+        address,
+        uint256,
+        bytes32,
+        bytes32
+    ) external pure returns (bool) {
+        revert("USE_SETTLEMENT_ROUTER");
+    }
+}
+
+contract FeeOnTransferToken is MockERC20 {
+    constructor() MockERC20("Fee Token", "FEE", 18) {}
+
+    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
+        uint256 received = amount / 2;
+        super.transferFrom(from, to, received);
+        return true;
     }
 }
 
@@ -151,5 +189,35 @@ contract OsmiumSettlementRouterTest {
         } catch {}
 
         require(token.balanceOf(merchant) == 0, "WRONG_TOKEN_PAID");
+    }
+
+    function testDepositCreditsOnlyReceivedTokenAmount() public {
+        FeeOnTransferToken feeToken = new FeeOnTransferToken();
+        feeToken.mint(address(this), 10 ether);
+        feeToken.approve(address(router), type(uint256).max);
+
+        router.deposit(address(feeToken), 4 ether);
+
+        require(router.vaultBalance(address(this), address(feeToken)) == 2 ether, "FEE_TOKEN_OVER_CREDITED");
+        require(feeToken.balanceOf(address(router)) == 2 ether, "FEE_TOKEN_RECEIVED");
+    }
+
+    function testDirectAuthorizationRevertsUseSettlementRouter() public {
+        IDirectAuthorization direct = IDirectAuthorization(address(new DirectAuthorizationDisabled()));
+
+        try direct.authorizePaymentWithIntent(
+            1,
+            keccak256("intent"),
+            keccak256("context"),
+            merchant,
+            address(token),
+            1 ether,
+            keccak256("payment"),
+            keccak256("receipt")
+        ) returns (bool) {
+            revert("DIRECT_AUTH_ALLOWED");
+        } catch Error(string memory reason) {
+            require(keccak256(bytes(reason)) == keccak256("USE_SETTLEMENT_ROUTER"), "WRONG_DIRECT_AUTH_REASON");
+        }
     }
 }

@@ -25,6 +25,7 @@ Use Render secret environment variables for:
 - `AGENT_PRIVATE_KEY`
 - `RUNNER_API_KEY`
 - `RUNNER_REQUIRE_API_KEY=true`
+- `RUNNER_ALLOWED_ORIGIN=https://your-dashboard.example`
 
 Never commit `.env`.
 
@@ -61,6 +62,8 @@ x-osmium-api-key: your-secret
 ```
 
 Do not expose this value through `VITE_` frontend variables. Vite embeds `VITE_*` values in the browser bundle, so the public dashboard only calls `/health` and `/demo/preview` by default. Keep `/demo/run` local, server-side, or behind an operator-only trigger for judged demos.
+
+`RUNNER_ALLOWED_ORIGIN` controls CORS. Local development defaults to `http://127.0.0.1:5173`.
 
 ## Why An External Runner Is Fine
 

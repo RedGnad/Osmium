@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 interface IOsmiumERC20 {
+    function balanceOf(address account) external view returns (uint256);
     function transfer(address to, uint256 value) external returns (bool);
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
@@ -107,10 +108,14 @@ contract OsmiumSettlementRouter {
         if (token == address(0)) revert ZeroAddress();
         if (amount == 0) revert InvalidAmount();
 
-        vaultBalance[msg.sender][token] += amount;
-        IOsmiumERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        IOsmiumERC20 asset = IOsmiumERC20(token);
+        uint256 beforeBalance = asset.balanceOf(address(this));
+        asset.safeTransferFrom(msg.sender, address(this), amount);
+        uint256 received = asset.balanceOf(address(this)) - beforeBalance;
+        if (received == 0) revert InvalidAmount();
 
-        emit Deposited(msg.sender, token, amount);
+        vaultBalance[msg.sender][token] += received;
+        emit Deposited(msg.sender, token, received);
     }
 
     function withdraw(address token, uint256 amount) external nonReentrant {

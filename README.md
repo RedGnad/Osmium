@@ -40,11 +40,11 @@ The Solidity contracts are useful for fast local tests, ERC20 custody, and Stylu
 Robinhood Chain Testnet:
 
 - Stylus `PolicyEngine`: `0x5e30622c7639aa5edc43313830c9a01341585728`
-- Solidity `SettlementRouter`: `0xdC643A9b5A160108A39E0e712b6c181133c03bb2`
+- Solidity `SettlementRouter`: `0x1CD04cbD3348D5fa28B30776902464752e878ac7`
 - PolicyEngine deployment tx: `0x344c48bff7e6852220491d50003d38218ec439a3dc4c4a6f69b5f6d36223ec80`
 - PolicyEngine activation tx: `0x810bd4ddb6a6b911c9708a922580d1e3c7887d9b004ca40fbc4f3f4bb86ace3a`
-- SettlementRouter deployment tx: `0x7751ca2033eaa08583925240241dc7d0ebcc9c556b9315ee4f7114ae0ce26361`
-- Set settlement router tx: `0x5f8129ee0cd4263ce0ca16dc32a025fa6ba772bb0c476c3165de3a436ea1ea9b`
+- SettlementRouter deployment tx: `0x43a1e173603e7664ec60ecaa9f95518a1be202dab42dfa2a45779759a93cf323`
+- Set settlement router tx: `0x2b1390cb22a8320fdf39536466659b0a5279184db2385f8078afe68a6a46e770`
 - Init tx: `0x59c997c90e04be6e60720a985f081b9e419872825c4b0fc397e3acecf9541efb`
 - Register USDG merchant tx: `0xc1eeff08b27ac79ec50fadee760fb5d67db115a7babd182d8b31c1ce72ab1925`
 - Create USDG policy tx: `0xb6db4ec1555bb23d0986c4f7639defb4dba3ca5b9223eb66a7e280ec65ce74ed`
@@ -115,9 +115,19 @@ The payment path now has two layers:
 1. The Stylus `PolicyEngine` records deterministic allow/block decisions.
 2. The Solidity `OsmiumSettlementRouter` holds ERC20 funds and calls `authorizePaymentForAgent`.
 
+```text
+AI agent
+  -> OsmiumSettlementRouter
+  -> Stylus PolicyEngine
+  -> allow / deny
+  -> ERC20 settlement + receipt + replay state
+```
+
 If the engine returns `true`, the router transfers the token to the merchant and emits `PaymentSettled`. If the engine returns `false`, no funds move and the router emits `PaymentDenied`. This demonstrates the intended Arbitrum Stylus interop model: policy logic in Rust/Stylus, settlement in Solidity.
 
 The direct state-changing `authorizePaymentWithIntent` path is disabled and returns `USE_SETTLEMENT_ROUTER`. `previewAuthorizationWithIntent` remains available for read-only previews, but budget, replay, and receipt state are consumed only through router settlement.
+
+Router deposits credit the vault by the token balance delta actually received, so fee-on-transfer test tokens cannot over-credit the internal vault accounting.
 
 For USDG-specific demos, fund the wallet with test USDG through the Paxos faucet, approve the router, deposit into the router vault, and call `settleWithIntent`. The live TSLA flow below already proves real token custody and settlement on Robinhood Chain.
 
@@ -125,9 +135,9 @@ Live TSLA settlement proof:
 
 - TSLA policy setup tx: `0x17d5c72af5b23d9d6b3f143627cbcab271a5ab93ae90b84210816e92f8dab214`
 - TSLA intent approval tx: `0x86d8d024b690562bb0570563c199c2040a566866be846522a27f74acba5a66ed`
-- TSLA router approve tx: `0x1539a217004862e8f35278272caa1fea50d074217c48e979ebf203eeb82ce71d`
-- TSLA router deposit tx: `0xf568135becfbc3c74cb4905801c3a9f611e0d2f85a3d8802f24972fb3a03907d`
-- TSLA settled payment tx: `0x96169c50a6c5d9a83765ea8270c5efd8cbc185e17e854d2d9a8f08d0fc04c182`
+- TSLA router approve tx: `0xfdc6f4391645c495c93b83704486ece9c7452e6bd191699f1a27d0b629c466df`
+- TSLA router deposit tx: `0xc9416f784bf015aa232574e4e31c3d5a86a98536fad86211142d55477c97592e`
+- TSLA settled payment tx: `0xc1f0f2240664a63c960803fdf1742c850f809340b542df529301eced499d8349`
 - Settled amount: `0.25 TSLA`
 - Replay check after settlement: `Replay`
 - Router vault remaining balance after latest run: `0.5 TSLA`

@@ -40,6 +40,7 @@ export type RunnerConfig = {
   periodLimitWei: bigint;
   runnerApiKey?: string;
   requireRunnerApiKey: boolean;
+  allowedOrigin: string;
   port: number;
 };
 
@@ -87,6 +88,7 @@ export function loadConfig(): RunnerConfig {
     periodLimitWei: BigInt(env("PERIOD_LIMIT_WEI", "3000000000000000000")),
     runnerApiKey: process.env.RUNNER_API_KEY,
     requireRunnerApiKey: process.env.RUNNER_REQUIRE_API_KEY === "true" || process.env.RENDER === "true",
+    allowedOrigin: env("RUNNER_ALLOWED_ORIGIN", "http://127.0.0.1:5173"),
     port: Number(env("PORT", "10000"))
   };
 }

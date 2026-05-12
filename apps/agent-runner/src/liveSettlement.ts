@@ -16,6 +16,10 @@ function stringify(value: unknown): unknown {
   return value;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function runLiveSettlement() {
   const config = loadConfig();
   if (!config.agentPrivateKey) throw new Error("AGENT_PRIVATE_KEY is required");
@@ -83,22 +87,28 @@ export async function runLiveSettlement() {
   });
   const settleReceipt = await client.waitForTransactionReceipt({ hash: settleTx });
 
-  const [replayAllowed, replayReason] = await client.readContract({
-    address: config.engineAddress,
-    abi: osmiumPolicyEngineAbi,
-    functionName: "previewAuthorizationWithIntent",
-    args: [
-      config.settlementDemoPolicyId,
-      config.demoIntentHash,
-      CONTEXT_HASH,
-      account.address,
-      config.merchantAddress,
-      token,
-      amount,
-      paymentId,
-      receiptHash
-    ]
-  });
+  let replayAllowed = true;
+  let replayReason = 0;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    [replayAllowed, replayReason] = await client.readContract({
+      address: config.engineAddress,
+      abi: osmiumPolicyEngineAbi,
+      functionName: "previewAuthorizationWithIntent",
+      args: [
+        config.settlementDemoPolicyId,
+        config.demoIntentHash,
+        CONTEXT_HASH,
+        account.address,
+        config.merchantAddress,
+        token,
+        amount,
+        paymentId,
+        receiptHash
+      ]
+    });
+    if (!replayAllowed && replayReason === 8) break;
+    await sleep(1000);
+  }
 
   const after = {
     ownerToken: await client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [account.address] }),

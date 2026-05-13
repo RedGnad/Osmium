@@ -821,6 +821,7 @@ function App() {
           busy={busy}
           flow={x402Flow}
           merchantAudit={merchantAudit}
+          operatorKey={operatorKey}
           onExecute={executeVerifiedPayment}
           onRequest={() => requestMarketDataResource(activeAsset)}
           onSettle={settleX402Flow}
@@ -1046,6 +1047,7 @@ function X402FlowPanel({
   busy,
   flow,
   merchantAudit,
+  operatorKey,
   onExecute,
   onRequest,
   onSettle,
@@ -1055,12 +1057,15 @@ function X402FlowPanel({
   busy: string;
   flow: X402FlowState;
   merchantAudit: MerchantAuditRecord[];
+  operatorKey: string;
   onExecute: () => void;
   onRequest: () => void;
   onSettle: () => void;
   onVerify: () => void;
 }) {
   const latest = merchantAudit[0];
+  const hasOperatorKey = operatorKey.trim().length > 0;
+  const canSettle = Boolean(flow.paymentRequired && hasOperatorKey && activeAsset === "TSLA");
   const steps = [
     {
       label: "Request resource",
@@ -1074,7 +1079,11 @@ function X402FlowPanel({
     },
     {
       label: "Settle via router",
-      value: flow.txHash ? short(flow.txHash) : "operator gated",
+      value: flow.txHash
+        ? short(flow.txHash)
+        : hasOperatorKey
+          ? "ready"
+          : "operator key required",
       ok: Boolean(flow.txHash),
     },
     {
@@ -1101,6 +1110,9 @@ function X402FlowPanel({
           <small>
             {flow.scheme ?? "osmium-exact"} / {flow.network ?? "eip155:46630"} / {activeAsset}
           </small>
+          <small>
+            Settlement uses the operator key field below; 402 in DevTools is the expected challenge.
+          </small>
         </div>
         <div className="x402Actions">
           <button disabled={busy !== ""} onClick={onRequest} title="Request paid market data">
@@ -1111,11 +1123,11 @@ function X402FlowPanel({
             <ShieldCheck size={16} />
             Verify
           </button>
-          <button className="primary" disabled={busy !== "" || !flow.paymentRequired} onClick={onSettle} title="Settle through Osmium">
+          <button className="primary" disabled={busy !== "" || !canSettle} onClick={onSettle} title="Settle through Osmium">
             <PlayCircle size={16} />
             Settle x402
           </button>
-          <button disabled={busy !== ""} onClick={onExecute} title="Fallback to the classic live settlement endpoint">
+          <button disabled={busy !== "" || !hasOperatorKey || activeAsset !== "TSLA"} onClick={onExecute} title="Fallback to the classic live settlement endpoint">
             <FileCheck2 size={16} />
             Classic settle
           </button>

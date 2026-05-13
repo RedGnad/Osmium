@@ -259,6 +259,7 @@ function short(value: string) {
   if (value === "not connected") return "Connect";
   if (!value || value === "0x0000000000000000000000000000000000000000")
     return "unset";
+  if (value.length <= 12) return value;
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
 
@@ -276,8 +277,19 @@ function formatDelta(before: string, after: string, symbol = "TSLA") {
   return `${sign}${delta.toFixed(2)} ${symbol}`;
 }
 
+function formatAuditTime(timestamp: number) {
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function txUrl(hash: string) {
   return `${config.explorerUrl}/tx/${hash}`;
+}
+
+function isFullTxHash(hash: string) {
+  return /^0x[a-fA-F0-9]{64}$/.test(hash);
 }
 
 function tokenSymbolFor(address: string) {
@@ -1174,6 +1186,37 @@ function X402FlowPanel({
   const canSettle = Boolean(
     flow.paymentRequired && hasOperatorKey && activeAsset === "TSLA",
   );
+  const nextAction = flow.unlocked
+    ? {
+        title: "Data unlocked",
+        detail: "Receipt accepted; the merchant audit trail has the proof.",
+        tone: "ok",
+      }
+    : flow.txHash
+      ? {
+          title: "Unlock resource",
+          detail: "Settlement is complete; retry the market-data request with the receipt.",
+          tone: "info",
+        }
+      : flow.verifyValid
+        ? {
+            title: "Settle via router",
+            detail: hasOperatorKey
+              ? "Operator checkpoint passed; funds can move through Osmium."
+              : "Enter the operator key before any vault funds can move.",
+            tone: "warn",
+          }
+        : flow.paymentRequired
+          ? {
+              title: "Verify policy",
+              detail: "Check merchant, token, amount, context, receipt and replay before settlement.",
+              tone: "info",
+            }
+          : {
+              title: "Request paid resource",
+              detail: "Start with the merchant API; 402 is the expected payment challenge.",
+              tone: "info",
+            };
   const steps = [
     {
       label: "Request resource",
@@ -1240,6 +1283,11 @@ function X402FlowPanel({
               : "required for tx execution"}
           </small>
         </label>
+        <div className={`nextActionCard ${nextAction.tone}`}>
+          <span>Next operator action</span>
+          <strong>{nextAction.title}</strong>
+          <small>{nextAction.detail}</small>
+        </div>
         <div className="x402Actions">
           <button
             disabled={busy !== ""}
@@ -1657,9 +1705,23 @@ function AuditTrail({
                 </div>
                 <strong>{record.unlocked ? "Unlocked" : "Settled"}</strong>
                 <span>
+                  {formatAuditTime(record.timestamp)} /{" "}
                   {formatToken(record.amount, record.asset)} / receipt{" "}
                   {short(record.receiptHash)}
                 </span>
+                {isFullTxHash(record.txHash) ? (
+                  <a
+                    className="auditTxLink"
+                    href={txUrl(record.txHash)}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <ExternalLink size={14} />
+                    {short(record.txHash)}
+                  </a>
+                ) : (
+                  <span className="auditTxMissing">local proof</span>
+                )}
               </div>
             ))}
             {rows.map((row, index) => (

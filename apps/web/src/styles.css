@@ -136,6 +136,8 @@ input:focus-visible {
 .x402Protocol small,
 .x402Operator span,
 .x402Operator small,
+.nextActionCard span,
+.nextActionCard small,
 .x402Step span {
   color: #657180;
   font-size: 12px;
@@ -379,7 +381,8 @@ h1 {
 }
 
 .x402Protocol,
-.x402Operator {
+.x402Operator,
+.nextActionCard {
   background: #f8fafc;
   border: 1px solid #dce3ec;
   border-radius: 8px;
@@ -394,6 +397,26 @@ h1 {
 
 .x402Operator input {
   width: 100%;
+}
+
+.nextActionCard {
+  border-left: 4px solid #60a5fa;
+}
+
+.nextActionCard.warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+  border-left-color: #f59e0b;
+}
+
+.nextActionCard.ok {
+  background: #ecfdf5;
+  border-color: #9bd8bd;
+  border-left-color: #0f766e;
+}
+
+.nextActionCard strong {
+  font-size: 18px;
 }
 
 .x402Actions {
@@ -685,7 +708,7 @@ h1 {
 }
 
 .auditRow {
-  grid-template-columns: 38px 96px minmax(0, 1fr);
+  grid-template-columns: 38px 96px minmax(0, 1fr) max-content;
 }
 
 .attemptRow span,
@@ -694,6 +717,29 @@ h1 {
 }
 
 .attemptRow code {
+  color: #657180;
+}
+
+.auditTxLink,
+.auditTxMissing {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #dce3ec;
+  border-radius: 8px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 8px;
+  text-decoration: none;
+}
+
+.auditTxLink {
+  color: #0f766e;
+}
+
+.auditTxMissing {
   color: #657180;
 }
 
@@ -885,7 +931,9 @@ code {
   }
 
   .attemptRow code,
-  .auditRow span {
+  .auditRow span,
+  .auditTxLink,
+  .auditTxMissing {
     grid-column: 1 / -1;
   }
 }

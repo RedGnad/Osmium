@@ -1,4 +1,4 @@
-import { StrictMode, useMemo, useState, type ReactNode } from "react";
+import { StrictMode, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
@@ -370,6 +370,45 @@ function App() {
       setBusy("");
     }
   }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateConsole() {
+      try {
+        await callRunner("/health");
+        if (mounted) setRunnerStatus("online");
+      } catch {
+        if (mounted) setRunnerStatus("offline");
+      }
+
+      try {
+        const nextQuote = (await callRunner("/merchant/quote?asset=TSLA")) as MerchantQuote;
+        if (mounted) setQuote(nextQuote);
+      } catch {
+        // Keep the initial quote placeholder if the runner is sleeping or not configured yet.
+      }
+
+      try {
+        const proof = (await callRunner("/demo/live-settlement/preview")) as LiveSettlement;
+        if (mounted) setSettlement(proof);
+      } catch {
+        // Live proof can still be loaded manually once the runner wakes up.
+      }
+
+      try {
+        const audit = (await callRunner("/merchant/audit")) as MerchantAuditRecord[];
+        if (mounted) setMerchantAudit(audit);
+      } catch {
+        // Audit is optional for the initial paint.
+      }
+    }
+
+    void hydrateConsole();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const allowed = demo.filter((item) => item.preview.allowed).length;
   const blocked = demo.length - allowed;

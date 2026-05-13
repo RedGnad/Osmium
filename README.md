@@ -86,6 +86,7 @@ The offchain demo components are:
 
 - `apps/agent-runner`: Express service for local/Render agent execution.
 - `apps/web`: Vite/React firewall dashboard.
+- `docs/deployment.md`: Vercel frontend and runner environment setup.
 
 The runner also exposes a mini verified merchant surface:
 

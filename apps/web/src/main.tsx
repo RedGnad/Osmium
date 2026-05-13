@@ -23,7 +23,6 @@ import {
   PlayCircle,
   Radio,
   ShieldCheck,
-  SlidersHorizontal,
   Store,
   Wallet,
   XCircle,
@@ -193,6 +192,62 @@ const assets = [
 
 type AssetSymbol = (typeof assets)[number]["symbol"];
 
+type ConsoleView =
+  | "command"
+  | "runbook"
+  | "assets"
+  | "risk"
+  | "audit"
+  | "developer";
+
+const viewCopy: Record<
+  ConsoleView,
+  { eyebrow: string; title: string; description: string }
+> = {
+  command: {
+    eyebrow: "Command center",
+    title: "Supervise agent spending",
+    description:
+      "Operate the live TSLA market-data spend path and see the controls that protect it.",
+  },
+  runbook: {
+    eyebrow: "x402-compatible flow",
+    title: "Request, verify, settle, unlock",
+    description:
+      "A policy-aware facilitator flow for delegated vault settlement on Robinhood Chain.",
+  },
+  assets: {
+    eyebrow: "Agent setup",
+    title: "Agent, policy, merchant",
+    description:
+      "The operator view for the finance agent, supported assets and verified merchant.",
+  },
+  risk: {
+    eyebrow: "Risk lab",
+    title: "Prove the firewall blocks bad spend",
+    description:
+      "Run deterministic previews for unknown merchants, missing receipts, over-limit attempts and replay.",
+  },
+  audit: {
+    eyebrow: "Evidence",
+    title: "Settlement and audit trail",
+    description:
+      "Inspect receipts, balance deltas, replay state and merchant unlock records.",
+  },
+  developer: {
+    eyebrow: "Developer surface",
+    title: "Integrate Osmium into an agent",
+    description:
+      "The minimum integration path for agent builders using quotes, intents and settlement.",
+  },
+};
+
+function getInitialView(): ConsoleView {
+  if (typeof window === "undefined") return "command";
+  const hash = window.location.hash.replace("#", "");
+  return hash in viewCopy ? (hash as ConsoleView) : "command";
+}
+
 const robinhoodTestnet = {
   id: config.chainId,
   name: "Robinhood Chain Testnet",
@@ -299,6 +354,7 @@ function App() {
   const [merchantAudit, setMerchantAudit] = useState<MerchantAuditRecord[]>([]);
   const [spendEvents, setSpendEvents] = useState<SpendEvent[]>([]);
   const [operatorKey, setOperatorKey] = useState("");
+  const [view, setView] = useState<ConsoleView>(getInitialView);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -382,6 +438,11 @@ function App() {
 
   function addSpendEvent(event: SpendEvent) {
     setSpendEvents((events) => [event, ...events].slice(0, 8));
+  }
+
+  function selectView(nextView: ConsoleView) {
+    setView(nextView);
+    window.history.replaceState(null, "", `#${nextView}`);
   }
 
   async function requestMarketDataResource(asset = activeAsset) {
@@ -702,6 +763,15 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    function syncViewFromHash() {
+      setView(getInitialView());
+    }
+
+    window.addEventListener("hashchange", syncViewFromHash);
+    return () => window.removeEventListener("hashchange", syncViewFromHash);
+  }, []);
+
   const allowed = demo.filter((item) => item.preview.allowed).length;
   const blocked = demo.length - allowed;
   const activeAssetConfig =
@@ -709,6 +779,85 @@ function App() {
   const auditRows = useMemo(
     () => buildAuditRows(demo, settlement, spendEvents),
     [demo, settlement, spendEvents],
+  );
+  const currentView = viewCopy[view];
+  const navItems: Array<{
+    id: ConsoleView;
+    label: string;
+    icon: ReactNode;
+  }> = [
+    { id: "command", label: "Command", icon: <Layers3 size={17} /> },
+    { id: "runbook", label: "x402 Runbook", icon: <LockKeyhole size={17} /> },
+    { id: "assets", label: "Assets", icon: <Database size={17} /> },
+    { id: "risk", label: "Risk Lab", icon: <ArrowRightLeft size={17} /> },
+    { id: "audit", label: "Audit", icon: <FileCheck2 size={17} /> },
+    { id: "developer", label: "Developer", icon: <Code2 size={17} /> },
+  ];
+  const riskWorkbench = (
+    <section className="decisionDesk">
+      <div className="panelHeader">
+        <div>
+          <span>Risk Test Bench</span>
+          <strong>Allow / block decisions</strong>
+        </div>
+        <div className="toolbar">
+          <button
+            onClick={checkRunner}
+            disabled={busy !== ""}
+            title="Check runner health"
+          >
+            <Radio size={17} />
+            Health
+          </button>
+          <button
+            onClick={previewDemo}
+            disabled={busy !== ""}
+            title="Preview policy decisions"
+          >
+            <AlertTriangle size={17} />
+            Preview
+          </button>
+          <button
+            className="primary"
+            onClick={refreshLiveProof}
+            disabled={busy !== ""}
+            title="Read latest live settlement proof"
+          >
+            <FileCheck2 size={17} />
+            Live Proof
+          </button>
+        </div>
+      </div>
+
+      <ScenarioRail
+        busy={busy}
+        onPay={payVerifiedMerchant}
+        onExecute={refreshLiveProof}
+        onUnknown={() => previewBlockedScenario("unknown")}
+        onMissing={() => previewBlockedScenario("missing")}
+        onOver={() => previewBlockedScenario("over")}
+        onReplay={replayLastPayment}
+      />
+
+      <div className="decisionSummary">
+        <Kpi label="Allowed" value={String(allowed)} />
+        <Kpi label="Blocked" value={String(blocked)} />
+        <Kpi label="Attempts" value={String(demo.length)} />
+      </div>
+
+      <div className="attempts">
+        {demo.length === 0 ? (
+          <div className="emptyState">
+            <ShieldCheck size={42} />
+            <span>
+              Preview the merchant spend path to load allow/block decisions.
+            </span>
+          </div>
+        ) : (
+          demo.map((item) => <AttemptRow key={item.label} item={item} />)
+        )}
+      </div>
+    </section>
   );
 
   return (
@@ -725,38 +874,17 @@ function App() {
         </div>
 
         <nav className="railNav" aria-label="Console sections">
-          <a className="active" href="#overview">
-            <Layers3 size={17} />
-            Overview
-          </a>
-          <a href="#x402-flow">
-            <LockKeyhole size={17} />
-            x402 Runbook
-          </a>
-          <a href="#agents">
-            <Database size={17} />
-            Agents
-          </a>
-          <a href="#policies">
-            <SlidersHorizontal size={17} />
-            Policies
-          </a>
-          <a href="#merchants">
-            <Store size={17} />
-            Merchants
-          </a>
-          <a href="#settlement">
-            <ArrowRightLeft size={17} />
-            Risk Tests
-          </a>
-          <a href="#audit">
-            <FileCheck2 size={17} />
-            Audit
-          </a>
-          <a href="#developer">
-            <Code2 size={17} />
-            Developer
-          </a>
+          {navItems.map((item) => (
+            <button
+              className={view === item.id ? "active" : ""}
+              key={item.id}
+              onClick={() => selectView(item.id)}
+              type="button"
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
         </nav>
 
         <div className="railCard">
@@ -769,8 +897,9 @@ function App() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <span className="eyebrow">Onchain control plane</span>
-            <h1>AI Finance Agent Operations</h1>
+            <span className="eyebrow">{currentView.eyebrow}</span>
+            <h1>{currentView.title}</h1>
+            <p>{currentView.description}</p>
           </div>
           <button
             className="walletButton"
@@ -781,6 +910,20 @@ function App() {
             <span>{short(account)}</span>
           </button>
         </header>
+
+        <nav className="mobileNav" aria-label="Console sections">
+          {navItems.map((item) => (
+            <button
+              className={view === item.id ? "active" : ""}
+              key={item.id}
+              onClick={() => selectView(item.id)}
+              type="button"
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </nav>
 
         <section className="systemStrip" aria-label="System state">
           <Metric
@@ -809,119 +952,115 @@ function App() {
           />
         </section>
 
-        <OverviewPanel
-          demo={demo}
-          settlement={settlement}
-          quote={quote}
-          unlock={unlock}
-        />
-        <X402FlowPanel
-          activeAsset={activeAsset}
-          busy={busy}
-          flow={x402Flow}
-          merchantAudit={merchantAudit}
-          operatorKey={operatorKey}
-          setOperatorKey={setOperatorKey}
-          onExecute={executeVerifiedPayment}
-          onRequest={() => requestMarketDataResource(activeAsset)}
-          onSettle={settleX402Flow}
-          onVerify={verifyX402Flow}
-        />
+        {error ? <div className="error">{error}</div> : null}
 
-        <section className="mainGrid">
-          <div className="leftColumn">
-            <AgentPanel
-              account={account}
-              nativeBalance={nativeBalance}
-              activeAsset={activeAsset}
-              activeAssetConfig={activeAssetConfig}
-              setActiveAsset={setActiveAsset}
-            />
-            <PolicyPanel activeAsset={activeAsset} />
-            <MerchantPanel
-              activeAsset={activeAsset}
+        {view === "command" ? (
+          <section className="viewStack commandView">
+            <OverviewPanel
+              demo={demo}
+              settlement={settlement}
               quote={quote}
               unlock={unlock}
-              onQuote={() => loadMerchantQuote(activeAsset)}
-              busy={busy !== ""}
             />
-          </div>
-
-          <section className="decisionDesk" id="settlement">
-            <div className="panelHeader">
-              <div>
-                <span>Risk Test Bench</span>
-                <strong>Allow / block decisions</strong>
-              </div>
-              <div className="toolbar">
-                <button
-                  onClick={checkRunner}
-                  disabled={busy !== ""}
-                  title="Check runner health"
-                >
-                  <Radio size={17} />
-                  Health
-                </button>
-                <button
-                  onClick={previewDemo}
-                  disabled={busy !== ""}
-                  title="Preview policy decisions"
-                >
-                  <AlertTriangle size={17} />
-                  Preview
-                </button>
-                <button
-                  className="primary"
-                  onClick={refreshLiveProof}
-                  disabled={busy !== ""}
-                  title="Read latest live settlement proof"
-                >
-                  <FileCheck2 size={17} />
-                  Live Proof
-                </button>
-              </div>
-            </div>
-
-            <ScenarioRail
-              busy={busy}
-              onPay={payVerifiedMerchant}
-              onExecute={refreshLiveProof}
-              onUnknown={() => previewBlockedScenario("unknown")}
-              onMissing={() => previewBlockedScenario("missing")}
-              onOver={() => previewBlockedScenario("over")}
-              onReplay={replayLastPayment}
-            />
-
-            {error ? <div className="error">{error}</div> : null}
-
-            <div className="decisionSummary">
-              <Kpi label="Allowed" value={String(allowed)} />
-              <Kpi label="Blocked" value={String(blocked)} />
-              <Kpi label="Attempts" value={String(demo.length)} />
-            </div>
-
-            <div className="attempts">
-              {demo.length === 0 ? (
-                <div className="emptyState">
-                  <ShieldCheck size={42} />
-                  <span>
-                    Preview the merchant spend path to load allow/block
-                    decisions.
-                  </span>
-                </div>
-              ) : (
-                demo.map((item) => <AttemptRow key={item.label} item={item} />)
-              )}
-            </div>
+            <section className="commandGrid">
+              <X402FlowPanel
+                activeAsset={activeAsset}
+                busy={busy}
+                flow={x402Flow}
+                merchantAudit={merchantAudit}
+                operatorKey={operatorKey}
+                setOperatorKey={setOperatorKey}
+                onExecute={executeVerifiedPayment}
+                onRequest={() => requestMarketDataResource(activeAsset)}
+                onSettle={settleX402Flow}
+                onVerify={verifyX402Flow}
+              />
+              <section className="operatorSnapshot">
+                <AgentPanel
+                  account={account}
+                  nativeBalance={nativeBalance}
+                  activeAsset={activeAsset}
+                  activeAssetConfig={activeAssetConfig}
+                  setActiveAsset={setActiveAsset}
+                />
+                <SettlementPanel settlement={settlement} />
+              </section>
+            </section>
           </section>
-        </section>
+        ) : null}
 
-        <section className="evidenceGrid">
-          <SettlementPanel settlement={settlement} />
-          <AuditTrail rows={auditRows} merchantAudit={merchantAudit} />
-        </section>
+        {view === "runbook" ? (
+          <section className="viewStack runbookView">
+            <X402FlowPanel
+              activeAsset={activeAsset}
+              busy={busy}
+              flow={x402Flow}
+              merchantAudit={merchantAudit}
+              operatorKey={operatorKey}
+              setOperatorKey={setOperatorKey}
+              onExecute={executeVerifiedPayment}
+              onRequest={() => requestMarketDataResource(activeAsset)}
+              onSettle={settleX402Flow}
+              onVerify={verifyX402Flow}
+            />
+            <section className="runbookSplit">
+              <MerchantPanel
+                activeAsset={activeAsset}
+                quote={quote}
+                unlock={unlock}
+                onQuote={() => loadMerchantQuote(activeAsset)}
+                busy={busy !== ""}
+              />
+              <AuditTrail rows={auditRows} merchantAudit={merchantAudit} />
+            </section>
+          </section>
+        ) : null}
 
-        <DeveloperPanel />
+        {view === "assets" ? (
+          <section className="viewStack setupView">
+            <section className="setupGrid">
+              <AgentPanel
+                account={account}
+                nativeBalance={nativeBalance}
+                activeAsset={activeAsset}
+                activeAssetConfig={activeAssetConfig}
+                setActiveAsset={setActiveAsset}
+              />
+              <PolicyPanel activeAsset={activeAsset} />
+              <MerchantPanel
+                activeAsset={activeAsset}
+                quote={quote}
+                unlock={unlock}
+                onQuote={() => loadMerchantQuote(activeAsset)}
+                busy={busy !== ""}
+              />
+            </section>
+          </section>
+        ) : null}
+
+        {view === "risk" ? (
+          <section className="viewStack riskView">
+            <section className="riskLayout">
+              {riskWorkbench}
+              <SettlementPanel settlement={settlement} />
+            </section>
+          </section>
+        ) : null}
+
+        {view === "audit" ? (
+          <section className="viewStack auditView">
+            <section className="evidenceGrid">
+              <SettlementPanel settlement={settlement} />
+              <AuditTrail rows={auditRows} merchantAudit={merchantAudit} />
+            </section>
+          </section>
+        ) : null}
+
+        {view === "developer" ? (
+          <section className="viewStack developerView">
+            <DeveloperPanel />
+          </section>
+        ) : null}
       </section>
     </main>
   );

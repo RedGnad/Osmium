@@ -160,19 +160,25 @@ input:focus-visible {
   gap: 6px;
 }
 
-.railNav a {
+.railNav button {
   align-items: center;
+  background: transparent;
+  border: 0;
   border-radius: 8px;
   color: #cbd5e1;
   display: flex;
+  font-size: 14px;
+  font-weight: 720;
   gap: 10px;
+  justify-content: flex-start;
   min-height: 40px;
   padding: 0 12px;
   text-decoration: none;
+  width: 100%;
 }
 
-.railNav a:hover,
-.railNav a.active {
+.railNav button:hover,
+.railNav button.active {
   background: #1f2937;
   color: #ffffff;
 }
@@ -199,10 +205,23 @@ input:focus-visible {
 }
 
 .topbar {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   gap: 18px;
   justify-content: space-between;
+}
+
+.topbar > div {
+  display: grid;
+  gap: 6px;
+}
+
+.topbar p {
+  color: #657180;
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 760px;
 }
 
 h1 {
@@ -215,6 +234,10 @@ h1 {
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.mobileNav {
+  display: none;
 }
 
 .systemStrip {
@@ -267,6 +290,42 @@ h1 {
   grid-template-columns: minmax(280px, 1.35fr) repeat(4, minmax(0, 1fr));
 }
 
+.viewStack {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.commandGrid,
+.runbookSplit,
+.riskLayout {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.commandGrid {
+  align-items: start;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.75fr);
+}
+
+.operatorSnapshot {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.runbookSplit,
+.riskLayout {
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+}
+
+.setupGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(270px, 0.8fr) minmax(270px, 0.8fr) minmax(300px, 1fr);
+}
+
 .overviewHero,
 .overviewGrid .metric,
 .panel,
@@ -316,7 +375,7 @@ h1 {
 .x402Body {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(240px, 0.8fr) minmax(220px, 0.7fr) minmax(360px, 1.25fr);
+  grid-template-columns: minmax(240px, 0.85fr) minmax(220px, 0.7fr);
 }
 
 .x402Protocol,
@@ -341,6 +400,7 @@ h1 {
   align-content: start;
   display: grid;
   gap: 8px;
+  grid-column: 1 / -1;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
@@ -713,6 +773,23 @@ code {
     display: none;
   }
 
+  .mobileNav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .mobileNav button {
+    flex: 0 0 auto;
+  }
+
+  .mobileNav button.active {
+    background: #111827;
+    border-color: #111827;
+    color: #ffffff;
+  }
+
   .workspace {
     padding: 22px;
   }
@@ -720,11 +797,19 @@ code {
   .x402Body {
     grid-template-columns: 1fr;
   }
+
+  .x402Actions {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 940px) {
   .systemStrip,
   .overviewGrid,
+  .commandGrid,
+  .runbookSplit,
+  .riskLayout,
+  .setupGrid,
   .x402Steps,
   .x402Ledger,
   .mainGrid,
@@ -768,8 +853,7 @@ code {
 
   .toolbar button,
   .scenarioRail button,
-  .x402Actions button,
-  .walletButton {
+  .x402Actions button {
     width: 100%;
   }
 

@@ -729,6 +729,10 @@ function App() {
             <Layers3 size={17} />
             Overview
           </a>
+          <a href="#x402-flow">
+            <LockKeyhole size={17} />
+            x402 Runbook
+          </a>
           <a href="#agents">
             <Database size={17} />
             Agents
@@ -741,13 +745,9 @@ function App() {
             <Store size={17} />
             Merchants
           </a>
-          <a href="#x402-flow">
-            <LockKeyhole size={17} />
-            x402 Flow
-          </a>
           <a href="#settlement">
             <ArrowRightLeft size={17} />
-            Live Spend
+            Risk Tests
           </a>
           <a href="#audit">
             <FileCheck2 size={17} />
@@ -815,13 +815,13 @@ function App() {
           quote={quote}
           unlock={unlock}
         />
-        <WedgePanel />
         <X402FlowPanel
           activeAsset={activeAsset}
           busy={busy}
           flow={x402Flow}
           merchantAudit={merchantAudit}
           operatorKey={operatorKey}
+          setOperatorKey={setOperatorKey}
           onExecute={executeVerifiedPayment}
           onRequest={() => requestMarketDataResource(activeAsset)}
           onSettle={settleX402Flow}
@@ -850,8 +850,8 @@ function App() {
           <section className="decisionDesk" id="settlement">
             <div className="panelHeader">
               <div>
-                <span>Live Spend</span>
-                <strong>Market Data Merchant</strong>
+                <span>Risk Test Bench</span>
+                <strong>Allow / block decisions</strong>
               </div>
               <div className="toolbar">
                 <button
@@ -885,17 +885,11 @@ function App() {
             <ScenarioRail
               busy={busy}
               onPay={payVerifiedMerchant}
-              onExecute={executeVerifiedPayment}
+              onExecute={refreshLiveProof}
               onUnknown={() => previewBlockedScenario("unknown")}
               onMissing={() => previewBlockedScenario("missing")}
               onOver={() => previewBlockedScenario("over")}
               onReplay={replayLastPayment}
-            />
-            <OperatorPanel
-              operatorKey={operatorKey}
-              setOperatorKey={setOperatorKey}
-              activeAsset={activeAsset}
-              busy={busy !== ""}
             />
 
             {error ? <div className="error">{error}</div> : null}
@@ -1013,41 +1007,13 @@ function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
   );
 }
 
-function WedgePanel() {
-  return (
-    <section className="wedgePanel" id="wedge">
-      <div className="wedgeCopy">
-        <span className="eyebrow">Agent spending controls</span>
-        <strong>Give AI finance agents a budget, not a blank check.</strong>
-      </div>
-      <div
-        className="flowCompare"
-        aria-label="Normal agent wallet versus Osmium"
-      >
-        <div className="flowCard weak">
-          <span>Normal agent wallet</span>
-          <strong>Agent key signs transfer</strong>
-          <small>No merchant receipt, no deterministic spend audit.</small>
-        </div>
-        <ArrowRightLeft size={22} />
-        <div className="flowCard strong">
-          <span>Osmium path</span>
-          <strong>Intent to policy to settlement</strong>
-          <small>
-            Merchant, token, amount, receipt, budget and replay checks.
-          </small>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function X402FlowPanel({
   activeAsset,
   busy,
   flow,
   merchantAudit,
   operatorKey,
+  setOperatorKey,
   onExecute,
   onRequest,
   onSettle,
@@ -1058,6 +1024,7 @@ function X402FlowPanel({
   flow: X402FlowState;
   merchantAudit: MerchantAuditRecord[];
   operatorKey: string;
+  setOperatorKey: (value: string) => void;
   onExecute: () => void;
   onRequest: () => void;
   onSettle: () => void;
@@ -1065,11 +1032,15 @@ function X402FlowPanel({
 }) {
   const latest = merchantAudit[0];
   const hasOperatorKey = operatorKey.trim().length > 0;
-  const canSettle = Boolean(flow.paymentRequired && hasOperatorKey && activeAsset === "TSLA");
+  const canSettle = Boolean(
+    flow.paymentRequired && hasOperatorKey && activeAsset === "TSLA",
+  );
   const steps = [
     {
       label: "Request resource",
-      value: flow.requestStatus ? `${flow.requestStatus} Payment Required` : "pending",
+      value: flow.requestStatus
+        ? `${flow.requestStatus} Payment Required`
+        : "pending",
       ok: flow.requestStatus === 402,
     },
     {
@@ -1097,10 +1068,12 @@ function X402FlowPanel({
     <section className="x402Panel" id="x402-flow">
       <div className="panelHeader">
         <div>
-          <span>Judge Mode</span>
+          <span>Primary Runbook</span>
           <strong>x402-compatible delegated settlement</strong>
         </div>
-        <Code2 size={20} />
+        <div className={flow.unlocked ? "badge ok" : "badge"}>
+          {flow.unlocked ? "Data unlocked" : "Operator gated"}
+        </div>
       </div>
 
       <div className="x402Body">
@@ -1108,26 +1081,61 @@ function X402FlowPanel({
           <span>PAYMENT-REQUIRED</span>
           <strong>{flow.protocol ?? "waiting for resource request"}</strong>
           <small>
-            {flow.scheme ?? "osmium-exact"} / {flow.network ?? "eip155:46630"} / {activeAsset}
-          </small>
-          <small>
-            Settlement uses the operator key field below; 402 in DevTools is the expected challenge.
+            {flow.scheme ?? "osmium-exact"} /{" "}
+            {flow.network ?? "eip155:46630"} / {activeAsset}
           </small>
         </div>
+        <label className="x402Operator">
+          <span>Operator key</span>
+          <input
+            aria-label="Operator API key"
+            disabled={busy !== ""}
+            onChange={(event) => setOperatorKey(event.target.value)}
+            placeholder="x-osmium-api-key"
+            type="password"
+            value={operatorKey}
+          />
+          <small>
+            {hasOperatorKey
+              ? "ready for settlement"
+              : "required for tx execution"}
+          </small>
+        </label>
         <div className="x402Actions">
-          <button disabled={busy !== ""} onClick={onRequest} title="Request paid market data">
+          <button
+            disabled={busy !== ""}
+            onClick={onRequest}
+            title="Request paid market data"
+          >
             <Radio size={16} />
             Request resource
           </button>
-          <button disabled={busy !== "" || !flow.paymentRequired} onClick={onVerify} title="Verify x402 payload">
+          <button
+            disabled={busy !== "" || !flow.paymentRequired}
+            onClick={onVerify}
+            title="Verify x402 payment requirements"
+          >
             <ShieldCheck size={16} />
-            Verify
+            Verify policy
           </button>
-          <button className="primary" disabled={busy !== "" || !canSettle} onClick={onSettle} title="Settle through Osmium">
+          <button
+            className="primary"
+            disabled={busy !== "" || !canSettle}
+            onClick={onSettle}
+            title={
+              activeAsset === "TSLA"
+                ? "Settle through Osmium"
+                : "AMD is quote-supported in this demo"
+            }
+          >
             <PlayCircle size={16} />
             Settle x402
           </button>
-          <button disabled={busy !== "" || !hasOperatorKey || activeAsset !== "TSLA"} onClick={onExecute} title="Fallback to the classic live settlement endpoint">
+          <button
+            disabled={busy !== "" || !hasOperatorKey || activeAsset !== "TSLA"}
+            onClick={onExecute}
+            title="Fallback to the classic live settlement endpoint"
+          >
             <FileCheck2 size={16} />
             Classic settle
           </button>
@@ -1145,12 +1153,38 @@ function X402FlowPanel({
 
       <div className="x402Ledger">
         <InfoRow label="Asset" value={activeAsset} />
-        <InfoRow label="Amount" value={flow.amount ? formatToken(flow.amount, activeAsset) : "0.25 TSLA"} />
-        <InfoRow label="Token" value={flow.token ? short(flow.token) : "pending"} />
-        <InfoRow label="Pay To" value={flow.paymentRequired ? short(flow.paymentRequired.accepts[0].payTo) : "SettlementRouter"} />
-        <InfoRow label="Payment Id" value={flow.paymentId ? short(flow.paymentId) : "pending"} />
-        <InfoRow label="Receipt" value={flow.receiptHash ? short(flow.receiptHash) : "pending"} />
-        <InfoRow label="Latest Unlock" value={latest?.unlocked ? short(latest.paymentId) : "none"} />
+        <InfoRow
+          label="Amount"
+          value={
+            flow.amount
+              ? formatToken(flow.amount, activeAsset)
+              : `0.25 ${activeAsset}`
+          }
+        />
+        <InfoRow
+          label="Token"
+          value={flow.token ? short(flow.token) : "pending"}
+        />
+        <InfoRow
+          label="Pay To"
+          value={
+            flow.paymentRequired
+              ? short(flow.paymentRequired.accepts[0].payTo)
+              : "SettlementRouter"
+          }
+        />
+        <InfoRow
+          label="Payment Id"
+          value={flow.paymentId ? short(flow.paymentId) : "pending"}
+        />
+        <InfoRow
+          label="Receipt"
+          value={flow.receiptHash ? short(flow.receiptHash) : "pending"}
+        />
+        <InfoRow
+          label="Latest Unlock"
+          value={latest?.unlocked ? short(latest.paymentId) : "none"}
+        />
         <InfoRow label="Scope" value="custom facilitator, not CDP" />
       </div>
     </section>
@@ -1223,8 +1257,8 @@ function ScenarioRail({
   onReplay: () => void;
 }) {
   const scenarios = [
-    { label: "Preview verified payment", state: "allow", action: onPay },
-    { label: "Execute settlement", state: "execute", action: onExecute },
+    { label: "Unlock latest proof", state: "allow", action: onPay },
+    { label: "Read live proof", state: "execute", action: onExecute },
     { label: "Try unknown merchant", state: "block", action: onUnknown },
     { label: "Try missing receipt", state: "block", action: onMissing },
     { label: "Try over max", state: "block", action: onOver },
@@ -1252,39 +1286,6 @@ function ScenarioRail({
           <span>{scenario.label}</span>
         </button>
       ))}
-    </div>
-  );
-}
-
-function OperatorPanel({
-  operatorKey,
-  setOperatorKey,
-  activeAsset,
-  busy,
-}: {
-  operatorKey: string;
-  setOperatorKey: (value: string) => void;
-  activeAsset: AssetSymbol;
-  busy: boolean;
-}) {
-  return (
-    <div className="operatorPanel">
-      <div>
-        <span>Operator execution</span>
-        <strong>
-          {activeAsset === "TSLA"
-            ? "TSLA live settlement enabled"
-            : "AMD quote-supported only"}
-        </strong>
-      </div>
-      <input
-        aria-label="Operator API key"
-        disabled={busy}
-        onChange={(event) => setOperatorKey(event.target.value)}
-        placeholder="x-osmium-api-key"
-        type="password"
-        value={operatorKey}
-      />
     </div>
   );
 }

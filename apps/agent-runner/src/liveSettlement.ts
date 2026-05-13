@@ -119,7 +119,6 @@ export async function runLiveSettlement() {
   const account = privateKeyToAccount(config.agentPrivateKey);
   const token = config.settlementDemoTokenAddress;
   const amount = BigInt(process.env.SETTLEMENT_DEMO_AMOUNT_WEI ?? "250000000000000000");
-  const depositAmount = BigInt(process.env.SETTLEMENT_DEMO_DEPOSIT_WEI ?? (amount * 2n).toString());
   const runId = Date.now();
   const paymentId = hashLabel(`osmium-live-settlement:${runId}`);
   const receiptHash = hashLabel(`receipt-live-settlement:${runId}`);
@@ -140,21 +139,32 @@ export async function runLiveSettlement() {
     })
   };
 
-  const approveTx = await wallet.writeContract({
-    address: token,
-    abi: erc20Abi,
-    functionName: "approve",
-    args: [config.settlementRouterAddress, depositAmount]
-  });
-  await client.waitForTransactionReceipt({ hash: approveTx });
+  let approveTx: `0x${string}` | "" = "";
+  let depositTx: `0x${string}` | "" = "";
+  const vaultTopUp = before.routerVault >= amount ? 0n : amount - before.routerVault;
+  if (vaultTopUp > 0n) {
+    if (before.ownerToken < vaultTopUp) {
+      throw new Error(
+        `Insufficient ${token} balance to top up SettlementRouter vault: need ${vaultTopUp.toString()}, have ${before.ownerToken.toString()}.`
+      );
+    }
 
-  const depositTx = await wallet.writeContract({
-    address: config.settlementRouterAddress,
-    abi: settlementRouterAbi,
-    functionName: "deposit",
-    args: [token, depositAmount]
-  });
-  await client.waitForTransactionReceipt({ hash: depositTx });
+    approveTx = await wallet.writeContract({
+      address: token,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [config.settlementRouterAddress, vaultTopUp]
+    });
+    await client.waitForTransactionReceipt({ hash: approveTx });
+
+    depositTx = await wallet.writeContract({
+      address: config.settlementRouterAddress,
+      abi: settlementRouterAbi,
+      functionName: "deposit",
+      args: [token, vaultTopUp]
+    });
+    await client.waitForTransactionReceipt({ hash: depositTx });
+  }
 
   const settlementArgs = [
     config.settlementDemoPolicyId,

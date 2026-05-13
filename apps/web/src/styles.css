@@ -323,6 +323,83 @@ h1 {
   border-color: #a8d3c1;
 }
 
+.x402Panel {
+  background: #ffffff;
+  border: 1px solid #ded8cd;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.x402Body {
+  align-items: stretch;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.25fr);
+}
+
+.x402Protocol {
+  background: #f7fbf8;
+  border: 1px solid #c6dfd2;
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  padding: 13px;
+}
+
+.x402Protocol span,
+.x402Protocol small,
+.x402Step span {
+  color: #6b665e;
+  font-size: 13px;
+}
+
+.x402Protocol strong {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.x402Actions {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.x402Steps {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.x402Step {
+  background: #fbfaf7;
+  border: 1px solid #ece7dc;
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  min-height: 70px;
+  padding: 11px;
+}
+
+.x402Step.ok {
+  background: #eff8f4;
+  border-color: #a8d3c1;
+}
+
+.x402Step strong {
+  overflow-wrap: anywhere;
+}
+
+.x402Ledger {
+  border-top: 1px solid #ece7dc;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-top: 8px;
+}
+
 .mainGrid {
   display: grid;
   gap: 14px;
@@ -753,6 +830,9 @@ code {
   .systemStrip,
   .overviewGrid,
   .wedgePanel,
+  .x402Body,
+  .x402Steps,
+  .x402Ledger,
   .mainGrid,
   .evidenceGrid,
   .developerGrid {
@@ -804,7 +884,8 @@ code {
 
   .decisionSummary,
   .assetTabs,
-  .operatorPanel {
+  .operatorPanel,
+  .x402Actions {
     grid-template-columns: 1fr;
   }
 

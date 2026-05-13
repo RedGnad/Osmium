@@ -93,8 +93,31 @@ The runner also exposes a mini verified merchant surface:
 - `GET /merchant/quote?asset=TSLA`
 - `GET /merchant/quote?asset=AMD`
 - `POST /merchant/receipt`
+- `GET /merchant/market-data?asset=TSLA`
+- `GET /x402/supported`
+- `POST /x402/verify`
+- `POST /x402/settle`
 
 This turns the demo from "agent sends a token" into "agent buys a verified market-data service, settles through Osmium, then unlocks data with a receipt proof."
+
+Osmium now implements an x402-compatible resource and facilitator surface for Robinhood Chain delegated settlement:
+
+```text
+GET /merchant/market-data?asset=TSLA
+  -> 402 Payment Required
+  -> PAYMENT-REQUIRED header
+  -> scheme: osmium-exact
+  -> network: eip155:46630
+
+POST /x402/verify
+  -> read-only PolicyEngine preview
+
+POST /x402/settle
+  -> operator-protected SettlementRouter settlement
+  -> PAYMENT-RESPONSE header
+```
+
+This is not the Coinbase CDP facilitator on Robinhood Chain. It is a custom policy-aware x402-compatible facilitator for Osmium's delegated vault model: the operator funds a router vault, the agent requests a paid resource, the facilitator verifies the Osmium policy, and settlement moves through the `OsmiumSettlementRouter`.
 
 Developer integration starts in `packages/osmium-sdk`:
 
@@ -104,7 +127,9 @@ import { OsmiumClient } from "@osmium/sdk";
 const osmium = new OsmiumClient({ runnerUrl: "https://your-runner.example" });
 const quote = await osmium.getQuote("TSLA");
 const previews = await osmium.previewSpend();
-const required = await osmium.getMarketData({ asset: "TSLA" }); // 402-style payment instructions
+const required = await osmium.getPaymentRequired("TSLA");
+const payload = osmium.createPaymentPayload(required);
+const verification = await osmium.verifyX402({ paymentRequired: required, paymentPayload: payload });
 ```
 
 Operator-only execution can pass `operatorApiKey` server-side or in a local judged console session. Do not embed it in public frontend environment variables.
@@ -183,13 +208,13 @@ Live TSLA settlement proof:
 - TSLA intent approval tx: `0x86d8d024b690562bb0570563c199c2040a566866be846522a27f74acba5a66ed`
 - Latest TSLA router approve tx: `0xc1f3dd6e2329c0f0fb26bc6e7fe44c38f0ac704407c33badfd8dfada0f5b5436`
 - Latest TSLA router deposit tx: `0x49620dae5c966bd2239e1e4b04822b24e7e3e8ed96de358b9b6752bc0ac3198b`
-- Latest TSLA settled payment tx: `0x5ca16275547d0e2ec347a10a2962443000119ca211fab80608ac1b94d86f4cc4`
-- Latest payment id: `0xed5a3b5ea4ba085a67aa0cc8e778c65cbd1c7a6cfdbe091c12d152431771792c`
-- Latest receipt hash: `0x043d45e765abcf54425e1c93aeae7dd069e29b5e3cdd508ca1e272285afc5dee`
+- Latest TSLA settled payment tx: `0x637497c49897bb01ff1010cb83ad50eab4ff43b15a9f305e497445f120c6d6c2`
+- Latest payment id: `0xb42aeba10ad5bec6c35c208f2908da26010bdc3ede9c5fb3a37a91b57111f4f0`
+- Latest receipt hash: `0xf79b4a7a5343f9d9f1faa0eb9d0069125c63bdc1aecd03c903d0209d8305bca3`
 - Settled amount: `0.25 TSLA`
 - Replay check after settlement: `Replay`
-- Router vault remaining balance after latest run: `1.0 TSLA`
-- Merchant TSLA balance after latest run: `2.25 TSLA`
+- Router vault remaining balance after latest run: `0.75 TSLA`
+- Merchant TSLA balance after latest run: `2.50 TSLA`
 - Merchant data unlock after settlement: `true`
 
 Run the full live proof with:
@@ -212,10 +237,11 @@ It prints owner, router, and merchant balances before and after settlement, the 
 ## Known Limitations
 
 - Osmium is a hackathon prototype, not audited production infrastructure.
+- The x402 integration is a custom Osmium facilitator for Robinhood Chain delegated vault settlement. It is x402-compatible at the HTTP resource/facilitator layer, but it does not claim CDP facilitator support on Robinhood Chain.
 - Merchant categories are stored as metadata, but current policy enforcement is merchant allowlist based rather than category based.
 - Intent hashes are globally unique in the current engine; use a distinct intent hash per live policy, or point the runner at the active TSLA policy as this demo does.
 - Receipts prove that an agent supplied a receipt hash; they do not independently verify offchain service quality.
-- Merchant real-world identity/KYB, x402 facilitator integration, private policy rules, and cross-chain settlement are out of scope for this MVP.
+- Merchant real-world identity/KYB, Coinbase CDP facilitator integration, private policy rules, and cross-chain settlement are out of scope for this MVP.
 - The public dashboard should not expose runner secrets. Keep `/demo/run` local, server-side, or protected by a private operator flow.
 - Precondition failures such as wrong policy token or insufficient router vault balance revert; policy denials emit auditable engine/router events.
 

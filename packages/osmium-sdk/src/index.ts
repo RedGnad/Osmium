@@ -59,7 +59,7 @@ export type MarketDataResponse =
   | UnlockResult
   | {
       error: "payment_required";
-      protocol: "x402-style-demo";
+      protocol: "x402-style-demo" | "x402-compatible-osmium";
       asset: OsmiumAsset;
       service: string;
       payment: {
@@ -75,6 +75,103 @@ export type MarketDataResponse =
         settlement: string;
       };
     };
+
+export type OsmiumX402PaymentDetails = {
+  scheme: "osmium-exact";
+  network: string;
+  asset: string;
+  amount: string;
+  payTo: string;
+  maxTimeoutSeconds: number;
+  resource: {
+    url: string;
+    description: string;
+    mimeType: string;
+  };
+  extra: {
+    assetSymbol: OsmiumAsset;
+    service: string;
+    serviceId: string;
+    dataHash: string;
+    receiptHash: string;
+    paymentId: string;
+    merchant: string;
+    policyId: string;
+    intentHash: string;
+    contextHash: string;
+    settlement: "osmium-delegated-vault";
+    note: string;
+  };
+};
+
+export type OsmiumX402PaymentRequired = {
+  x402Version: 2;
+  error: "payment_required";
+  protocol: "x402-compatible-osmium";
+  accepts: OsmiumX402PaymentDetails[];
+};
+
+export type OsmiumX402PaymentPayload = {
+  x402Version: 2;
+  accepted: OsmiumX402PaymentDetails;
+  payload: {
+    scheme: "osmium-delegated-vault";
+    payer?: string;
+    policyId: string;
+    intentHash: string;
+    contextHash: string;
+    merchant: string;
+    paymentId: string;
+    receiptHash: string;
+  };
+  resource: OsmiumX402PaymentDetails["resource"];
+};
+
+export type OsmiumX402Supported = {
+  kinds: Array<{
+    x402Version: 2;
+    scheme: "osmium-exact";
+    network: string;
+    assets: OsmiumAsset[];
+    settlement: "osmium-delegated-vault";
+  }>;
+  note: string;
+};
+
+export type OsmiumX402VerifyResult = {
+  isValid: boolean;
+  payer: string;
+  invalidReason?: string;
+  invalidMessage?: string;
+  network?: string;
+  scheme?: string;
+  settlement?: string;
+  paymentId?: string;
+  receiptHash?: string;
+};
+
+export type OsmiumX402SettleResult = {
+  success: boolean;
+  payer: string;
+  transaction?: string;
+  network: string;
+  amount: string;
+  paymentId?: string;
+  receiptHash?: string;
+  errorReason?: string;
+  errorMessage?: string;
+  settlement?: SettlementResult;
+};
+
+function decodeBase64Json<T>(value: string): T {
+  if (typeof atob === "function") {
+    return JSON.parse(atob(value)) as T;
+  }
+  const maybeBuffer = (globalThis as unknown as { Buffer?: { from(value: string, encoding: string): { toString(encoding: string): string } } })
+    .Buffer;
+  if (!maybeBuffer) throw new Error("No base64 decoder available");
+  return JSON.parse(maybeBuffer.from(value, "base64").toString("utf8")) as T;
+}
 
 export class OsmiumClient {
   private readonly runnerUrl: string;
@@ -109,6 +206,73 @@ export class OsmiumClient {
     if (input.paymentId) params.set("paymentId", input.paymentId);
     if (input.receiptHash) params.set("receiptHash", input.receiptHash);
     return this.request(`/merchant/market-data?${params.toString()}`, "GET", undefined, undefined, [200, 402]);
+  }
+
+  getX402Supported(): Promise<OsmiumX402Supported> {
+    return this.request("/x402/supported", "GET");
+  }
+
+  async getPaymentRequired(asset: OsmiumAsset): Promise<OsmiumX402PaymentRequired> {
+    const response = await fetch(`${this.runnerUrl}/merchant/market-data?asset=${asset}`, {
+      method: "GET",
+      headers: { "content-type": "application/json" }
+    });
+    if (response.status !== 402) {
+      throw new Error(`Expected 402 Payment Required, got ${response.status}`);
+    }
+    const header = response.headers.get("PAYMENT-REQUIRED");
+    if (header) return decodeBase64Json<OsmiumX402PaymentRequired>(header);
+    return (await response.json()) as OsmiumX402PaymentRequired;
+  }
+
+  createPaymentPayload(paymentRequired: OsmiumX402PaymentRequired, payer?: string): OsmiumX402PaymentPayload {
+    const accepted = paymentRequired.accepts[0];
+    return {
+      x402Version: 2,
+      accepted,
+      payload: {
+        scheme: "osmium-delegated-vault",
+        payer,
+        policyId: accepted.extra.policyId,
+        intentHash: accepted.extra.intentHash,
+        contextHash: accepted.extra.contextHash,
+        merchant: accepted.extra.merchant,
+        paymentId: accepted.extra.paymentId,
+        receiptHash: accepted.extra.receiptHash
+      },
+      resource: accepted.resource
+    };
+  }
+
+  verifyX402(input: {
+    paymentRequired: OsmiumX402PaymentRequired;
+    paymentPayload?: OsmiumX402PaymentPayload;
+  }): Promise<OsmiumX402VerifyResult> {
+    return this.request("/x402/verify", "POST", {
+      x402Version: 2,
+      paymentRequirements: input.paymentRequired,
+      paymentPayload: input.paymentPayload ?? this.createPaymentPayload(input.paymentRequired)
+    });
+  }
+
+  settleX402(input: {
+    paymentRequired: OsmiumX402PaymentRequired;
+    paymentPayload?: OsmiumX402PaymentPayload;
+  }): Promise<OsmiumX402SettleResult> {
+    if (!this.operatorApiKey) {
+      throw new Error("operatorApiKey is required for settleX402");
+    }
+    return this.request(
+      "/x402/settle",
+      "POST",
+      {
+        x402Version: 2,
+        paymentRequirements: input.paymentRequired,
+        paymentPayload: input.paymentPayload ?? this.createPaymentPayload(input.paymentRequired)
+      },
+      this.operatorApiKey,
+      [200, 402]
+    );
   }
 
   private async request<T>(

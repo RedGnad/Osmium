@@ -6,7 +6,13 @@ import { loadConfig } from "./config.js";
 import { hashLabel } from "./osmium.js";
 import { recordSettlement } from "./auditStore.js";
 
-const CONTEXT_HASH = hashLabel("task:osmium-demo-agent-payment");
+export const LIVE_SETTLEMENT_CONTEXT_HASH = hashLabel("task:osmium-demo-agent-payment");
+
+type LiveSettlementOptions = {
+  amount?: bigint;
+  paymentId?: `0x${string}`;
+  receiptHash?: `0x${string}`;
+};
 
 function stringify(value: unknown): unknown {
   if (typeof value === "bigint") return value.toString();
@@ -41,7 +47,7 @@ export async function readLiveSettlementProof() {
           args: [
             config.settlementDemoPolicyId,
             config.demoIntentHash,
-            CONTEXT_HASH,
+            LIVE_SETTLEMENT_CONTEXT_HASH,
             config.agentAddress,
             config.merchantAddress,
             token,
@@ -56,7 +62,7 @@ export async function readLiveSettlementProof() {
     token,
     amount,
     intentHash: config.demoIntentHash,
-    contextHash: CONTEXT_HASH,
+    contextHash: LIVE_SETTLEMENT_CONTEXT_HASH,
     paymentId,
     receiptHash,
     before: {
@@ -108,7 +114,7 @@ export async function readLiveSettlementProof() {
   });
 }
 
-export async function runLiveSettlement() {
+export async function runLiveSettlement(options: LiveSettlementOptions = {}) {
   const config = loadConfig();
   if (!config.agentPrivateKey) throw new Error("AGENT_PRIVATE_KEY is required");
   if (!config.settlementRouterAddress) throw new Error("OSMIUM_SETTLEMENT_ROUTER_ADDRESS is required");
@@ -118,10 +124,10 @@ export async function runLiveSettlement() {
   const wallet = walletClient(config, config.agentPrivateKey);
   const account = privateKeyToAccount(config.agentPrivateKey);
   const token = config.settlementDemoTokenAddress;
-  const amount = BigInt(process.env.SETTLEMENT_DEMO_AMOUNT_WEI ?? "250000000000000000");
+  const amount = options.amount ?? BigInt(process.env.SETTLEMENT_DEMO_AMOUNT_WEI ?? "250000000000000000");
   const runId = Date.now();
-  const paymentId = hashLabel(`osmium-live-settlement:${runId}`);
-  const receiptHash = hashLabel(`receipt-live-settlement:${runId}`);
+  const paymentId = options.paymentId ?? hashLabel(`osmium-live-settlement:${runId}`);
+  const receiptHash = options.receiptHash ?? hashLabel(`receipt-live-settlement:${runId}`);
 
   const before = {
     ownerToken: await client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [account.address] }),
@@ -169,7 +175,7 @@ export async function runLiveSettlement() {
   const settlementArgs = [
     config.settlementDemoPolicyId,
     config.demoIntentHash,
-    CONTEXT_HASH,
+    LIVE_SETTLEMENT_CONTEXT_HASH,
     config.merchantAddress,
     token,
     amount,
@@ -195,7 +201,7 @@ export async function runLiveSettlement() {
       args: [
         config.settlementDemoPolicyId,
         config.demoIntentHash,
-        CONTEXT_HASH,
+        LIVE_SETTLEMENT_CONTEXT_HASH,
         account.address,
         config.merchantAddress,
         token,
@@ -248,7 +254,8 @@ export async function runLiveSettlement() {
     token,
     amount,
     intentHash: config.demoIntentHash,
-    contextHash: CONTEXT_HASH,
+    contextHash: LIVE_SETTLEMENT_CONTEXT_HASH,
+    scheme: options.paymentId ? "osmium-x402-delegated-vault" : "osmium-live-settlement",
     paymentId,
     receiptHash,
     before,

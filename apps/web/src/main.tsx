@@ -953,6 +953,7 @@ function App() {
                 flow={x402Flow}
                 merchantAudit={merchantAudit}
                 operatorKey={operatorKey}
+                settlement={settlement}
                 setOperatorKey={setOperatorKey}
                 onExecute={executeVerifiedPayment}
                 onRequest={() => requestMarketDataResource(activeAsset)}
@@ -1100,6 +1101,7 @@ function X402FlowPanel({
   flow,
   merchantAudit,
   operatorKey,
+  settlement,
   setOperatorKey,
   onExecute,
   onRequest,
@@ -1111,6 +1113,7 @@ function X402FlowPanel({
   flow: X402FlowState;
   merchantAudit: MerchantAuditRecord[];
   operatorKey: string;
+  settlement: LiveSettlement | null;
   setOperatorKey: (value: string) => void;
   onExecute: () => void;
   onRequest: () => void;
@@ -1125,6 +1128,21 @@ function X402FlowPanel({
   const amountLabel = flow.amount
     ? formatToken(flow.amount, activeAsset)
     : `0.25 ${activeAsset}`;
+  const caseId = `OS-${activeAsset}-402-${
+    flow.paymentId ? flow.paymentId.slice(-4).toUpperCase() : "PENDING"
+  }`;
+  const merchantImpact = settlement
+    ? `${formatToken(settlement.before.merchantToken, activeAsset)} -> ${formatToken(
+        settlement.after.merchantToken,
+        activeAsset,
+      )}`
+    : `merchant receives ${amountLabel}`;
+  const vaultImpact = settlement
+    ? `${formatToken(settlement.before.routerVault, activeAsset)} -> ${formatToken(
+        settlement.after.routerVault,
+        activeAsset,
+      )}`
+    : `router vault debits ${amountLabel}`;
   const nextAction = !flow.paymentRequired
     ? {
         label: "Request clearance",
@@ -1222,6 +1240,27 @@ function X402FlowPanel({
         </StatusStamp>
       </div>
 
+      <section className="caseFile" aria-label="Active clearance case">
+        <div>
+          <span>Active case file</span>
+          <strong>{caseId}</strong>
+          <small>
+            Agent request for paid market data. Funds stay locked until the
+            case is cleared.
+          </small>
+        </div>
+        <div className="caseDocket">
+          <span>Agent</span>
+          <strong>Market Data Agent</strong>
+          <span>Merchant</span>
+          <strong>Verified Market Data API</strong>
+          <span>Asset</span>
+          <strong>{activeAsset}</strong>
+          <span>Amount</span>
+          <strong>{amountLabel}</strong>
+        </div>
+      </section>
+
       <div className="judgeLead">
         <div>
           <span>Next action</span>
@@ -1285,6 +1324,24 @@ function X402FlowPanel({
           <InfoRow label="Filed receipt" value="required" />
           <InfoRow label="Replay protection" value="enabled" />
         </dl>
+        <div className="impactLedger" aria-label="Settlement impact">
+          <div>
+            <span>Router vault impact</span>
+            <strong>{vaultImpact}</strong>
+          </div>
+          <div>
+            <span>Merchant balance impact</span>
+            <strong>{merchantImpact}</strong>
+          </div>
+          <div>
+            <span>Receipt state</span>
+            <strong>{flow.unlocked ? "filed + unlockable" : "required before unlock"}</strong>
+          </div>
+          <div>
+            <span>Replay state</span>
+            <strong>{latest?.unlocked ? "paymentId consumed" : "pending settlement"}</strong>
+          </div>
+        </div>
         <label className="x402Operator">
           <span>Session-only operator key</span>
           <input

@@ -1,21 +1,25 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
 
 :root {
-  --bg: #050708;
-  --panel: #0b0f11;
-  --panel-elevated: #10171a;
-  --panel-soft: #121b1f;
-  --border: #223036;
-  --border-strong: #35505a;
-  --text: #e8f1f0;
-  --muted: #8fa2a6;
-  --muted-strong: #b5c6c8;
-  --success: #5df2a3;
-  --warning: #f4bd5d;
-  --danger: #ff6b70;
-  --info: #78c8ff;
-  --accent: #3df0c2;
-  --accent-ink: #041311;
+  --bg: #080a0d;
+  --panel: #0e1116;
+  --panel-elevated: #141922;
+  --panel-soft: #121721;
+  --border: #232a35;
+  --border-strong: #384250;
+  --text: #f4f7fa;
+  --muted: #8b96a6;
+  --muted-strong: #bac3cf;
+  --cleared: #39ff88;
+  --pending: #f6c85f;
+  --denied: #ff5c5c;
+  --protocol: #6aa8ff;
+  --success: var(--cleared);
+  --warning: var(--pending);
+  --danger: var(--denied);
+  --info: var(--protocol);
+  --accent: var(--cleared);
+  --accent-ink: #07100b;
   --shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -36,9 +40,9 @@ html {
 
 body {
   background:
-    linear-gradient(rgba(255, 255, 255, 0.024) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(135deg, #050708 0%, #0a0f10 46%, #06100d 100%);
+    linear-gradient(rgba(244, 247, 250, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 247, 250, 0.014) 1px, transparent 1px),
+    linear-gradient(135deg, #080a0d 0%, #0b0e13 48%, #080a0d 100%);
   background-size: 42px 42px, 42px 42px, auto;
   margin: 0;
   min-width: 320px;
@@ -46,8 +50,8 @@ body {
 
 body::before {
   background:
-    linear-gradient(180deg, rgba(61, 240, 194, 0.09), transparent 28%),
-    linear-gradient(90deg, rgba(244, 189, 93, 0.05), transparent 34%);
+    linear-gradient(180deg, rgba(57, 255, 136, 0.045), transparent 30%),
+    linear-gradient(90deg, rgba(106, 168, 255, 0.04), transparent 38%);
   content: "";
   inset: 0;
   pointer-events: none;
@@ -222,7 +226,8 @@ input:focus-visible {
 
 .brandLockup strong {
   color: var(--text);
-  font-size: 20px;
+  font-size: 18px;
+  line-height: 1.08;
 }
 
 .railNav {
@@ -1060,6 +1065,47 @@ pre,
   color: var(--danger);
 }
 
+.statusStamp {
+  align-items: center;
+  background: rgba(244, 247, 250, 0.035);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--muted-strong);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.statusStamp.cleared {
+  background: rgba(57, 255, 136, 0.07);
+  border-color: rgba(57, 255, 136, 0.38);
+  color: var(--cleared);
+}
+
+.statusStamp.pending {
+  background: rgba(246, 200, 95, 0.075);
+  border-color: rgba(246, 200, 95, 0.34);
+  color: var(--pending);
+}
+
+.statusStamp.denied {
+  background: rgba(255, 92, 92, 0.075);
+  border-color: rgba(255, 92, 92, 0.34);
+  color: var(--denied);
+}
+
+.statusStamp.protocol {
+  background: rgba(106, 168, 255, 0.075);
+  border-color: rgba(106, 168, 255, 0.34);
+  color: var(--protocol);
+}
+
 .ledger {
   border-bottom: 1px solid var(--border);
   border-top: 1px solid var(--border);
@@ -1100,8 +1146,8 @@ pre,
   font-size: 12px;
   font-weight: 700;
   gap: 10px;
-  grid-template-columns: 134px minmax(0, 1fr) max-content;
-  padding: 0 10px;
+  grid-template-columns: 96px minmax(0, 1fr) 116px max-content;
+  padding: 0 10px 0 48px;
   text-transform: uppercase;
 }
 
@@ -1148,6 +1194,16 @@ pre,
 
 .auditTxMissing {
   color: var(--muted);
+}
+
+.auditTxMissing.cleared {
+  border-color: rgba(57, 255, 136, 0.24);
+  color: var(--cleared);
+}
+
+.auditTxMissing.denied {
+  border-color: rgba(255, 92, 92, 0.24);
+  color: var(--denied);
 }
 
 .stateIcon {

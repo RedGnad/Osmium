@@ -1,11 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
 
 :root {
-  --bg: #080a0d;
-  --panel: #0e1116;
-  --panel-elevated: #141922;
+  --bg: #07090c;
+  --panel: #0d1117;
+  --panel-elevated: #111722;
   --panel-soft: #121721;
-  --border: #232a35;
+  --border: #273040;
   --border-strong: #384250;
   --text: #f4f7fa;
   --muted: #8b96a6;
@@ -20,6 +20,7 @@
   --info: var(--protocol);
   --accent: var(--cleared);
   --accent-ink: #07100b;
+  --paper: #d8d1c0;
   --shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -508,82 +509,104 @@ h1 {
   width: 2px;
 }
 
-.caseFile {
-  background: #090c10;
+.clearanceTicket {
+  background:
+    linear-gradient(rgba(216, 209, 192, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(216, 209, 192, 0.028) 1px, transparent 1px),
+    #090c10;
+  background-size: 18px 18px;
   border: 1px solid var(--border);
-  border-left: 2px solid var(--protocol);
-  border-radius: 4px;
+  border-radius: 2px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-height: 188px;
+  overflow: hidden;
+}
+
+.clearanceTicket.pending {
+  border-color: rgba(246, 200, 95, 0.4);
+}
+
+.clearanceTicket.cleared {
+  border-color: rgba(57, 255, 136, 0.4);
+}
+
+.ticketSpine {
+  align-items: center;
+  background: #06080b;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 0;
+}
+
+.ticketSpine span,
+.ticketSpine strong {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  writing-mode: vertical-rl;
+}
+
+.ticketSpine strong {
+  color: var(--protocol);
+}
+
+.ticketBody {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
   padding: 16px;
-  position: relative;
 }
 
-.caseFile::after {
-  border: 1px solid rgba(106, 168, 255, 0.28);
-  color: rgba(106, 168, 255, 0.62);
-  content: "CASE FILE";
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  padding: 5px 7px;
-  position: absolute;
-  right: 14px;
-  top: 14px;
+.ticketTop {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) max-content;
 }
 
-.caseFile > div:first-child {
-  align-content: start;
+.ticketTop > div:first-child {
   display: grid;
   gap: 5px;
-  padding-right: 72px;
 }
 
-.caseFile span {
+.ticketTop span,
+.ticketFacts dt {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
-.caseFile strong {
+.ticketTop strong {
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 20px;
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.05;
   overflow-wrap: anywhere;
 }
 
-.caseFile small {
-  color: var(--muted-strong);
-  line-height: 1.45;
+.ticketTop small {
+  color: var(--paper);
+  font-size: 14px;
 }
 
-.caseDocket {
+.ticketFacts {
   border-bottom: 1px solid var(--border);
   border-top: 1px solid var(--border);
   display: grid;
-  grid-template-columns: minmax(80px, 0.45fr) minmax(0, 1fr);
+  margin: 0;
 }
 
-.caseDocket span,
-.caseDocket strong {
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  min-height: 34px;
+.ticketFacts .infoRow {
+  grid-template-columns: minmax(128px, 0.5fr) minmax(0, 1fr);
 }
 
-.caseDocket span:nth-last-child(-n + 2),
-.caseDocket strong:nth-last-child(-n + 1) {
-  border-bottom: 0;
-}
-
-.caseDocket strong {
-  font-size: 14px;
-  justify-content: flex-end;
-  text-align: right;
+.ticketFacts dd {
+  font-family: var(--font-mono);
 }
 
 .panelHeader {
@@ -666,6 +689,88 @@ h1 {
   position: relative;
 }
 
+.clearingRail {
+  counter-reset: station;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  position: relative;
+}
+
+.clearingRail::before {
+  background: var(--border);
+  content: "";
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 20px;
+}
+
+.railStation {
+  align-content: start;
+  background: #0a0e13;
+  border: 1px solid var(--border);
+  border-left: 0;
+  display: grid;
+  gap: 6px;
+  min-height: 132px;
+  padding: 10px;
+  position: relative;
+}
+
+.railStation:first-child {
+  border-left: 1px solid var(--border);
+}
+
+.railStation.done {
+  background: #09120e;
+  border-color: rgba(57, 255, 136, 0.25);
+}
+
+.railStation.active {
+  background: #151207;
+  border-color: rgba(246, 200, 95, 0.34);
+}
+
+.stationMarker {
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  height: 26px;
+  justify-content: center;
+  width: 30px;
+  z-index: 1;
+}
+
+.railStation.done .stationMarker {
+  border-color: rgba(57, 255, 136, 0.34);
+  color: var(--cleared);
+}
+
+.railStation.active .stationMarker {
+  border-color: rgba(246, 200, 95, 0.42);
+  color: var(--pending);
+}
+
+.railStation strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.railStation > span:not(.proofStamp) {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .protocolRail::before {
   background: rgba(106, 168, 255, 0.28);
   content: "";
@@ -725,61 +830,6 @@ h1 {
   font-size: 13px;
 }
 
-.judgeTimeline {
-  display: grid;
-  gap: 8px;
-}
-
-.judgeStep {
-  align-items: center;
-  background: #0f1319;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 34px minmax(0, 1fr) max-content;
-  min-height: 66px;
-  padding: 10px 12px;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    transform 160ms ease;
-}
-
-.judgeStep.done {
-  background: #0d1411;
-  border-color: rgba(93, 242, 163, 0.24);
-}
-
-.judgeStep.active {
-  background: #151307;
-  border-color: rgba(244, 189, 93, 0.34);
-  transform: none;
-}
-
-.judgeStep div:nth-child(2) {
-  display: grid;
-  gap: 3px;
-}
-
-.judgeStep strong {
-  color: var(--text);
-}
-
-.judgeStep span,
-.judgeStep em {
-  color: var(--muted);
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 700;
-  border: 1px solid var(--border);
-  color: var(--muted-strong);
-  min-height: 28px;
-  padding: 6px 8px;
-  text-align: center;
-}
-
-.judgeStep em,
 .stepIndex,
 .infoRow dd,
 .ledgerRow strong,
@@ -791,29 +841,6 @@ pre,
 .railCard strong,
 .badge {
   font-family: var(--font-mono);
-}
-
-.stepIndex {
-  align-items: center;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--muted-strong);
-  display: flex;
-  font-weight: 700;
-  height: 30px;
-  justify-content: center;
-  width: 30px;
-}
-
-.judgeStep.done .stepIndex {
-  border-color: rgba(93, 242, 163, 0.34);
-  color: var(--success);
-}
-
-.judgeStep.active .stepIndex {
-  border-color: rgba(244, 189, 93, 0.4);
-  color: var(--warning);
 }
 
 .approvalBox {
@@ -1283,6 +1310,43 @@ pre,
   color: var(--protocol);
 }
 
+.proofStamp {
+  align-items: center;
+  background: #07090c;
+  border: 1px solid var(--border);
+  color: var(--muted-strong);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  min-height: 28px;
+  padding: 0 8px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.proofStamp.cleared {
+  border-color: rgba(57, 255, 136, 0.38);
+  color: var(--cleared);
+}
+
+.proofStamp.pending {
+  border-color: rgba(246, 200, 95, 0.38);
+  color: var(--pending);
+}
+
+.proofStamp.denied {
+  border-color: rgba(255, 92, 92, 0.38);
+  color: var(--denied);
+}
+
+.proofStamp.protocol {
+  border-color: rgba(106, 168, 255, 0.34);
+  color: var(--protocol);
+}
+
 .ledger {
   border-bottom: 1px solid var(--border);
   border-top: 1px solid var(--border);
@@ -1306,7 +1370,8 @@ pre,
 }
 
 .attemptRow,
-.auditRow {
+.auditRow,
+.ledgerEntry {
   align-items: center;
   background: #0f1319;
   border: 1px solid var(--border);
@@ -1336,13 +1401,26 @@ pre,
   grid-template-columns: 38px 96px minmax(0, 1fr) max-content;
 }
 
+.ledgerEntry {
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  border-radius: 0;
+  grid-template-columns: 96px minmax(0, 1fr) 128px max-content;
+  min-height: 46px;
+  padding: 7px 10px;
+}
+
 .attemptRow strong,
-.auditRow strong {
+.auditRow strong,
+.ledgerEntry strong {
   color: var(--text);
 }
 
 .attemptRow span,
-.auditRow span {
+.auditRow span,
+.ledgerEntry span {
   overflow-wrap: anywhere;
 }
 
@@ -1507,7 +1585,8 @@ code {
 @media (max-width: 940px) {
   .systemStrip,
   .cockpitStatus,
-  .caseFile,
+  .clearanceTicket,
+  .clearingRail,
   .cockpitGrid,
   .overviewGrid,
   .commandGrid,
@@ -1579,8 +1658,22 @@ code {
     border-top: 1px solid var(--border);
   }
 
-  .caseFile > div:first-child {
-    padding-right: 0;
+  .clearanceTicket {
+    grid-template-columns: 1fr;
+  }
+
+  .ticketSpine {
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    border-right: 0;
+    flex-direction: row;
+    min-height: 38px;
+    padding: 0 12px;
+  }
+
+  .ticketSpine span,
+  .ticketSpine strong {
+    writing-mode: horizontal-tb;
   }
 
   .infoRow,
@@ -1597,12 +1690,15 @@ code {
 
   .attemptRow,
   .auditRow,
+  .ledgerEntry,
   .auditHeader {
     grid-template-columns: 38px minmax(0, 1fr);
   }
 
   .attemptRow code,
   .auditRow span,
+  .ledgerEntry span,
+  .ledgerEntry .proofStamp,
   .auditTxLink,
   .auditTxMissing {
     grid-column: 1 / -1;

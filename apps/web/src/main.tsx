@@ -205,10 +205,10 @@ const viewCopy: Record<
   { eyebrow: string; title: string; description: string }
 > = {
   command: {
-    eyebrow: "Clearance room",
-    title: "Osmium Clearance Room",
+    eyebrow: "Clearing house",
+    title: "Osmium Clearing House",
     description:
-      "Give agents clearance, not keys. Agents do not spend; they request clearance.",
+      "Agents request. Osmium clears. Give agents clearance, not keys.",
   },
   policy: {
     eyebrow: "Policy rulebook",
@@ -879,7 +879,7 @@ function App() {
           </div>
           <div>
             <span>Osmium</span>
-            <strong>Clearance Room</strong>
+            <strong>Clearing House</strong>
           </div>
         </div>
 
@@ -1178,51 +1178,54 @@ function X402FlowPanel({
             disabled: busy !== "",
             icon: <Radio size={17} />,
           };
+  const decision =
+    flow.unlocked ? "CLEARED" : flow.verifyValid ? "AWAITING CLEARANCE" : "PENDING";
+  const ticketTone = flow.unlocked ? "cleared" : flow.verifyValid ? "pending" : "queued";
   const steps: Array<{
     label: string;
-    detail: string;
+    code: string;
     status: "done" | "active" | "pending";
     proof: string;
   }> = [
     {
-      label: "Resource requested",
-      detail: "Agent asks merchant for TSLA data.",
+      label: "REQUEST",
+      code: "resource",
       status: flow.requestStatus ? "done" : "active",
       proof: flow.requestStatus ? "REQUESTED" : "NEXT",
     },
     {
-      label: "402 issued",
-      detail: "Merchant returns payment requirements.",
+      label: "402",
+      code: "issued",
       status: flow.requestStatus === 402 ? "done" : "pending",
       proof: flow.requestStatus === 402 ? "PAYMENT REQUIRED" : "WAITING",
     },
     {
-      label: "Policy verified",
-      detail: "Osmium checks policy before funds move.",
+      label: "VERIFY",
+      code: "policy",
       status: flow.verifyValid ? "done" : flow.paymentRequired ? "active" : "pending",
       proof: flow.verifyValid ? "CLEARED" : (flow.verifyStatus ?? "NOT VERIFIED"),
     },
     {
-      label: "Operator clearance",
-      detail: "Human checkpoint before funds move.",
+      label: "CLEAR",
+      code: "operator",
       status: flow.verifyValid && !flow.txHash ? "active" : flow.txHash ? "done" : "pending",
       proof: flow.txHash ? "GRANTED" : hasOperatorKey ? "READY" : "OPERATOR KEY",
     },
     {
-      label: "Settlement executed",
-      detail: "SettlementRouter calls Stylus PolicyEngine.",
+      label: "SETTLE",
+      code: "router",
       status: flow.txHash ? "done" : "pending",
       proof: flow.txHash ? short(flow.txHash) : "NO TX",
     },
     {
-      label: "Receipt filed",
-      detail: "Merchant accepts receipt proof.",
+      label: "FILE",
+      code: "receipt",
       status: flow.unlocked ? "done" : flow.txHash ? "active" : "pending",
       proof: flow.unlocked ? "FILED" : "LOCKED",
     },
     {
-      label: "Replay denied",
-      detail: "Ledger remembers the paymentId.",
+      label: "UNLOCK",
+      code: "replay denied",
       status: flow.unlocked ? "done" : "pending",
       proof: latest?.unlocked ? "DENIED" : "WAITING",
     },
@@ -1232,32 +1235,37 @@ function X402FlowPanel({
     <section className="judgePanel">
       <div className="panelHeader">
         <div>
-          <span>Judge Mode</span>
-          <strong>Clearance sequence</strong>
+          <span>Clearing House</span>
+          <strong>Clearing sequence</strong>
         </div>
         <StatusStamp tone={flow.unlocked ? "cleared" : "pending"}>
           {flow.unlocked ? "RECEIPT FILED" : "CLEARANCE PENDING"}
         </StatusStamp>
       </div>
 
-      <section className="caseFile" aria-label="Active clearance case">
-        <div>
-          <span>Active case file</span>
-          <strong>{caseId}</strong>
-          <small>
-            Agent request for paid market data. Funds stay locked until the
-            case is cleared.
-          </small>
+      <section className={`clearanceTicket ${ticketTone}`} aria-label="Clearance ticket">
+        <div className="ticketSpine">
+          <span>OSMIUM</span>
+          <strong>CLEARING HOUSE</strong>
         </div>
-        <div className="caseDocket">
-          <span>Agent</span>
-          <strong>Market Data Agent</strong>
-          <span>Merchant</span>
-          <strong>Verified Market Data API</strong>
-          <span>Asset</span>
-          <strong>{activeAsset}</strong>
-          <span>Amount</span>
-          <strong>{amountLabel}</strong>
+        <div className="ticketBody">
+          <div className="ticketTop">
+            <div>
+              <span>Clearance ticket</span>
+              <strong>{caseId}</strong>
+              <small>Agents request. Osmium clears.</small>
+            </div>
+            <ProofStamp tone={flow.unlocked ? "cleared" : "pending"}>
+              {decision}
+            </ProofStamp>
+          </div>
+          <div className="ticketFacts">
+            <InfoRow label="Agent" value="Market Data Agent" />
+            <InfoRow label="Merchant" value="Verified Market Data API" />
+            <InfoRow label="Asset" value={activeAsset} />
+            <InfoRow label="Amount" value={amountLabel} />
+            <InfoRow label="Next required action" value={nextAction.label} />
+          </div>
         </div>
       </section>
 
@@ -1287,25 +1295,12 @@ function X402FlowPanel({
         <span>The ledger remembered.</span>
       </div>
 
-      <ProtocolRail flow={flow} />
-
-      <div className="judgeTimeline">
-        {steps.map((step, index) => (
-          <div className={`judgeStep ${step.status}`} key={step.label}>
-            <div className="stepIndex">{index + 1}</div>
-            <div>
-              <strong>{step.label}</strong>
-              <span>{step.detail}</span>
-            </div>
-            <em>{step.proof}</em>
-          </div>
-        ))}
-      </div>
+      <ClearingRail steps={steps} />
 
       <section className="approvalBox">
         <div className="approvalCopy">
-          <span>Clearance packet</span>
-          <strong>Review before funds move</strong>
+          <span>Operator clearance required</span>
+          <strong>Review the ticket before funds move</strong>
           <small>
             The agent requested paid market data. Osmium requires policy
             clearance and an operator decision before settlement.
@@ -1359,12 +1354,12 @@ function X402FlowPanel({
           </small>
         </label>
         <div className="approvalChecks" aria-label="Policy checks">
-          <span>Merchant verified</span>
-          <span>Token allowed</span>
-          <span>Under limit</span>
-          <span>Filed receipt</span>
-          <span>Replay protected</span>
-          <span>Context bound</span>
+          <ProofStamp tone="cleared">Merchant verified</ProofStamp>
+          <ProofStamp tone="cleared">Token allowed</ProofStamp>
+          <ProofStamp tone="cleared">Under limit</ProofStamp>
+          <ProofStamp tone="cleared">Filed receipt</ProofStamp>
+          <ProofStamp tone="cleared">Replay protected</ProofStamp>
+          <ProofStamp tone="cleared">Context bound</ProofStamp>
         </div>
         {flow.verifyValid && !flow.txHash ? (
           <button
@@ -1431,7 +1426,7 @@ function TopBadges({ runnerStatus }: { runnerStatus: string }) {
   return (
     <div className="topBadges" aria-label="Live deployment badges">
       <span>Robinhood Chain Testnet</span>
-      <span>Custom x402 clearance rail</span>
+      <span>Custom x402 clearing rail</span>
       <span className={runnerStatus === "online" ? "online" : ""}>
         Runner {runnerStatus}
       </span>
@@ -1449,53 +1444,37 @@ function StatusStamp({
   return <div className={`statusStamp ${tone}`}>{children}</div>;
 }
 
-function ProtocolRail({ flow }: { flow: X402FlowState }) {
-  const nodes = [
-    {
-      label: "Agent request",
-      detail: "request",
-      icon: <Database size={16} />,
-      done: Boolean(flow.requestStatus),
-    },
-    {
-      label: "402 Required",
-      detail: flow.requestStatus === 402 ? "402" : "resource",
-      icon: <Store size={16} />,
-      done: flow.requestStatus === 402,
-    },
-    {
-      label: "Osmium verify",
-      detail: flow.verifyValid ? "verified" : "verify",
-      icon: <ShieldCheck size={16} />,
-      done: Boolean(flow.verifyValid),
-    },
-    {
-      label: "Operator clearance",
-      detail: flow.txHash ? "granted" : "human gate",
-      icon: <KeyRound size={16} />,
-      done: Boolean(flow.txHash),
-    },
-    {
-      label: "Router settlement",
-      detail: flow.txHash ? "transfer" : "vault locked",
-      icon: <ArrowRightLeft size={16} />,
-      done: Boolean(flow.txHash),
-    },
-    {
-      label: "Merchant unlock",
-      detail: flow.unlocked ? "200 OK" : "locked",
-      icon: <FileCheck2 size={16} />,
-      done: Boolean(flow.unlocked),
-    },
-  ];
+function ProofStamp({
+  children,
+  tone,
+}: {
+  children: ReactNode;
+  tone: "cleared" | "pending" | "denied" | "protocol";
+}) {
+  return <span className={`proofStamp ${tone}`}>{children}</span>;
+}
+
+function ClearingRail({
+  steps,
+}: {
+  steps: Array<{
+    label: string;
+    code: string;
+    status: "done" | "active" | "pending";
+    proof: string;
+  }>;
+}) {
+  const toneFor = (status: "done" | "active" | "pending") =>
+    status === "done" ? "cleared" : status === "active" ? "pending" : "protocol";
 
   return (
-    <div className="protocolRail" aria-label="x402-compatible payment rail">
-      {nodes.map((node) => (
-        <div className={node.done ? "protocolNode done" : "protocolNode"} key={node.label}>
-          <div className="protocolIcon">{node.icon}</div>
-          <strong>{node.label}</strong>
-          <span>{node.detail}</span>
+    <div className="clearingRail" aria-label="Clearing rail">
+      {steps.map((step, index) => (
+        <div className={`railStation ${step.status}`} key={step.label}>
+          <div className="stationMarker">{String(index + 1).padStart(2, "0")}</div>
+          <strong>{step.label}</strong>
+          <span>{step.code}</span>
+          <ProofStamp tone={toneFor(step.status)}>{step.proof}</ProofStamp>
         </div>
       ))}
     </div>
@@ -1890,24 +1869,16 @@ function AuditTrail({
               <span>Proof</span>
             </div>
             {merchantAudit.map((record) => (
-              <div className="auditRow" key={record.paymentId}>
-                <div
-                  className={
-                    record.unlocked ? "stateIcon ok" : "stateIcon blocked"
-                  }
-                >
-                  {record.unlocked ? (
-                    <CheckCircle2 size={18} />
-                  ) : (
-                    <FileCheck2 size={18} />
-                  )}
-                </div>
+              <div className="ledgerEntry" key={record.paymentId}>
                 <strong>{formatAuditTime(record.timestamp)}</strong>
                 <span>
                   {record.unlocked ? "DATA UNLOCKED" : "SETTLEMENT EXECUTED"} /{" "}
                   {formatToken(record.amount, record.asset)} / filed receipt{" "}
                   {short(record.receiptHash)}
                 </span>
+                <ProofStamp tone={record.unlocked ? "cleared" : "protocol"}>
+                  {record.unlocked ? "FILED" : "SETTLED"}
+                </ProofStamp>
                 {isFullTxHash(record.txHash) ? (
                   <a
                     className="auditTxLink"
@@ -1924,15 +1895,13 @@ function AuditTrail({
               </div>
             ))}
             {rows.map((row, index) => (
-              <div className="auditRow" key={`${row.status}-${index}`}>
-                <div className={row.ok ? "stateIcon ok" : "stateIcon blocked"}>
-                  {row.ok ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
-                </div>
+              <div className="ledgerEntry" key={`${row.status}-${index}`}>
                 <strong>local</strong>
                 <span>{row.detail}</span>
-                <span className={row.ok ? "auditTxMissing cleared" : "auditTxMissing denied"}>
+                <ProofStamp tone={row.ok ? "cleared" : "denied"}>
                   {row.status}
-                </span>
+                </ProofStamp>
+                <span className="auditTxMissing">local proof</span>
               </div>
             ))}
           </>

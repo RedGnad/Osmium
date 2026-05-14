@@ -910,6 +910,7 @@ function App() {
             <span className="eyebrow">{currentView.eyebrow}</span>
             <h1>{currentView.title}</h1>
             <p>{currentView.description}</p>
+            <TopBadges runnerStatus={runnerStatus} />
           </div>
           <button
             className="walletButton"
@@ -1240,6 +1241,8 @@ function X402FlowPanel({
         )}
       </div>
 
+      <ProtocolRail flow={flow} />
+
       <div className="judgeTimeline">
         {steps.map((step, index) => (
           <div className={`judgeStep ${step.status}`} key={step.label}>
@@ -1275,7 +1278,7 @@ function X402FlowPanel({
           <InfoRow label="Replay protection" value="enabled" />
         </dl>
         <label className="x402Operator">
-          <span>Operator key</span>
+          <span>Secure approval module</span>
           <input
             aria-label="Operator API key"
             disabled={busy !== ""}
@@ -1284,8 +1287,20 @@ function X402FlowPanel({
             type="password"
             value={operatorKey}
           />
-          <small>{hasOperatorKey ? "approval ready" : "required"}</small>
+          <small>
+            {hasOperatorKey
+              ? "session-only key loaded"
+              : "session-only key, never stored in frontend env"}
+          </small>
         </label>
+        <div className="approvalChecks" aria-label="Policy checks">
+          <span>Merchant verified</span>
+          <span>Token allowed</span>
+          <span>Under limit</span>
+          <span>Receipt required</span>
+          <span>Replay protected</span>
+          <span>Context bound</span>
+        </div>
         {flow.verifyValid && !flow.txHash ? (
           <button
             className="primary"
@@ -1344,6 +1359,71 @@ function X402FlowPanel({
         </button>
       </details>
     </section>
+  );
+}
+
+function TopBadges({ runnerStatus }: { runnerStatus: string }) {
+  return (
+    <div className="topBadges" aria-label="Live deployment badges">
+      <span>Robinhood Chain Testnet</span>
+      <span>x402-compatible facilitator</span>
+      <span className={runnerStatus === "online" ? "online" : ""}>
+        Runner {runnerStatus}
+      </span>
+    </div>
+  );
+}
+
+function ProtocolRail({ flow }: { flow: X402FlowState }) {
+  const nodes = [
+    {
+      label: "Agent",
+      detail: "request",
+      icon: <Database size={16} />,
+      done: Boolean(flow.requestStatus),
+    },
+    {
+      label: "Merchant API",
+      detail: flow.requestStatus === 402 ? "402" : "resource",
+      icon: <Store size={16} />,
+      done: flow.requestStatus === 402,
+    },
+    {
+      label: "Osmium Facilitator",
+      detail: flow.verifyValid ? "verified" : "verify",
+      icon: <ShieldCheck size={16} />,
+      done: Boolean(flow.verifyValid),
+    },
+    {
+      label: "PolicyEngine",
+      detail: flow.verifyValid ? "approved" : "Stylus",
+      icon: <KeyRound size={16} />,
+      done: Boolean(flow.verifyValid),
+    },
+    {
+      label: "SettlementRouter",
+      detail: flow.txHash ? "transfer" : "gated",
+      icon: <ArrowRightLeft size={16} />,
+      done: Boolean(flow.txHash),
+    },
+    {
+      label: "Data Unlocked",
+      detail: flow.unlocked ? "200 OK" : "locked",
+      icon: <FileCheck2 size={16} />,
+      done: Boolean(flow.unlocked),
+    },
+  ];
+
+  return (
+    <div className="protocolRail" aria-label="x402-compatible payment rail">
+      {nodes.map((node) => (
+        <div className={node.done ? "protocolNode done" : "protocolNode"} key={node.label}>
+          <div className="protocolIcon">{node.icon}</div>
+          <strong>{node.label}</strong>
+          <span>{node.detail}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 

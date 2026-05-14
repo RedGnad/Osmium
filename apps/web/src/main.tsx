@@ -206,13 +206,13 @@ const viewCopy: Record<
 > = {
   command: {
     eyebrow: "Clearing house",
-    title: "Osmium Clearing House",
+    title: "Agents request. Osmium clears.",
     description:
-      "Agents request. Osmium clears. Give agents clearance, not keys.",
+      "Osmium is the clearing house where AI finance agents request paid resources, policy verifies, operators clear and the router settles.",
   },
   policy: {
-    eyebrow: "Policy rulebook",
-    title: "TSLA Clearance Policy",
+    eyebrow: "Rulebook",
+    title: "TSLA Clearing Rulebook",
     description:
       "The deterministic rules that decide whether an agent request can be cleared.",
   },
@@ -223,20 +223,20 @@ const viewCopy: Record<
       "The paid market-data resource that stays locked until clearance is granted.",
   },
   audit: {
-    eyebrow: "Proof ledger",
-    title: "Proof Ledger",
+    eyebrow: "Settlement ledger",
+    title: "Settlement Ledger",
     description:
       "A financial record of issued 402s, clearance decisions, receipts and replay denials.",
   },
   developer: {
-    eyebrow: "Developer surface",
-    title: "Integrate clearance in 10 minutes",
+    eyebrow: "Integration desk",
+    title: "Integrate clearing in 10 minutes",
     description:
       "Request a protected resource, verify clearance, settle through Osmium, then unlock.",
   },
   settings: {
-    eyebrow: "Settings",
-    title: "Live clearance runtime",
+    eyebrow: "Runtime registry",
+    title: "Live clearing runtime",
     description:
       "Live deployment details, supported network and honest prototype boundaries.",
   },
@@ -796,12 +796,12 @@ function App() {
     label: string;
     icon: ReactNode;
   }> = [
-    { id: "command", label: "Command Center", icon: <Layers3 size={17} /> },
-    { id: "policy", label: "Policy", icon: <KeyRound size={17} /> },
-    { id: "merchant", label: "Merchant", icon: <Store size={17} /> },
-    { id: "audit", label: "Audit", icon: <FileCheck2 size={17} /> },
-    { id: "developer", label: "Developer", icon: <Code2 size={17} /> },
-    { id: "settings", label: "Settings", icon: <SlidersHorizontal size={17} /> },
+    { id: "command", label: "Clearing Desk", icon: <Layers3 size={17} /> },
+    { id: "policy", label: "Rulebook", icon: <KeyRound size={17} /> },
+    { id: "merchant", label: "Resource", icon: <Store size={17} /> },
+    { id: "audit", label: "Ledger", icon: <FileCheck2 size={17} /> },
+    { id: "developer", label: "Integration", icon: <Code2 size={17} /> },
+    { id: "settings", label: "Registry", icon: <SlidersHorizontal size={17} /> },
   ];
   const riskWorkbench = (
     <section className="decisionDesk">
@@ -831,10 +831,10 @@ function App() {
             className="primary"
             onClick={refreshLiveProof}
             disabled={busy !== ""}
-            title="Read latest proof ledger state"
+            title="Read latest settlement ledger state"
           >
             <FileCheck2 size={17} />
-            Proof Ledger
+            Settlement Ledger
           </button>
         </div>
       </div>
@@ -1029,8 +1029,8 @@ function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
       <section className="panel policyHero">
         <div className="panelHeader">
           <div>
-            <span>Clearance rulebook</span>
-            <strong>{asset.symbol} Clearance Policy</strong>
+            <span>Clearing rulebook</span>
+            <strong>{asset.symbol} Clearing Rulebook</strong>
           </div>
           <StatusStamp tone="cleared">ARMED</StatusStamp>
         </div>
@@ -1574,7 +1574,7 @@ function ScenarioRail({
 }) {
   const scenarios = [
     { label: "File latest receipt", state: "allow", action: onPay },
-    { label: "Read proof ledger", state: "execute", action: onExecute },
+    { label: "Read settlement ledger", state: "execute", action: onExecute },
     { label: "Deny unknown merchant", state: "block", action: onUnknown },
     { label: "Deny missing receipt", state: "block", action: onMissing },
     { label: "Deny over max", state: "block", action: onOver },
@@ -1627,7 +1627,7 @@ function CommandStatusStrip({
   settlement: LiveSettlement | null;
 }) {
   return (
-    <section className="cockpitStatus" aria-label="Command center status">
+    <section className="cockpitStatus" aria-label="Clearing desk status">
       <StatusCard
         icon={<Database size={17} />}
         label="Agent"
@@ -1706,8 +1706,8 @@ function CockpitSummary({
     <section className="panel cockpitSummary">
       <div className="panelHeader">
         <div>
-          <span>Control surface</span>
-          <strong>Can this agent spend?</strong>
+          <span>Clearing desk</span>
+          <strong>Can this ticket clear?</strong>
         </div>
         <StatusStamp tone="pending">CLEARANCE REQUIRED</StatusStamp>
       </div>
@@ -1757,7 +1757,7 @@ function SettlementPanel({
       <section className="panel proofPanel">
         <div className="panelHeader">
           <div>
-            <span>Proof Ledger</span>
+            <span>Settlement Ledger</span>
             <strong>Awaiting filed receipt</strong>
           </div>
           <ArrowRightLeft size={20} />
@@ -1775,7 +1775,7 @@ function SettlementPanel({
     <section className="panel proofPanel">
       <div className="panelHeader">
         <div>
-          <span>Proof Ledger</span>
+          <span>Settlement Ledger</span>
           <strong>
             Policy {settlement.policyId} / {symbol}
           </strong>
@@ -1852,7 +1852,7 @@ function AuditTrail({
     <section className="panel auditPanel">
       <div className="panelHeader">
         <div>
-          <span>Proof Ledger</span>
+          <span>Settlement Ledger</span>
           <strong>{rows.length + merchantAudit.length} events</strong>
         </div>
         <FileCheck2 size={20} />
@@ -1917,7 +1917,7 @@ function DeveloperPanel() {
       <section className="panel">
         <div className="panelHeader">
           <div>
-            <span>Developer Surface</span>
+            <span>Integration desk</span>
             <strong>Integrate clearance in 10 minutes</strong>
           </div>
           <Code2 size={20} />
@@ -1983,7 +1983,7 @@ function SettingsPanel({ runnerStatus }: { runnerStatus: string }) {
       <section className="panel">
         <div className="panelHeader">
           <div>
-            <span>Live deployment</span>
+            <span>Runtime registry</span>
             <strong>Robinhood Chain runtime</strong>
           </div>
           <Activity size={20} />
@@ -2001,7 +2001,7 @@ function SettingsPanel({ runnerStatus }: { runnerStatus: string }) {
       <section className="panel">
         <div className="panelHeader">
           <div>
-            <span>Limitations</span>
+            <span>Boundaries</span>
             <strong>Honest prototype boundaries</strong>
           </div>
           <AlertTriangle size={20} />

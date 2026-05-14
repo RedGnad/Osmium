@@ -1241,6 +1241,13 @@ function X402FlowPanel({
         )}
       </div>
 
+      <div className="clearanceDoctrine" aria-label="Clearance doctrine">
+        <span>The agent asked.</span>
+        <span>Osmium cleared.</span>
+        <span>The router settled.</span>
+        <span>The ledger remembered.</span>
+      </div>
+
       <ProtocolRail flow={flow} />
 
       <div className="judgeTimeline">

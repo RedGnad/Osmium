@@ -39,21 +39,16 @@ html {
 }
 
 body {
-  background:
-    linear-gradient(rgba(244, 247, 250, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(244, 247, 250, 0.014) 1px, transparent 1px),
-    linear-gradient(135deg, #080a0d 0%, #0b0e13 48%, #080a0d 100%);
-  background-size: 42px 42px, 42px 42px, auto;
+  background: var(--bg);
   margin: 0;
   min-width: 320px;
 }
 
 body::before {
-  background:
-    linear-gradient(180deg, rgba(57, 255, 136, 0.045), transparent 30%),
-    linear-gradient(90deg, rgba(106, 168, 255, 0.04), transparent 38%);
+  border-left: 1px solid rgba(244, 247, 250, 0.035);
+  border-right: 1px solid rgba(244, 247, 250, 0.025);
   content: "";
-  inset: 0;
+  inset: 0 9vw;
   pointer-events: none;
   position: fixed;
 }
@@ -66,9 +61,9 @@ input {
 
 button {
   align-items: center;
-  background: rgba(232, 241, 240, 0.05);
+  background: #10141a;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 4px;
   color: var(--text);
   cursor: pointer;
   display: inline-flex;
@@ -88,9 +83,9 @@ button {
 }
 
 button:hover {
-  background: rgba(232, 241, 240, 0.09);
+  background: #151a22;
   border-color: var(--border-strong);
-  transform: translateY(-1px);
+  transform: none;
 }
 
 button:disabled {
@@ -103,7 +98,7 @@ button.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
-  box-shadow: 0 0 0 1px rgba(61, 240, 194, 0.18), 0 14px 40px rgba(61, 240, 194, 0.12);
+  box-shadow: none;
 }
 
 button.primary:hover {
@@ -112,9 +107,9 @@ button.primary:hover {
 }
 
 input {
-  background: rgba(5, 7, 8, 0.72);
+  background: #080a0d;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 4px;
   color: var(--text);
   font: inherit;
   min-height: 42px;
@@ -141,9 +136,7 @@ input:focus-visible {
 }
 
 .sideRail {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent 18%),
-    rgba(5, 7, 8, 0.91);
+  background: #07090c;
   border-right: 1px solid var(--border);
   color: var(--text);
   display: flex;
@@ -164,11 +157,9 @@ input:focus-visible {
 
 .brandMark {
   align-items: center;
-  background:
-    linear-gradient(135deg, rgba(61, 240, 194, 0.2), rgba(120, 200, 255, 0.1)),
-    var(--panel-elevated);
+  background: #0e1116;
   border: 1px solid rgba(61, 240, 194, 0.36);
-  border-radius: 7px;
+  border-radius: 4px;
   color: var(--accent);
   display: flex;
   height: 42px;
@@ -239,7 +230,7 @@ input:focus-visible {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 4px;
   color: var(--muted-strong);
   display: flex;
   font-size: 14px;
@@ -254,7 +245,7 @@ input:focus-visible {
 
 .railNav button:hover,
 .railNav button.active {
-  background: rgba(232, 241, 240, 0.06);
+  background: #11151c;
   border-color: var(--border);
   color: var(--text);
 }
@@ -264,9 +255,9 @@ input:focus-visible {
 }
 
 .railCard {
-  background: rgba(16, 23, 26, 0.72);
+  background: #0b0e13;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 4px;
   display: grid;
   gap: 8px;
   margin-top: auto;
@@ -324,9 +315,9 @@ h1 {
 
 .topBadges span {
   align-items: center;
-  background: rgba(232, 241, 240, 0.045);
+  background: #0c1015;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--muted-strong);
   display: inline-flex;
   min-height: 30px;
@@ -387,12 +378,10 @@ h1 {
 .statusCard,
 .advancedDetails,
 .secondaryDrills {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
-    var(--panel);
+  background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  border-radius: 4px;
+  box-shadow: none;
 }
 
 .panel,
@@ -420,6 +409,18 @@ h1 {
   position: relative;
 }
 
+.statusCard::before {
+  color: rgba(244, 247, 250, 0.08);
+  content: "CLEARANCE";
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
 .statusCard::after {
   background: var(--border);
   content: "";
@@ -438,9 +439,9 @@ h1 {
 
 .metricIcon {
   align-items: center;
-  background: rgba(120, 200, 255, 0.1);
+  background: #080a0d;
   border: 1px solid rgba(120, 200, 255, 0.22);
-  border-radius: 7px;
+  border-radius: 4px;
   color: var(--info);
   display: flex;
   height: 34px;
@@ -450,13 +451,13 @@ h1 {
 
 .statusCard.ok .metricIcon,
 .stateIcon.ok {
-  background: rgba(93, 242, 163, 0.11);
+  background: #0b1510;
   border-color: rgba(93, 242, 163, 0.22);
   color: var(--success);
 }
 
 .statusCard.warn .metricIcon {
-  background: rgba(244, 189, 93, 0.1);
+  background: #171307;
   border-color: rgba(244, 189, 93, 0.24);
   color: var(--warning);
 }
@@ -475,7 +476,17 @@ h1 {
 }
 
 .judgePanel {
-  border-color: rgba(61, 240, 194, 0.18);
+  border-color: rgba(57, 255, 136, 0.22);
+  padding-left: 24px;
+  position: relative;
+}
+
+.judgePanel::before {
+  background: var(--cleared);
+  content: "";
+  inset: 18px auto 18px 12px;
+  position: absolute;
+  width: 2px;
 }
 
 .panelHeader {
@@ -501,12 +512,10 @@ h1 {
 
 .judgeLead {
   align-items: center;
-  background:
-    linear-gradient(90deg, rgba(61, 240, 194, 0.12), rgba(61, 240, 194, 0.02)),
-    var(--panel-elevated);
+  background: #10141b;
   border: 1px solid rgba(61, 240, 194, 0.24);
-  border-left: 4px solid var(--accent);
-  border-radius: 8px;
+  border-left: 2px solid var(--accent);
+  border-radius: 4px;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) max-content;
@@ -531,34 +540,66 @@ h1 {
   line-height: 1.45;
 }
 
+.clearanceDoctrine {
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.clearanceDoctrine span {
+  color: var(--muted-strong);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 40px;
+  padding: 12px 10px;
+  text-transform: uppercase;
+}
+
+.clearanceDoctrine span + span {
+  border-left: 1px solid var(--border);
+}
+
 .protocolRail {
   display: grid;
-  gap: 8px;
+  gap: 0;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   position: relative;
 }
 
 .protocolRail::before {
-  background: linear-gradient(90deg, rgba(61, 240, 194, 0.0), rgba(61, 240, 194, 0.35), rgba(61, 240, 194, 0.0));
+  background: rgba(106, 168, 255, 0.28);
   content: "";
   height: 1px;
-  left: 7%;
+  left: 0;
   position: absolute;
-  right: 7%;
-  top: 24px;
+  right: 0;
+  top: 26px;
 }
 
 .protocolNode {
   align-content: start;
-  background: rgba(232, 241, 240, 0.035);
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-left: 0;
+  border-radius: 0;
   display: grid;
   gap: 6px;
   min-height: 104px;
   padding: 10px;
   position: relative;
   z-index: 1;
+}
+
+.protocolNode:first-child {
+  border-left: 1px solid var(--border);
+  border-radius: 4px 0 0 4px;
+}
+
+.protocolNode:last-child {
+  border-radius: 0 4px 4px 0;
 }
 
 .protocolNode.done {
@@ -569,7 +610,7 @@ h1 {
   align-items: center;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 4px;
   color: var(--muted-strong);
   display: flex;
   height: 30px;
@@ -594,9 +635,9 @@ h1 {
 
 .judgeStep {
   align-items: center;
-  background: rgba(232, 241, 240, 0.034);
+  background: #0f1319;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   display: grid;
   gap: 12px;
   grid-template-columns: 34px minmax(0, 1fr) max-content;
@@ -609,14 +650,14 @@ h1 {
 }
 
 .judgeStep.done {
-  background: rgba(93, 242, 163, 0.06);
+  background: #0d1411;
   border-color: rgba(93, 242, 163, 0.24);
 }
 
 .judgeStep.active {
-  background: rgba(244, 189, 93, 0.08);
+  background: #151307;
   border-color: rgba(244, 189, 93, 0.34);
-  transform: translateX(2px);
+  transform: none;
 }
 
 .judgeStep div:nth-child(2) {
@@ -634,6 +675,11 @@ h1 {
   font-size: 12px;
   font-style: normal;
   font-weight: 700;
+  border: 1px solid var(--border);
+  color: var(--muted-strong);
+  min-height: 28px;
+  padding: 6px 8px;
+  text-align: center;
 }
 
 .judgeStep em,
@@ -654,7 +700,7 @@ pre,
   align-items: center;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 4px;
   color: var(--muted-strong);
   display: flex;
   font-weight: 700;
@@ -674,20 +720,19 @@ pre,
 }
 
 .approvalBox {
-  background:
-    linear-gradient(180deg, rgba(244, 189, 93, 0.09), rgba(244, 189, 93, 0.035)),
-    var(--panel-elevated);
+  background: #111018;
   border: 1px solid rgba(244, 189, 93, 0.36);
-  border-radius: 8px;
+  border-left: 2px solid var(--pending);
+  border-radius: 4px;
   display: grid;
   gap: 14px;
   padding: 16px;
 }
 
 .approvalFacts {
-  background: rgba(5, 7, 8, 0.48);
+  background: #080a0d;
   border: 1px solid rgba(244, 189, 93, 0.18);
-  border-radius: 8px;
+  border-radius: 4px;
   display: grid;
   margin: 0;
   padding: 0 12px;
@@ -700,9 +745,9 @@ pre,
 }
 
 .approvalChecks span {
-  background: rgba(93, 242, 163, 0.08);
+  background: #0b1510;
   border: 1px solid rgba(93, 242, 163, 0.22);
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--success);
   font-size: 12px;
   font-weight: 700;
@@ -711,9 +756,9 @@ pre,
 }
 
 .x402Operator {
-  background: rgba(5, 7, 8, 0.42);
+  background: #080a0d;
   border: 1px solid rgba(244, 189, 93, 0.22);
-  border-radius: 8px;
+  border-radius: 4px;
   display: grid;
   gap: 8px;
   padding: 12px;
@@ -729,7 +774,7 @@ pre,
 
 .advancedDetails,
 .secondaryDrills {
-  background: rgba(232, 241, 240, 0.028);
+  background: #0b0e13;
   border-color: var(--border);
   padding: 13px;
 }
@@ -786,9 +831,9 @@ pre,
 
 .x402Protocol,
 .nextActionCard {
-  background: rgba(232, 241, 240, 0.035);
+  background: #0f1319;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   display: grid;
   gap: 7px;
   padding: 13px;
@@ -827,9 +872,9 @@ pre,
 }
 
 .x402Step {
-  background: rgba(232, 241, 240, 0.035);
+  background: #0f1319;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   display: grid;
   gap: 6px;
   min-height: 70px;
@@ -849,9 +894,9 @@ pre,
 }
 
 .x402Ledger .infoRow {
-  background: rgba(232, 241, 240, 0.03);
+  background: #0b0e13;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   display: grid;
   gap: 4px;
   grid-template-columns: 1fr;
@@ -898,9 +943,9 @@ pre,
 }
 
 .error {
-  background: rgba(255, 107, 112, 0.09);
+  background: #160d10;
   border: 1px solid rgba(255, 107, 112, 0.28);
-  border-radius: 8px;
+  border-radius: 4px;
   color: #ffc7ca;
   font-size: 14px;
   padding: 12px;
@@ -909,7 +954,7 @@ pre,
 
 .decisionSummary {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   overflow: hidden;
@@ -948,7 +993,7 @@ pre,
 .emptyAudit {
   align-items: center;
   border: 1px dashed var(--border-strong);
-  border-radius: 8px;
+  border-radius: 4px;
   color: var(--muted);
   display: flex;
   gap: 14px;
@@ -1042,9 +1087,9 @@ pre,
 
 .badge {
   align-items: center;
-  background: rgba(232, 241, 240, 0.05);
+  background: #0c1015;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--muted-strong);
   display: inline-flex;
   font-size: 12px;
@@ -1054,13 +1099,13 @@ pre,
 }
 
 .badge.ok {
-  background: rgba(93, 242, 163, 0.08);
+  background: #0b1510;
   border-color: rgba(93, 242, 163, 0.26);
   color: var(--success);
 }
 
 .badge.blocked {
-  background: rgba(255, 107, 112, 0.08);
+  background: #160d10;
   border-color: rgba(255, 107, 112, 0.26);
   color: var(--danger);
 }
@@ -1114,9 +1159,9 @@ pre,
 
 .txLink {
   align-items: center;
-  background: rgba(61, 240, 194, 0.08);
+  background: #0b1510;
   border: 1px solid rgba(61, 240, 194, 0.24);
-  border-radius: 7px;
+  border-radius: 4px;
   color: var(--accent);
   display: inline-flex;
   font-size: 12px;
@@ -1131,9 +1176,9 @@ pre,
 .attemptRow,
 .auditRow {
   align-items: center;
-  background: rgba(232, 241, 240, 0.03);
+  background: #0f1319;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   display: grid;
   gap: 10px;
   min-height: 58px;
@@ -1176,9 +1221,9 @@ pre,
 .auditTxLink,
 .auditTxMissing {
   align-items: center;
-  background: rgba(232, 241, 240, 0.04);
+  background: #0c1015;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 4px;
   display: inline-flex;
   font-size: 12px;
   font-weight: 700;
@@ -1209,7 +1254,7 @@ pre,
 .stateIcon {
   align-items: center;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 4px;
   display: flex;
   height: 34px;
   justify-content: center;
@@ -1217,7 +1262,7 @@ pre,
 }
 
 .stateIcon.blocked {
-  background: rgba(255, 107, 112, 0.08);
+  background: #160d10;
   border-color: rgba(255, 107, 112, 0.22);
   color: var(--danger);
 }
@@ -1260,11 +1305,9 @@ pre,
 }
 
 pre {
-  background:
-    linear-gradient(180deg, rgba(61, 240, 194, 0.055), transparent),
-    #030506;
+  background: #050708;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   color: #d8f6ed;
   margin: 0;
   overflow: auto;

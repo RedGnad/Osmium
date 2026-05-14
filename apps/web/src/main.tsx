@@ -19,10 +19,10 @@ import {
   KeyRound,
   Layers3,
   ListChecks,
-  LockKeyhole,
   PlayCircle,
   Radio,
   ShieldCheck,
+  SlidersHorizontal,
   Store,
   Wallet,
   XCircle,
@@ -194,11 +194,11 @@ type AssetSymbol = (typeof assets)[number]["symbol"];
 
 type ConsoleView =
   | "command"
-  | "runbook"
-  | "assets"
-  | "risk"
+  | "policy"
+  | "merchant"
   | "audit"
-  | "developer";
+  | "developer"
+  | "settings";
 
 const viewCopy: Record<
   ConsoleView,
@@ -206,27 +206,21 @@ const viewCopy: Record<
 > = {
   command: {
     eyebrow: "Command center",
-    title: "Supervise agent spending",
+    title: "AI Finance Agent Command Center",
     description:
-      "Operate the live TSLA market-data spend path and see the controls that protect it.",
+      "Control how autonomous agents spend tokenized assets on Robinhood Chain.",
   },
-  runbook: {
-    eyebrow: "x402-compatible flow",
-    title: "Request, verify, settle, unlock",
+  policy: {
+    eyebrow: "Policy",
+    title: "TSLA Spend Guard",
     description:
-      "A policy-aware facilitator flow for delegated vault settlement on Robinhood Chain.",
+      "Plain-English controls first, advanced proofs only when needed.",
   },
-  assets: {
-    eyebrow: "Agent setup",
-    title: "Agent, policy, merchant",
+  merchant: {
+    eyebrow: "Merchant",
+    title: "Verified Market Data API",
     description:
-      "The operator view for the finance agent, supported assets and verified merchant.",
-  },
-  risk: {
-    eyebrow: "Risk lab",
-    title: "Prove the firewall blocks bad spend",
-    description:
-      "Run deterministic previews for unknown merchants, missing receipts, over-limit attempts and replay.",
+      "The protected resource an agent can buy through Osmium settlement.",
   },
   audit: {
     eyebrow: "Evidence",
@@ -239,6 +233,12 @@ const viewCopy: Record<
     title: "Integrate Osmium into an agent",
     description:
       "The minimum integration path for agent builders using quotes, intents and settlement.",
+  },
+  settings: {
+    eyebrow: "Settings",
+    title: "Runtime and limitations",
+    description:
+      "Live deployment details, supported network and honest prototype boundaries.",
   },
 };
 
@@ -786,8 +786,6 @@ function App() {
 
   const allowed = demo.filter((item) => item.preview.allowed).length;
   const blocked = demo.length - allowed;
-  const activeAssetConfig =
-    assets.find((asset) => asset.symbol === activeAsset) ?? assets[0];
   const auditRows = useMemo(
     () => buildAuditRows(demo, settlement, spendEvents),
     [demo, settlement, spendEvents],
@@ -798,12 +796,12 @@ function App() {
     label: string;
     icon: ReactNode;
   }> = [
-    { id: "command", label: "Command", icon: <Layers3 size={17} /> },
-    { id: "runbook", label: "x402 Runbook", icon: <LockKeyhole size={17} /> },
-    { id: "assets", label: "Assets", icon: <Database size={17} /> },
-    { id: "risk", label: "Risk Lab", icon: <ArrowRightLeft size={17} /> },
+    { id: "command", label: "Command Center", icon: <Layers3 size={17} /> },
+    { id: "policy", label: "Policy", icon: <KeyRound size={17} /> },
+    { id: "merchant", label: "Merchant", icon: <Store size={17} /> },
     { id: "audit", label: "Audit", icon: <FileCheck2 size={17} /> },
     { id: "developer", label: "Developer", icon: <Code2 size={17} /> },
+    { id: "settings", label: "Settings", icon: <SlidersHorizontal size={17} /> },
   ];
   const riskWorkbench = (
     <section className="decisionDesk">
@@ -937,44 +935,17 @@ function App() {
           ))}
         </nav>
 
-        <section className="systemStrip" aria-label="System state">
-          <Metric
-            icon={<Radio size={17} />}
-            label="Network"
-            value="Robinhood Testnet"
-            detail={`chain ${config.chainId}`}
-          />
-          <Metric
-            icon={<ShieldCheck size={17} />}
-            label="Policy Engine"
-            value={short(config.engineAddress)}
-            detail="Stylus / Rust"
-          />
-          <Metric
-            icon={<CircleDollarSign size={17} />}
-            label="Settlement Router"
-            value={short(config.routerAddress)}
-            detail="Solidity custody"
-          />
-          <Metric
-            icon={<Activity size={17} />}
-            label="Runner"
-            value={runnerStatus}
-            detail="preview + live proof"
-          />
-        </section>
-
         {error ? <div className="error">{error}</div> : null}
 
         {view === "command" ? (
           <section className="viewStack commandView">
-            <OverviewPanel
-              demo={demo}
-              settlement={settlement}
+            <CommandStatusStrip
+              activeAsset={activeAsset}
               quote={quote}
-              unlock={unlock}
+              runnerStatus={runnerStatus}
+              settlement={settlement}
             />
-            <section className="commandGrid">
+            <section className="cockpitGrid">
               <X402FlowPanel
                 activeAsset={activeAsset}
                 busy={busy}
@@ -987,75 +958,40 @@ function App() {
                 onSettle={settleX402Flow}
                 onVerify={verifyX402Flow}
               />
-              <section className="operatorSnapshot">
-                <AgentPanel
+              <aside className="operatorSnapshot">
+                <CockpitSummary
+                  activeAsset={activeAsset}
                   account={account}
                   nativeBalance={nativeBalance}
-                  activeAsset={activeAsset}
-                  activeAssetConfig={activeAssetConfig}
-                  setActiveAsset={setActiveAsset}
+                  quote={quote}
+                  runnerStatus={runnerStatus}
+                  settlement={settlement}
                 />
                 <SettlementPanel settlement={settlement} />
-              </section>
+              </aside>
             </section>
-          </section>
-        ) : null}
-
-        {view === "runbook" ? (
-          <section className="viewStack runbookView">
-            <X402FlowPanel
-              activeAsset={activeAsset}
-              busy={busy}
-              flow={x402Flow}
-              merchantAudit={merchantAudit}
-              operatorKey={operatorKey}
-              setOperatorKey={setOperatorKey}
-              onExecute={executeVerifiedPayment}
-              onRequest={() => requestMarketDataResource(activeAsset)}
-              onSettle={settleX402Flow}
-              onVerify={verifyX402Flow}
-            />
-            <section className="runbookSplit">
-              <MerchantPanel
-                activeAsset={activeAsset}
-                quote={quote}
-                unlock={unlock}
-                onQuote={() => loadMerchantQuote(activeAsset)}
-                busy={busy !== ""}
-              />
-              <AuditTrail rows={auditRows} merchantAudit={merchantAudit} />
-            </section>
-          </section>
-        ) : null}
-
-        {view === "assets" ? (
-          <section className="viewStack setupView">
-            <section className="setupGrid">
-              <AgentPanel
-                account={account}
-                nativeBalance={nativeBalance}
-                activeAsset={activeAsset}
-                activeAssetConfig={activeAssetConfig}
-                setActiveAsset={setActiveAsset}
-              />
-              <PolicyPanel activeAsset={activeAsset} />
-              <MerchantPanel
-                activeAsset={activeAsset}
-                quote={quote}
-                unlock={unlock}
-                onQuote={() => loadMerchantQuote(activeAsset)}
-                busy={busy !== ""}
-              />
-            </section>
-          </section>
-        ) : null}
-
-        {view === "risk" ? (
-          <section className="viewStack riskView">
-            <section className="riskLayout">
+            <details className="secondaryDrills">
+              <summary>Firewall evidence drills</summary>
               {riskWorkbench}
-              <SettlementPanel settlement={settlement} />
-            </section>
+            </details>
+          </section>
+        ) : null}
+
+        {view === "policy" ? (
+          <section className="viewStack policyView">
+            <PolicyPanel activeAsset={activeAsset} />
+          </section>
+        ) : null}
+
+        {view === "merchant" ? (
+          <section className="viewStack merchantView">
+            <MerchantPanel
+              activeAsset={activeAsset}
+              quote={quote}
+              unlock={unlock}
+              onQuote={() => loadMerchantQuote(activeAsset)}
+              busy={busy !== ""}
+            />
           </section>
         ) : null}
 
@@ -1073,87 +1009,86 @@ function App() {
             <DeveloperPanel />
           </section>
         ) : null}
+
+        {view === "settings" ? (
+          <section className="viewStack settingsView">
+            <SettingsPanel runnerStatus={runnerStatus} />
+          </section>
+        ) : null}
       </section>
     </main>
-  );
-}
-
-function AgentPanel({
-  account,
-  nativeBalance,
-  activeAsset,
-  activeAssetConfig,
-  setActiveAsset,
-}: {
-  account: string;
-  nativeBalance: string;
-  activeAsset: AssetSymbol;
-  activeAssetConfig: (typeof assets)[number];
-  setActiveAsset: (asset: AssetSymbol) => void;
-}) {
-  return (
-    <section className="panel" id="agents">
-      <div className="panelHeader">
-        <div>
-          <span>AI Finance Agent</span>
-          <strong>Market Data Agent</strong>
-        </div>
-        <Database size={20} />
-      </div>
-
-      <dl className="infoList">
-        <InfoRow label="Mission" value="Buy verified market data" />
-        <InfoRow label="Wallet" value={short(account)} />
-        <InfoRow label="Gas" value={nativeBalance} />
-        <InfoRow label="Policy" value="2" />
-      </dl>
-
-      <div className="assetTabs" aria-label="Asset policy selector">
-        {assets.map((asset) => (
-          <button
-            className={
-              activeAsset === asset.symbol ? "assetTab active" : "assetTab"
-            }
-            key={asset.symbol}
-            onClick={() => setActiveAsset(asset.symbol)}
-            title={`${asset.symbol} policy`}
-          >
-            <strong>{asset.symbol}</strong>
-            <span>{asset.status}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="assetNote">
-        <LockKeyhole size={16} />
-        <span>{activeAssetConfig.tone}</span>
-      </div>
-    </section>
   );
 }
 
 function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
   const asset = assets.find((item) => item.symbol === activeAsset) ?? assets[0];
   return (
-    <section className="panel" id="policies">
-      <div className="panelHeader">
-        <div>
-          <span>Policy</span>
-          <strong>{asset.symbol} Spend Guard</strong>
+    <section className="policyGrid" id="policies">
+      <section className="panel policyHero">
+        <div className="panelHeader">
+          <div>
+            <span>Policy control card</span>
+            <strong>{asset.symbol} Spend Guard</strong>
+          </div>
+          <div className="badge ok">Armed</div>
         </div>
-        <KeyRound size={20} />
-      </div>
-
-      <dl className="infoList">
-        <InfoRow label="Token" value={short(asset.address)} />
-        <InfoRow label="Allowlist" value="TSLA / AMD" />
-        <InfoRow label="Merchant" value="verified" />
-        <InfoRow label="Max Payment" value="0.50 token" />
-        <InfoRow label="Period Budget" value="3.00 token" />
-        <InfoRow label="Receipt" value="required" />
-        <InfoRow label="Replay" value="blocked" />
-        <InfoRow label="Context" value="bound" />
-      </dl>
+        <p>
+          This policy lets the Market Data Agent buy verified data without
+          giving it unrestricted wallet access.
+        </p>
+      </section>
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Scope</span>
+            <strong>Supported assets</strong>
+          </div>
+          <CircleDollarSign size={20} />
+        </div>
+        <dl className="infoList">
+          <InfoRow label="TSLA" value="live settlement" />
+          <InfoRow label="AMD" value="quote-supported" />
+          <InfoRow label="Network" value="Robinhood Chain Testnet" />
+        </dl>
+      </section>
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Limits</span>
+            <strong>Bounded spend</strong>
+          </div>
+          <KeyRound size={20} />
+        </div>
+        <dl className="infoList">
+          <InfoRow label="Max payment" value="0.50 token" />
+          <InfoRow label="Period budget" value="3.00 token" />
+          <InfoRow label="Settlement" value="router only" />
+        </dl>
+      </section>
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Rules</span>
+            <strong>Evidence required</strong>
+          </div>
+          <FileCheck2 size={20} />
+        </div>
+        <dl className="infoList">
+          <InfoRow label="Merchant" value="verified only" />
+          <InfoRow label="Receipt" value="required" />
+          <InfoRow label="Context" value="bound" />
+          <InfoRow label="Replay" value="blocked" />
+        </dl>
+      </section>
+      <details className="advancedDetails policyDetails">
+        <summary>Advanced proof details</summary>
+        <dl className="infoList">
+          <InfoRow label="Token" value={asset.address} />
+          <InfoRow label="Policy id" value="2" />
+          <InfoRow label="PolicyEngine" value={config.engineAddress} />
+          <InfoRow label="SettlementRouter" value={config.routerAddress} />
+        </dl>
+      </details>
     </section>
   );
 }
@@ -1186,87 +1121,159 @@ function X402FlowPanel({
   const canSettle = Boolean(
     flow.paymentRequired && hasOperatorKey && activeAsset === "TSLA",
   );
-  const nextAction = flow.unlocked
+  const amountLabel = flow.amount
+    ? formatToken(flow.amount, activeAsset)
+    : `0.25 ${activeAsset}`;
+  const nextAction = !flow.paymentRequired
     ? {
-        title: "Data unlocked",
-        detail: "Receipt accepted; the merchant audit trail has the proof.",
-        tone: "ok",
+        label: "Run Judge Flow",
+        detail: "Request market data and receive the expected 402 challenge.",
+        action: onRequest,
+        disabled: busy !== "",
+        icon: <Radio size={17} />,
       }
-    : flow.txHash
+    : !flow.verifyValid
       ? {
-          title: "Unlock resource",
-          detail: "Settlement is complete; retry the market-data request with the receipt.",
-          tone: "info",
+          label: "Verify Policy",
+          detail: "Check merchant, token, amount, receipt, context and replay constraints.",
+          action: onVerify,
+          disabled: busy !== "",
+          icon: <ShieldCheck size={17} />,
         }
-      : flow.verifyValid
+      : !flow.txHash
         ? {
-            title: "Settle via router",
+            label: "Approve And Settle",
             detail: hasOperatorKey
-              ? "Operator checkpoint passed; funds can move through Osmium."
-              : "Enter the operator key before any vault funds can move.",
-            tone: "warn",
+              ? "Operator approval will move funds through the SettlementRouter."
+              : "Enter the operator key before any funds can move.",
+            action: onSettle,
+            disabled: busy !== "" || !canSettle,
+            icon: <PlayCircle size={17} />,
           }
-        : flow.paymentRequired
-          ? {
-              title: "Verify policy",
-              detail: "Check merchant, token, amount, context, receipt and replay before settlement.",
-              tone: "info",
-            }
-          : {
-              title: "Request paid resource",
-              detail: "Start with the merchant API; 402 is the expected payment challenge.",
-              tone: "info",
-            };
-  const steps = [
+        : {
+            label: "Request New Resource",
+            detail: flow.unlocked
+              ? "Data unlocked and audit persisted. Run another protected request."
+              : "Settlement proof exists; unlock is expected to complete on retry.",
+            action: onRequest,
+            disabled: busy !== "",
+            icon: <Radio size={17} />,
+          };
+  const steps: Array<{
+    label: string;
+    detail: string;
+    status: "done" | "active" | "pending";
+    proof: string;
+  }> = [
     {
-      label: "Request resource",
-      value: flow.requestStatus
-        ? `${flow.requestStatus} Payment Required`
-        : "pending",
-      ok: flow.requestStatus === 402,
+      label: "Request market data",
+      detail: "Agent asks merchant for TSLA data.",
+      status: flow.requestStatus ? "done" : "active",
+      proof: flow.requestStatus ? "request sent" : "next",
+    },
+    {
+      label: "Receive 402",
+      detail: "Merchant returns payment requirements.",
+      status: flow.requestStatus === 402 ? "done" : "pending",
+      proof: flow.requestStatus === 402 ? "402 Payment Required" : "waiting",
     },
     {
       label: "Verify policy",
-      value: flow.verifyStatus ?? "pending",
-      ok: flow.verifyValid === true,
+      detail: "Osmium checks policy before settlement.",
+      status: flow.verifyValid ? "done" : flow.paymentRequired ? "active" : "pending",
+      proof: flow.verifyStatus ?? "not verified",
+    },
+    {
+      label: "Operator approval",
+      detail: "Human checkpoint before funds move.",
+      status: flow.verifyValid && !flow.txHash ? "active" : flow.txHash ? "done" : "pending",
+      proof: flow.txHash ? "approved" : hasOperatorKey ? "ready" : "operator key",
     },
     {
       label: "Settle via router",
-      value: flow.txHash
-        ? short(flow.txHash)
-        : hasOperatorKey
-          ? "ready"
-          : "operator key required",
-      ok: Boolean(flow.txHash),
+      detail: "SettlementRouter calls Stylus PolicyEngine.",
+      status: flow.txHash ? "done" : "pending",
+      proof: flow.txHash ? short(flow.txHash) : "no tx",
     },
     {
       label: "Unlock data",
-      value: flow.unlocked ? "200 OK" : "locked",
-      ok: flow.unlocked === true,
+      detail: "Merchant accepts receipt proof.",
+      status: flow.unlocked ? "done" : flow.txHash ? "active" : "pending",
+      proof: flow.unlocked ? "200 OK" : "locked",
+    },
+    {
+      label: "Audit + replay",
+      detail: "Receipt is persisted; replay is blocked.",
+      status: flow.unlocked ? "done" : "pending",
+      proof: latest?.unlocked ? "audit ready" : "waiting",
     },
   ];
 
   return (
-    <section className="x402Panel" id="x402-flow">
+    <section className="judgePanel">
       <div className="panelHeader">
         <div>
-          <span>Primary Runbook</span>
-          <strong>x402-compatible delegated settlement</strong>
+          <span>Judge Mode</span>
+          <strong>Agent buys market data safely</strong>
         </div>
         <div className={flow.unlocked ? "badge ok" : "badge"}>
           {flow.unlocked ? "Data unlocked" : "Operator gated"}
         </div>
       </div>
 
-      <div className="x402Body">
-        <div className="x402Protocol">
-          <span>PAYMENT-REQUIRED</span>
-          <strong>{flow.protocol ?? "waiting for resource request"}</strong>
+      <div className="judgeLead">
+        <div>
+          <span>Next action</span>
+          <strong>{nextAction.label}</strong>
+          <small>{nextAction.detail}</small>
+        </div>
+        {nextAction.label === "Approve And Settle" ? null : (
+          <button
+            className="primary"
+            disabled={nextAction.disabled}
+            onClick={nextAction.action}
+            title={nextAction.label}
+          >
+            {nextAction.icon}
+            {nextAction.label}
+          </button>
+        )}
+      </div>
+
+      <div className="judgeTimeline">
+        {steps.map((step, index) => (
+          <div className={`judgeStep ${step.status}`} key={step.label}>
+            <div className="stepIndex">{index + 1}</div>
+            <div>
+              <strong>{step.label}</strong>
+              <span>{step.detail}</span>
+            </div>
+            <em>{step.proof}</em>
+          </div>
+        ))}
+      </div>
+
+      <section className="approvalBox">
+        <div className="approvalCopy">
+          <span>Human checkpoint</span>
+          <strong>Approve agent spend?</strong>
           <small>
-            {flow.scheme ?? "osmium-exact"} /{" "}
-            {flow.network ?? "eip155:46630"} / {activeAsset}
+            Osmium requires an operator approval before the settlement route can
+            move vault funds.
           </small>
         </div>
+        <dl className="approvalFacts">
+          <InfoRow label="Agent" value="Market Data Agent" />
+          <InfoRow label="Merchant" value="Verified Market Data API" />
+          <InfoRow label="Asset" value={activeAsset} />
+          <InfoRow label="Amount" value={amountLabel} />
+          <InfoRow
+            label="Policy result"
+            value={flow.verifyValid ? "valid" : "not verified"}
+          />
+          <InfoRow label="Receipt required" value="yes" />
+          <InfoRow label="Replay protection" value="enabled" />
+        </dl>
         <label className="x402Operator">
           <span>Operator key</span>
           <input
@@ -1277,103 +1284,65 @@ function X402FlowPanel({
             type="password"
             value={operatorKey}
           />
-          <small>
-            {hasOperatorKey
-              ? "ready for settlement"
-              : "required for tx execution"}
-          </small>
+          <small>{hasOperatorKey ? "approval ready" : "required"}</small>
         </label>
-        <div className={`nextActionCard ${nextAction.tone}`}>
-          <span>Next operator action</span>
-          <strong>{nextAction.title}</strong>
-          <small>{nextAction.detail}</small>
-        </div>
-        <div className="x402Actions">
-          <button
-            disabled={busy !== ""}
-            onClick={onRequest}
-            title="Request paid market data"
-          >
-            <Radio size={16} />
-            Request resource
-          </button>
-          <button
-            disabled={busy !== "" || !flow.paymentRequired}
-            onClick={onVerify}
-            title="Verify x402 payment requirements"
-          >
-            <ShieldCheck size={16} />
-            Verify policy
-          </button>
+        {flow.verifyValid && !flow.txHash ? (
           <button
             className="primary"
             disabled={busy !== "" || !canSettle}
             onClick={onSettle}
-            title={
-              activeAsset === "TSLA"
-                ? "Settle through Osmium"
-                : "AMD is quote-supported in this demo"
-            }
+            title="Approve and settle through Osmium"
           >
             <PlayCircle size={16} />
-            Settle x402
+            Approve and settle
           </button>
-          <button
-            disabled={busy !== "" || !hasOperatorKey || activeAsset !== "TSLA"}
-            onClick={onExecute}
-            title="Fallback to the classic live settlement endpoint"
-          >
-            <FileCheck2 size={16} />
-            Classic settle
-          </button>
+        ) : null}
+      </section>
+
+      <details className="advancedDetails">
+        <summary>Advanced proof details</summary>
+        <div className="x402Ledger">
+          <InfoRow label="Protocol" value={flow.protocol ?? "pending"} />
+          <InfoRow
+            label="Scheme"
+            value={flow.scheme ?? "osmium-exact"}
+          />
+          <InfoRow label="Network" value={flow.network ?? "eip155:46630"} />
+          <InfoRow
+            label="Token"
+            value={flow.token ? short(flow.token) : "pending"}
+          />
+          <InfoRow
+            label="Pay To"
+            value={
+              flow.paymentRequired
+                ? short(flow.paymentRequired.accepts[0].payTo)
+                : "SettlementRouter"
+            }
+          />
+          <InfoRow
+            label="Payment Id"
+            value={flow.paymentId ? short(flow.paymentId) : "pending"}
+          />
+          <InfoRow
+            label="Receipt"
+            value={flow.receiptHash ? short(flow.receiptHash) : "pending"}
+          />
+          <InfoRow
+            label="Latest Unlock"
+            value={latest?.unlocked ? short(latest.paymentId) : "none"}
+          />
+          <InfoRow label="Scope" value="custom facilitator, not CDP" />
         </div>
-      </div>
-
-      <div className="x402Steps">
-        {steps.map((step) => (
-          <div className={step.ok ? "x402Step ok" : "x402Step"} key={step.label}>
-            <span>{step.label}</span>
-            <strong>{step.value}</strong>
-          </div>
-        ))}
-      </div>
-
-      <div className="x402Ledger">
-        <InfoRow label="Asset" value={activeAsset} />
-        <InfoRow
-          label="Amount"
-          value={
-            flow.amount
-              ? formatToken(flow.amount, activeAsset)
-              : `0.25 ${activeAsset}`
-          }
-        />
-        <InfoRow
-          label="Token"
-          value={flow.token ? short(flow.token) : "pending"}
-        />
-        <InfoRow
-          label="Pay To"
-          value={
-            flow.paymentRequired
-              ? short(flow.paymentRequired.accepts[0].payTo)
-              : "SettlementRouter"
-          }
-        />
-        <InfoRow
-          label="Payment Id"
-          value={flow.paymentId ? short(flow.paymentId) : "pending"}
-        />
-        <InfoRow
-          label="Receipt"
-          value={flow.receiptHash ? short(flow.receiptHash) : "pending"}
-        />
-        <InfoRow
-          label="Latest Unlock"
-          value={latest?.unlocked ? short(latest.paymentId) : "none"}
-        />
-        <InfoRow label="Scope" value="custom facilitator, not CDP" />
-      </div>
+        <button
+          disabled={busy !== "" || !hasOperatorKey || activeAsset !== "TSLA"}
+          onClick={onExecute}
+          title="Fallback to the classic live settlement endpoint"
+        >
+          <FileCheck2 size={16} />
+          Classic settle fallback
+        </button>
+      </details>
     </section>
   );
 }
@@ -1392,36 +1361,61 @@ function MerchantPanel({
   busy: boolean;
 }) {
   return (
-    <section className="panel" id="merchants">
-      <div className="panelHeader">
-        <div>
-          <span>Merchant Scenario</span>
-          <strong>Verified Market Data API</strong>
+    <section className="merchantGrid" id="merchants">
+      <section className="panel merchantHero">
+        <div className="panelHeader">
+          <div>
+            <span>Verified merchant</span>
+            <strong>Market Data API</strong>
+          </div>
+          <div className="badge ok">Verified</div>
         </div>
-        <CircleDollarSign size={20} />
-      </div>
-      <dl className="infoList">
-        <InfoRow
-          label="Service"
-          value={quote?.title ?? `${activeAsset} signal package`}
-        />
-        <InfoRow
-          label="Price"
-          value={quote ? `${quote.price} ${quote.asset}` : "0.25 token"}
-        />
-        <InfoRow
-          label="Receipt"
-          value={quote ? short(quote.receiptHash) : "required"}
-        />
-        <InfoRow
-          label="Data"
-          value={unlock?.unlocked ? "unlocked" : "locked"}
-        />
-      </dl>
-      <button onClick={onQuote} disabled={busy} title="Request merchant quote">
-        <Store size={17} />
-        Request quote
-      </button>
+        <p>
+          A finance agent requests a protected resource, receives a 402 payment
+          challenge, and only unlocks the data after Osmium settlement.
+        </p>
+        <button
+          className="primary"
+          onClick={onQuote}
+          disabled={busy}
+          title="Request protected merchant resource"
+        >
+          <Store size={17} />
+          Request protected resource
+        </button>
+      </section>
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Service</span>
+            <strong>{quote?.title ?? `${activeAsset} market data snapshot`}</strong>
+          </div>
+          <CircleDollarSign size={20} />
+        </div>
+        <dl className="infoList">
+          <InfoRow label="Service id" value={quote?.service ?? "market_data_snapshot"} />
+          <InfoRow label="Assets" value="TSLA live / AMD quote-supported" />
+          <InfoRow
+            label="Price"
+            value={quote ? `${quote.price} ${quote.asset}` : "0.25 TSLA"}
+          />
+          <InfoRow label="Protocol" value="x402-compatible Osmium" />
+          <InfoRow
+            label="Receipt"
+            value={quote ? short(quote.receiptHash) : "required"}
+          />
+          <InfoRow label="Data" value={unlock?.unlocked ? "unlocked" : "locked"} />
+        </dl>
+      </section>
+      <details className="advancedDetails merchantDetails">
+        <summary>Advanced merchant proof</summary>
+        <dl className="infoList">
+          <InfoRow label="Merchant" value={quote?.merchant ?? "0x0000...beef"} />
+          <InfoRow label="Token" value={quote?.token ?? assets[0].address} />
+          <InfoRow label="Data hash" value={quote?.dataHash ?? "pending"} />
+          <InfoRow label="Receipt hash" value={quote?.receiptHash ?? "pending"} />
+        </dl>
+      </details>
     </section>
   );
 }
@@ -1477,27 +1471,6 @@ function ScenarioRail({
   );
 }
 
-function Metric({
-  icon,
-  label,
-  value,
-  detail,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className="metric">
-      <div className="metricIcon">{icon}</div>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </div>
-  );
-}
-
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -1507,52 +1480,114 @@ function Kpi({ label, value }: { label: string; value: string }) {
   );
 }
 
-function OverviewPanel({
-  demo,
-  settlement,
+function CommandStatusStrip({
+  activeAsset,
   quote,
-  unlock,
+  runnerStatus,
+  settlement,
 }: {
-  demo: DemoPreview[];
-  settlement: LiveSettlement | null;
+  activeAsset: AssetSymbol;
   quote: MerchantQuote | null;
-  unlock: MerchantUnlock | null;
+  runnerStatus: string;
+  settlement: LiveSettlement | null;
 }) {
-  const blocked =
-    demo.filter((item) => !item.preview.allowed).length +
-    (settlement?.replay.blocked ? 1 : 0);
   return (
-    <section className="overviewGrid" id="overview">
-      <div className="overviewHero">
-        <span className="eyebrow">Product state</span>
-        <strong>
-          Osmium controls how AI finance agents spend tokenized assets.
-        </strong>
-      </div>
-      <Metric
+    <section className="cockpitStatus" aria-label="Command center status">
+      <StatusCard
+        icon={<Database size={17} />}
+        label="Agent"
+        value="Market Data Agent"
+        detail={runnerStatus === "online" ? "Ready" : "Waiting for runner"}
+        tone={runnerStatus === "online" ? "ok" : "warn"}
+      />
+      <StatusCard
+        icon={<ShieldCheck size={17} />}
+        label="Policy"
+        value="Armed"
+        detail={`${activeAsset} ${activeAsset === "TSLA" ? "live" : "quote-supported"}`}
+        tone="ok"
+      />
+      <StatusCard
         icon={<CircleDollarSign size={17} />}
-        label="Protected Spend"
-        value={settlement ? formatToken(settlement.amount) : "0.25 TSLA"}
-        detail="latest live proof"
+        label="Vault"
+        value={settlement ? formatToken(settlement.after.routerVault) : "Preview"}
+        detail="SettlementRouter custody"
+        tone={settlement ? "ok" : "info"}
       />
-      <Metric
-        icon={<CheckCircle2 size={17} />}
-        label="Settled Payments"
-        value={settlement ? "1" : "0"}
-        detail={quote?.title ?? "market data service"}
+      <StatusCard
+        icon={<Store size={17} />}
+        label="Merchant"
+        value="Verified"
+        detail={quote?.title ?? "Market Data API"}
+        tone="ok"
       />
-      <Metric
-        icon={<XCircle size={17} />}
-        label="Blocked Attempts"
-        value={String(blocked)}
-        detail={settlement?.replay.reasonName ?? "policy reasons"}
-      />
-      <Metric
-        icon={<FileCheck2 size={17} />}
-        label="Latest Receipt"
-        value={settlement ? short(settlement.receiptHash) : "pending"}
-        detail={unlock?.unlocked ? "data unlocked" : "receipt gate"}
-      />
+    </section>
+  );
+}
+
+function StatusCard({
+  detail,
+  icon,
+  label,
+  tone,
+  value,
+}: {
+  detail: string;
+  icon: ReactNode;
+  label: string;
+  tone: "ok" | "warn" | "info";
+  value: string;
+}) {
+  return (
+    <div className={`statusCard ${tone}`}>
+      <div className="metricIcon">{icon}</div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </div>
+  );
+}
+
+function CockpitSummary({
+  account,
+  activeAsset,
+  nativeBalance,
+  quote,
+  runnerStatus,
+  settlement,
+}: {
+  account: string;
+  activeAsset: AssetSymbol;
+  nativeBalance: string;
+  quote: MerchantQuote | null;
+  runnerStatus: string;
+  settlement: LiveSettlement | null;
+}) {
+  return (
+    <section className="panel cockpitSummary">
+      <div className="panelHeader">
+        <div>
+          <span>Control surface</span>
+          <strong>Is this agent allowed to spend?</strong>
+        </div>
+        <div className="badge ok">Ready</div>
+      </div>
+      <dl className="infoList">
+        <InfoRow label="Agent" value="Market Data Agent" />
+        <InfoRow label="Wallet" value={short(account)} />
+        <InfoRow label="Gas" value={nativeBalance} />
+        <InfoRow label="Runner" value={runnerStatus} />
+        <InfoRow label="Active asset" value={activeAsset} />
+        <InfoRow label="Merchant" value="Verified Market Data API" />
+        <InfoRow
+          label="Price"
+          value={quote ? `${quote.price} ${quote.asset}` : "0.25 TSLA"}
+        />
+        <InfoRow
+          label="Latest receipt"
+          value={settlement ? short(settlement.receiptHash) : "none"}
+        />
+      </dl>
     </section>
   );
 }
@@ -1677,7 +1712,7 @@ function AuditTrail({
   merchantAudit: MerchantAuditRecord[];
 }) {
   return (
-    <section className="panel auditPanel" id="audit">
+    <section className="panel auditPanel">
       <div className="panelHeader">
         <div>
           <span>Audit Trail</span>
@@ -1690,6 +1725,11 @@ function AuditTrail({
           <div className="emptyAudit">No events yet</div>
         ) : (
           <>
+            <div className="auditHeader">
+              <span>Event</span>
+              <span>Decision</span>
+              <span>Proof</span>
+            </div>
             {merchantAudit.map((record) => (
               <div className="auditRow" key={record.paymentId}>
                 <div
@@ -1742,46 +1782,118 @@ function AuditTrail({
 
 function DeveloperPanel() {
   return (
-    <section className="developerPanel" id="developer">
-      <div className="panelHeader">
-        <div>
-          <span>Developer Surface</span>
-          <strong>Integrate an agent in 10 minutes</strong>
+    <section className="developerPanel docsPanel">
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Developer Surface</span>
+            <strong>Integrate in 10 minutes</strong>
+          </div>
+          <Code2 size={20} />
         </div>
-        <Code2 size={20} />
-      </div>
-      <div className="developerGrid">
+        <div className="developerGrid">
+          <div className="setupList">
+            <div>
+              <ListChecks size={17} />
+              <span>Request protected merchant resource</span>
+            </div>
+            <div>
+              <ListChecks size={17} />
+              <span>Verify x402-compatible payment requirements</span>
+            </div>
+            <div>
+              <ListChecks size={17} />
+              <span>Ask operator to approve settlement</span>
+            </div>
+            <div>
+              <ListChecks size={17} />
+              <span>Unlock data with paymentId and receiptHash</span>
+            </div>
+          </div>
+          <pre>
+            <code>{`const challenge = await osmium.getMarketData("TSLA");
+await osmium.verifyX402(challenge);
+
+const settlement = await osmium.settleX402(challenge, {
+  operatorApiKey
+});
+
+const data = await osmium.getMarketData("TSLA", {
+  paymentId: settlement.paymentId,
+  receiptHash: settlement.receiptHash
+});`}</code>
+          </pre>
+        </div>
+      </section>
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Endpoints</span>
+            <strong>x402-compatible Osmium API</strong>
+          </div>
+          <Radio size={20} />
+        </div>
+        <dl className="infoList">
+          <InfoRow label="Resource" value="GET /merchant/market-data" />
+          <InfoRow label="Verify" value="POST /x402/verify" />
+          <InfoRow label="Settle" value="POST /x402/settle" />
+          <InfoRow label="Audit" value="GET /merchant/audit" />
+          <InfoRow label="Network" value="eip155:46630" />
+          <InfoRow label="Assets" value="TSLA live / AMD quote-supported" />
+        </dl>
+      </section>
+    </section>
+  );
+}
+
+function SettingsPanel({ runnerStatus }: { runnerStatus: string }) {
+  return (
+    <section className="settingsGrid">
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Live deployment</span>
+            <strong>Robinhood Chain runtime</strong>
+          </div>
+          <Activity size={20} />
+        </div>
+        <dl className="infoList">
+          <InfoRow label="Runner" value={runnerStatus} />
+          <InfoRow label="Network" value="eip155:46630" />
+          <InfoRow label="PolicyEngine" value={short(config.engineAddress)} />
+          <InfoRow label="SettlementRouter" value={short(config.routerAddress)} />
+          <InfoRow label="TSLA token" value={short(assets[0].address)} />
+          <InfoRow label="AMD token" value={short(assets[1].address)} />
+        </dl>
+      </section>
+
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Limitations</span>
+            <strong>Honest prototype boundaries</strong>
+          </div>
+          <AlertTriangle size={20} />
+        </div>
         <div className="setupList">
           <div>
             <ListChecks size={17} />
-            <span>Connect operator wallet</span>
+            <span>Custom x402-compatible facilitator, not CDP facilitator.</span>
           </div>
           <div>
             <ListChecks size={17} />
-            <span>Select TSLA or AMD policy template</span>
+            <span>Testnet prototype, not audited or production custody.</span>
           </div>
           <div>
             <ListChecks size={17} />
-            <span>Attach verified merchant and receipt rule</span>
+            <span>JSON-backed demo audit store; indexer is roadmap.</span>
           </div>
           <div>
             <ListChecks size={17} />
-            <span>Route agent spend through SettlementRouter</span>
+            <span>AMD is quote-supported; TSLA is the live settlement proof.</span>
           </div>
         </div>
-        <pre>
-          <code>{`const quote = await merchant.quote("TSLA");
-const intent = await osmium.requestSpend({
-  agent: marketDataAgent,
-  merchant: quote.merchant,
-  token: quote.token,
-  amount: quote.priceWei,
-  receiptHash: quote.receiptHash
-});
-
-await osmium.settleWithIntent(intent);`}</code>
-        </pre>
-      </div>
+      </section>
     </section>
   );
 }

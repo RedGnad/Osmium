@@ -200,6 +200,7 @@ input:focus-visible {
 }
 
 .workspace {
+  align-content: start;
   display: grid;
   gap: 16px;
   min-width: 0;
@@ -333,7 +334,11 @@ h1 {
 .panel,
 .decisionDesk,
 .developerPanel,
-.x402Panel {
+.x402Panel,
+.judgePanel,
+.statusCard,
+.advancedDetails,
+.secondaryDrills {
   background: #ffffff;
   border: 1px solid #dce3ec;
   border-radius: 8px;
@@ -352,10 +357,201 @@ h1 {
   line-height: 1.14;
 }
 
-.x402Panel {
+.x402Panel,
+.judgePanel {
   display: grid;
   gap: 14px;
   padding: 16px;
+}
+
+.cockpitStatus {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.statusCard {
+  display: grid;
+  gap: 8px;
+  min-height: 118px;
+  padding: 16px;
+}
+
+.statusCard.ok .metricIcon {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.statusCard.warn .metricIcon {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.statusCard strong {
+  font-size: 19px;
+  overflow-wrap: anywhere;
+}
+
+.cockpitGrid {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.72fr);
+}
+
+.judgeLead {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #dce3ec;
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  padding: 14px;
+}
+
+.judgeLead div {
+  display: grid;
+  gap: 4px;
+}
+
+.judgeLead span,
+.approvalCopy span {
+  color: #657180;
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.judgeLead strong,
+.approvalCopy strong {
+  font-size: 20px;
+}
+
+.judgeLead small,
+.approvalCopy small {
+  color: #657180;
+  line-height: 1.4;
+}
+
+.judgeTimeline {
+  display: grid;
+  gap: 8px;
+}
+
+.judgeStep {
+  align-items: center;
+  background: #fbfdff;
+  border: 1px solid #dce3ec;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 34px minmax(0, 1fr) max-content;
+  min-height: 66px;
+  padding: 10px 12px;
+}
+
+.judgeStep.done {
+  background: #ecfdf5;
+  border-color: #9bd8bd;
+}
+
+.judgeStep.active {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.judgeStep div:nth-child(2) {
+  display: grid;
+  gap: 3px;
+}
+
+.judgeStep span,
+.judgeStep em {
+  color: #657180;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.stepIndex {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dce3ec;
+  border-radius: 8px;
+  color: #172026;
+  display: flex;
+  font-weight: 850;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.approvalBox {
+  background: #fffaf0;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.approvalCopy {
+  display: grid;
+  gap: 4px;
+}
+
+.approvalFacts {
+  background: #ffffff;
+  border: 1px solid #f1d392;
+  border-radius: 8px;
+  display: grid;
+  margin: 0;
+  padding: 0 12px;
+}
+
+.advancedDetails,
+.secondaryDrills {
+  padding: 13px;
+}
+
+.advancedDetails summary,
+.secondaryDrills summary {
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.advancedDetails[open],
+.secondaryDrills[open] {
+  display: grid;
+  gap: 12px;
+}
+
+.policyGrid,
+.merchantGrid,
+.settingsGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.policyHero,
+.merchantHero {
+  grid-column: 1 / -1;
+}
+
+.policyHero p,
+.merchantHero p {
+  color: #657180;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 760px;
+}
+
+.policyDetails,
+.merchantDetails {
+  grid-column: 1 / -1;
 }
 
 .panelHeader {
@@ -588,8 +784,15 @@ h1 {
   border-bottom: 1px solid #e7edf4;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(96px, 0.55fr) minmax(0, 1fr) minmax(110px, 0.55fr);
   min-height: 42px;
+}
+
+.infoRow {
+  grid-template-columns: minmax(120px, 0.65fr) minmax(0, 1fr);
+}
+
+.ledgerRow {
+  grid-template-columns: minmax(96px, 0.55fr) minmax(0, 1fr) minmax(110px, 0.55fr);
 }
 
 .infoRow:last-child,
@@ -701,6 +904,17 @@ h1 {
   gap: 10px;
   min-height: 58px;
   padding: 10px;
+}
+
+.auditHeader {
+  color: #657180;
+  display: grid;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 10px;
+  grid-template-columns: 134px minmax(0, 1fr) max-content;
+  padding: 0 10px;
+  text-transform: uppercase;
 }
 
 .attemptRow {
@@ -851,11 +1065,16 @@ code {
 
 @media (max-width: 940px) {
   .systemStrip,
+  .cockpitStatus,
+  .cockpitGrid,
   .overviewGrid,
   .commandGrid,
   .runbookSplit,
   .riskLayout,
   .setupGrid,
+  .policyGrid,
+  .merchantGrid,
+  .settingsGrid,
   .x402Steps,
   .x402Ledger,
   .mainGrid,
@@ -904,7 +1123,9 @@ code {
   }
 
   .decisionSummary,
-  .assetTabs {
+  .assetTabs,
+  .judgeLead,
+  .judgeStep {
     grid-template-columns: 1fr;
   }
 
@@ -926,7 +1147,8 @@ code {
   }
 
   .attemptRow,
-  .auditRow {
+  .auditRow,
+  .auditHeader {
     grid-template-columns: 38px minmax(0, 1fr);
   }
 
@@ -935,5 +1157,10 @@ code {
   .auditTxLink,
   .auditTxMissing {
     grid-column: 1 / -1;
+  }
+
+  .judgeLead button,
+  .approvalBox button {
+    width: 100%;
   }
 }

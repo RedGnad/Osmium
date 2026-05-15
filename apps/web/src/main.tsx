@@ -940,6 +940,14 @@ function App() {
 
         {view === "command" ? (
           <section className="viewStack commandView">
+            <section className="clearingTape" aria-label="Live clearing tape">
+              <span>RH-46630</span>
+              <strong>OSMIUM CLEARING HOUSE</strong>
+              <span>SCHEME OSMIUM-EXACT</span>
+              <span>ASSET TSLA LIVE</span>
+              <span>RESOURCE MARKET-DATA</span>
+              <span>HUMAN CLEARANCE REQUIRED</span>
+            </section>
             <CommandStatusStrip
               activeAsset={activeAsset}
               quote={quote}
@@ -1244,6 +1252,10 @@ function X402FlowPanel({
       </div>
 
       <section className={`clearanceTicket ${ticketTone}`} aria-label="Clearance ticket">
+        <div className="ticketSeal" aria-hidden="true">
+          <span>NO KEY</span>
+          <strong>CLEARANCE</strong>
+        </div>
         <div className="ticketSpine">
           <span>OSMIUM</span>
           <strong>CLEARING HOUSE</strong>
@@ -1298,6 +1310,9 @@ function X402FlowPanel({
       <ClearingRail steps={steps} />
 
       <section className="approvalBox">
+        <div className="approvalSeal" aria-hidden="true">
+          HUMAN CLEARANCE
+        </div>
         <div className="approvalCopy">
           <span>Operator clearance required</span>
           <strong>Review the ticket before funds move</strong>

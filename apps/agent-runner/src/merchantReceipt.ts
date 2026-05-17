@@ -1,3 +1,4 @@
+import { recoverTypedDataAddress } from "viem";
 import type { Address, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { RunnerConfig } from "./config.js";
@@ -31,7 +32,10 @@ export type MerchantReceiptAttestation = {
   types: typeof merchantReceiptTypes;
   message: MerchantReceiptMessage;
   signer: Address | null;
+  expectedSigner: Address | null;
+  recoveredSigner: Address | null;
   signature: Hex | null;
+  verified: boolean;
   mode: "signed" | "unsigned-demo";
   note: string;
 };
@@ -97,25 +101,37 @@ export async function buildMerchantReceiptAttestation(
       types: merchantReceiptTypes,
       message,
       signer: null,
+      expectedSigner: null,
+      recoveredSigner: null,
       signature: null,
+      verified: false,
       mode: "unsigned-demo",
       note: "Set MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY on the runner to return a merchant-signed receipt."
     };
   }
 
   const signer = privateKeyToAccount(config.merchantReceiptSignerPrivateKey);
+  const typedMessage = {
+    ...message,
+    policyId: BigInt(message.policyId),
+    amount: BigInt(message.amount),
+    chainId: BigInt(message.chainId),
+    expiresAt: BigInt(message.expiresAt)
+  };
   const signature = await signer.signTypedData({
     domain,
     primaryType: "MerchantReceipt",
     types: merchantReceiptTypes,
-    message: {
-      ...message,
-      policyId: BigInt(message.policyId),
-      amount: BigInt(message.amount),
-      chainId: BigInt(message.chainId),
-      expiresAt: BigInt(message.expiresAt)
-    }
+    message: typedMessage
   });
+  const recoveredSigner = await recoverTypedDataAddress({
+    domain,
+    primaryType: "MerchantReceipt",
+    types: merchantReceiptTypes,
+    message: typedMessage,
+    signature
+  });
+  const verified = recoveredSigner.toLowerCase() === signer.address.toLowerCase();
 
   return {
     standard: "EIP-712",
@@ -124,8 +140,13 @@ export async function buildMerchantReceiptAttestation(
     types: merchantReceiptTypes,
     message,
     signer: signer.address,
+    expectedSigner: signer.address,
+    recoveredSigner,
     signature,
+    verified,
     mode: "signed",
-    note: "Merchant service receipt binds resource, response hash, payment id and settlement transaction."
+    note: verified
+      ? "Merchant service receipt signature recovered to the expected service signer."
+      : "Merchant service receipt signature did not recover to the expected service signer."
   };
 }

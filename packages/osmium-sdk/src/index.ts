@@ -23,7 +23,10 @@ export type MerchantReceiptAttestation = {
     expiresAt: string;
   };
   signer: string | null;
+  expectedSigner: string | null;
+  recoveredSigner: string | null;
   signature: string | null;
+  verified: boolean;
   mode: "signed" | "unsigned-demo";
   note: string;
 };

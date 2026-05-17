@@ -139,9 +139,11 @@ Osmium returns an EIP-712 `MerchantReceipt` attestation when a protected merchan
 - payment id and settlement transaction hash;
 - expiry.
 
-If `MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY` is configured on the runner, the merchant service signs the typed data and the response includes `merchantReceipt.signature`. If it is not configured, the runner still returns the typed data in `unsigned-demo` mode so judges can inspect exactly what the merchant would sign without exposing a secret in the repo.
+If `MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY` is configured on the runner, the merchant service signs the typed data and the response includes `merchantReceipt.signature`, `expectedSigner`, `recoveredSigner`, and `verified: true`. If it is not configured, the runner still returns the typed data in `unsigned-demo` mode so judges can inspect exactly what the merchant would sign without exposing a secret in the repo.
 
 This does not claim to verify the economic quality of offchain data. It upgrades the old receipt-hash boundary into a signed service attestation that proves which merchant resource was unlocked for which settlement.
+
+Final submission target: the hosted runner should use a configured merchant receipt signer, and the UI should show `EIP-712 signed + verified` after a TSLA settlement unlock. Do not use `unsigned-demo` in the final video.
 
 ## Onchain Proof Matrix
 

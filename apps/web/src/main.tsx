@@ -111,7 +111,10 @@ type MerchantReceiptAttestation = {
     expiresAt: string;
   };
   signer: string | null;
+  expectedSigner: string | null;
+  recoveredSigner: string | null;
   signature: string | null;
+  verified: boolean;
   mode: "signed" | "unsigned-demo";
   note: string;
 };
@@ -1605,11 +1608,21 @@ function X402FlowPanel({
           <InfoRow
             label="Merchant Receipt"
             value={
-              flow.merchantReceipt?.signature
-                ? `signed ${short(flow.merchantReceipt.signature)}`
+              flow.merchantReceipt?.verified
+                ? `signed + verified ${short(flow.merchantReceipt.signature ?? "")}`
+                : flow.merchantReceipt?.signature
+                  ? `signed / unverified ${short(flow.merchantReceipt.signature)}`
                 : flow.merchantReceipt
                   ? "typed data returned"
                   : "pending"
+            }
+          />
+          <InfoRow
+            label="Recovered signer"
+            value={
+              flow.merchantReceipt?.recoveredSigner
+                ? short(flow.merchantReceipt.recoveredSigner)
+                : "pending"
             }
           />
           <InfoRow
@@ -1746,7 +1759,13 @@ function MerchantPanel({
           <InfoRow label="Protocol" value="x402-compatible Osmium" />
           <InfoRow
             label="Merchant receipt"
-            value={unlock?.merchantReceipt?.signature ? "EIP-712 signed" : "EIP-712 typed data"}
+            value={
+              unlock?.merchantReceipt?.verified
+                ? "EIP-712 signed + verified"
+                : unlock?.merchantReceipt?.signature
+                  ? "EIP-712 signed / unverified"
+                  : "EIP-712 typed data"
+            }
           />
           <InfoRow
             label="Filed receipt"
@@ -1777,12 +1796,20 @@ function MerchantPanel({
           <InfoRow label="Data hash" value={quote?.dataHash ?? "pending"} />
           <InfoRow label="Receipt hash" value={quote?.receiptHash ?? "pending"} />
           <InfoRow
-            label="Service signer"
-            value={unlock?.merchantReceipt?.signer ? short(unlock.merchantReceipt.signer) : "configure MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY"}
+            label="Expected signer"
+            value={unlock?.merchantReceipt?.expectedSigner ? short(unlock.merchantReceipt.expectedSigner) : "configure MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY"}
+          />
+          <InfoRow
+            label="Recovered signer"
+            value={unlock?.merchantReceipt?.recoveredSigner ? short(unlock.merchantReceipt.recoveredSigner) : "pending"}
           />
           <InfoRow
             label="Merchant signature"
             value={unlock?.merchantReceipt?.signature ? short(unlock.merchantReceipt.signature) : "typed data pending"}
+          />
+          <InfoRow
+            label="Signature verified"
+            value={unlock?.merchantReceipt?.verified ? "true" : "false / pending"}
           />
         </dl>
       </details>
@@ -2110,12 +2137,14 @@ function AuditTrail({
                   {record.unlocked ? "DATA UNLOCKED" : "SETTLEMENT EXECUTED"} /{" "}
                   {record.title ?? record.service ?? "agent service"} /{" "}
                   {formatToken(record.amount, record.asset)} /{" "}
-                  {record.merchantReceipt?.signature
-                    ? "merchant-signed receipt"
+                  {record.merchantReceipt?.verified
+                    ? "merchant-signed receipt verified"
+                    : record.merchantReceipt?.signature
+                      ? "merchant-signed receipt unverified"
                     : `filed receipt ${short(record.receiptHash)}`}
                 </span>
                 <ProofStamp tone={record.unlocked ? "cleared" : "protocol"}>
-                  {record.unlocked ? "FILED" : "SETTLED"}
+                  {record.merchantReceipt?.verified ? "SIGNED" : record.unlocked ? "FILED" : "SETTLED"}
                 </ProofStamp>
                 {isFullTxHash(record.txHash) ? (
                   <a

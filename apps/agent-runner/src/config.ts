@@ -37,6 +37,7 @@ export type RunnerConfig = {
   latestSettlementTx?: Hex;
   latestSettlementPaymentId?: Hex;
   latestSettlementReceiptHash?: Hex;
+  merchantReceiptSignerPrivateKey?: Hex;
   merchantAddress: Address;
   unknownMerchantAddress: Address;
   maxPerTxWei: bigint;
@@ -88,6 +89,7 @@ export function loadConfig(): RunnerConfig {
     latestSettlementTx: optionalHex("LATEST_SETTLEMENT_TX"),
     latestSettlementPaymentId: optionalHex("LATEST_SETTLEMENT_PAYMENT_ID"),
     latestSettlementReceiptHash: optionalHex("LATEST_SETTLEMENT_RECEIPT_HASH"),
+    merchantReceiptSignerPrivateKey: optionalHex("MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY"),
     merchantAddress: env("MERCHANT_ADDRESS") as Address,
     unknownMerchantAddress: env("UNKNOWN_MERCHANT_ADDRESS", env("MERCHANT_ADDRESS")) as Address,
     maxPerTxWei: BigInt(env("MAX_PER_TX_WEI", "1000000000000000000")),

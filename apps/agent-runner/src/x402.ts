@@ -123,7 +123,7 @@ export function buildPaymentRequired(config: RunnerConfig, rawAsset: unknown): O
     maxTimeoutSeconds: quote.expiresInSeconds,
     resource: {
       url: `/merchant/market-data?asset=${quote.asset}`,
-      description: `Verified ${quote.asset} market data through Osmium policy-routed settlement`,
+      description: `${quote.title} through Osmium policy-routed settlement`,
       mimeType: "application/json"
     },
     extra: {
@@ -288,7 +288,7 @@ export function supportedX402(config: RunnerConfig) {
         x402Version: OSMIUM_X402_VERSION,
         scheme: OSMIUM_X402_SCHEME,
         network: networkId(config),
-        assets: ["TSLA", "AMD"],
+        assets: ["TSLA", "AMD", "AMZN"],
         settlement: OSMIUM_X402_SETTLEMENT
       }
     ],

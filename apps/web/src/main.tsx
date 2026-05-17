@@ -71,6 +71,7 @@ type LiveSettlement = {
 type MerchantQuote = {
   asset: AssetSymbol;
   service: string;
+  resourceKind?: string;
   title: string;
   price: string;
   priceWei: string;
@@ -80,14 +81,39 @@ type MerchantQuote = {
   dataHash: string;
   receiptHash: string;
   receiptMode: string;
+  receiptStandard?: string;
 };
 
 type MerchantUnlock = {
   asset: AssetSymbol;
   service: string;
+  title?: string;
   unlocked: boolean;
   dataHash: string;
+  merchantReceipt?: MerchantReceiptAttestation | null;
   payload: { symbol: string; snapshot: string; settlement: string } | null;
+};
+
+type MerchantReceiptAttestation = {
+  standard: "EIP-712";
+  primaryType: "MerchantReceipt";
+  domain: {
+    name: string;
+    version: string;
+    chainId: number;
+    verifyingContract: string;
+  };
+  message: {
+    resourceId: string;
+    responseHash: string;
+    paymentId: string;
+    settlementTxHash: string;
+    expiresAt: string;
+  };
+  signer: string | null;
+  signature: string | null;
+  mode: "signed" | "unsigned-demo";
+  note: string;
 };
 
 type X402PaymentRequired = {
@@ -138,6 +164,7 @@ type X402FlowState = {
   paymentId?: string;
   receiptHash?: string;
   txHash?: string;
+  merchantReceipt?: MerchantReceiptAttestation | null;
   paymentRequired?: X402PaymentRequired;
   paymentResponse?: string;
   unlocked?: boolean;
@@ -147,6 +174,10 @@ type MerchantAuditRecord = {
   paymentId: string;
   asset: AssetSymbol;
   receiptHash: string;
+  service?: string;
+  title?: string;
+  responseHash?: string;
+  merchantReceipt?: MerchantReceiptAttestation | null;
   txHash: string;
   amount: string;
   unlocked: boolean;
@@ -187,6 +218,12 @@ const assets = [
     status: "supported",
     address: "0x71178BAc73cBeb415514eB542a8995b82669778d",
     tone: "AI infra asset",
+  },
+  {
+    symbol: "AMZN",
+    status: "supported",
+    address: "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02",
+    tone: "Corporate action service",
   },
 ] as const;
 
@@ -530,7 +567,7 @@ function App() {
   async function settleX402Flow() {
     setError("");
     if (activeAsset !== "TSLA") {
-      setError("x402 settlement is currently wired to the TSLA live proof. AMD is quote-supported.");
+      setError("x402 settlement is currently wired to the TSLA live proof. AMD and AMZN are quote-supported.");
       return;
     }
     if (!operatorKey.trim()) {
@@ -561,6 +598,8 @@ function App() {
       const resource = await callRunnerRawGet(
         `/merchant/market-data?asset=TSLA&paymentId=${result.paymentId}&receiptHash=${result.receiptHash}`,
       );
+      const unlocked = resource.body as MerchantUnlock;
+      setUnlock(unlocked);
       await refreshMerchantAudit();
       setX402Flow((current) => ({
         ...current,
@@ -568,6 +607,7 @@ function App() {
         paymentId: result.paymentId,
         receiptHash: result.receiptHash,
         txHash: result.transaction,
+        merchantReceipt: unlocked.merchantReceipt ?? null,
         paymentResponse: resource.paymentResponse ?? undefined,
         unlocked: resource.status === 200,
       }));
@@ -622,7 +662,7 @@ function App() {
     setError("");
     if (activeAsset !== "TSLA") {
       setError(
-        "Operator execution is currently wired to the TSLA live settlement proof. AMD is quote-supported.",
+        "Operator execution is currently wired to the TSLA live settlement proof. AMD and AMZN are quote-supported.",
       );
       return;
     }
@@ -657,6 +697,7 @@ function App() {
         receiptHash: proof.receiptHash,
         dataHash: unlocked.dataHash,
         txHash: proof.transactions.settle,
+        merchantReceipt: unlocked.merchantReceipt ?? null,
         unlocked: resource.status === 200 && unlocked.unlocked,
       }));
       await refreshMerchantAudit();
@@ -1186,7 +1227,8 @@ function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
         </div>
         <dl className="infoList">
           <InfoRow label="TSLA" value="live settlement" />
-          <InfoRow label="AMD" value="quote-supported" />
+          <InfoRow label="AMD" value="risk snapshot quote-supported" />
+          <InfoRow label="AMZN" value="corporate-action alert quote-supported" />
           <InfoRow label="Network" value="Robinhood Chain Testnet" />
         </dl>
       </section>
@@ -1561,6 +1603,16 @@ function X402FlowPanel({
             value={flow.receiptHash ? short(flow.receiptHash) : "pending"}
           />
           <InfoRow
+            label="Merchant Receipt"
+            value={
+              flow.merchantReceipt?.signature
+                ? `signed ${short(flow.merchantReceipt.signature)}`
+                : flow.merchantReceipt
+                  ? "typed data returned"
+                  : "pending"
+            }
+          />
+          <InfoRow
             label="Latest Unlock"
             value={latest?.unlocked ? short(latest.paymentId) : "none"}
           />
@@ -1678,25 +1730,43 @@ function MerchantPanel({
       <section className="panel">
         <div className="panelHeader">
           <div>
-            <span>Protected resource</span>
+            <span>Agent services pack</span>
             <strong>{quote?.title ?? `${activeAsset} market data snapshot`}</strong>
           </div>
           <CircleDollarSign size={20} />
         </div>
         <dl className="infoList">
-          <InfoRow label="Resource" value="/merchant/market-data" />
-          <InfoRow label="Live asset" value="TSLA" />
-          <InfoRow label="Quote asset" value="AMD" />
+          <InfoRow label="Live resource" value="TSLA market data" />
+          <InfoRow label="Agent service" value={quote?.service ?? "market_data_snapshot"} />
+          <InfoRow label="Quote pack" value="AMD risk / AMZN corporate action" />
           <InfoRow
             label="Price"
             value={quote ? `${quote.price} ${quote.asset}` : "0.25 TSLA"}
           />
           <InfoRow label="Protocol" value="x402-compatible Osmium" />
           <InfoRow
+            label="Merchant receipt"
+            value={unlock?.merchantReceipt?.signature ? "EIP-712 signed" : "EIP-712 typed data"}
+          />
+          <InfoRow
             label="Filed receipt"
             value={quote ? short(quote.receiptHash) : "required"}
           />
           <InfoRow label="Data" value={unlock?.unlocked ? "unlocked" : "locked"} />
+        </dl>
+      </section>
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Robinhood agent services</span>
+            <strong>One merchant, three paid resources</strong>
+          </div>
+          <Layers3 size={20} />
+        </div>
+        <dl className="infoList">
+          <InfoRow label="TSLA" value="market-data snapshot / live settlement" />
+          <InfoRow label="AMD" value="risk snapshot / quote-supported" />
+          <InfoRow label="AMZN" value="corporate-action alert / quote-supported" />
         </dl>
       </section>
       <details className="advancedDetails merchantDetails">
@@ -1706,6 +1776,14 @@ function MerchantPanel({
           <InfoRow label="Token" value={quote?.token ?? assets[0].address} />
           <InfoRow label="Data hash" value={quote?.dataHash ?? "pending"} />
           <InfoRow label="Receipt hash" value={quote?.receiptHash ?? "pending"} />
+          <InfoRow
+            label="Service signer"
+            value={unlock?.merchantReceipt?.signer ? short(unlock.merchantReceipt.signer) : "configure MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY"}
+          />
+          <InfoRow
+            label="Merchant signature"
+            value={unlock?.merchantReceipt?.signature ? short(unlock.merchantReceipt.signature) : "typed data pending"}
+          />
         </dl>
       </details>
     </section>
@@ -2030,8 +2108,11 @@ function AuditTrail({
                 <strong>{formatAuditTime(record.timestamp)}</strong>
                 <span>
                   {record.unlocked ? "DATA UNLOCKED" : "SETTLEMENT EXECUTED"} /{" "}
-                  {formatToken(record.amount, record.asset)} / filed receipt{" "}
-                  {short(record.receiptHash)}
+                  {record.title ?? record.service ?? "agent service"} /{" "}
+                  {formatToken(record.amount, record.asset)} /{" "}
+                  {record.merchantReceipt?.signature
+                    ? "merchant-signed receipt"
+                    : `filed receipt ${short(record.receiptHash)}`}
                 </span>
                 <ProofStamp tone={record.unlocked ? "cleared" : "protocol"}>
                   {record.unlocked ? "FILED" : "SETTLED"}
@@ -2127,7 +2208,24 @@ const data = await osmium.getMarketData("TSLA", {
           <InfoRow label="Clear + settle" value="POST /x402/settle" />
           <InfoRow label="Proof ledger" value="GET /merchant/audit" />
           <InfoRow label="Network" value="eip155:46630" />
-          <InfoRow label="Assets" value="TSLA live / AMD quote-supported" />
+          <InfoRow label="Assets" value="TSLA live / AMD risk / AMZN corporate action" />
+        </dl>
+      </section>
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <span>Judge proof matrix</span>
+            <strong>What the live policy proves</strong>
+          </div>
+          <ShieldCheck size={20} />
+        </div>
+        <dl className="infoList">
+          <InfoRow label="Verified merchant + receipt" value="settles through router" />
+          <InfoRow label="Replay paymentId" value="denied by PolicyEngine" />
+          <InfoRow label="Unknown merchant" value="denied before funds move" />
+          <InfoRow label="Missing receipt" value="denied by receipt gate" />
+          <InfoRow label="Over max amount" value="denied by spend limit" />
+          <InfoRow label="Context mismatch" value="denied by intent binding" />
         </dl>
       </section>
     </section>
@@ -2152,6 +2250,7 @@ function SettingsPanel({ runnerStatus }: { runnerStatus: string }) {
           <InfoRow label="SettlementRouter" value={short(config.routerAddress)} />
           <InfoRow label="TSLA token" value={short(assets[0].address)} />
           <InfoRow label="AMD token" value={short(assets[1].address)} />
+          <InfoRow label="AMZN token" value={short(assets[2].address)} />
         </dl>
       </section>
 
@@ -2178,7 +2277,7 @@ function SettingsPanel({ runnerStatus }: { runnerStatus: string }) {
           </div>
           <div>
             <ListChecks size={17} />
-            <span>AMD is quote-supported; TSLA is the live settlement proof.</span>
+            <span>TSLA is live settlement; AMD and AMZN are quote-supported service proofs.</span>
           </div>
         </div>
       </section>

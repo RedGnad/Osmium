@@ -1,15 +1,20 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { Address, Hex } from "viem";
+import type { MerchantReceiptAttestation } from "./merchantReceipt.js";
 
 export type SettlementAuditRecord = {
   paymentId: Hex;
-  asset: "TSLA" | "AMD";
+  asset: "TSLA" | "AMD" | "AMZN";
   token: Address;
   receiptHash: Hex;
   txHash: Hex;
   amount: string;
   merchant: Address;
+  service?: string;
+  title?: string;
+  responseHash?: Hex;
+  merchantReceipt?: MerchantReceiptAttestation;
   unlocked: boolean;
   timestamp: number;
 };
@@ -52,6 +57,16 @@ export function recordUnlock(paymentId: Hex) {
   records.set(paymentId, unlocked);
   persistStore();
   return unlocked;
+}
+
+export function recordMerchantReceipt(paymentId: Hex, merchantReceipt: MerchantReceiptAttestation) {
+  loadStore();
+  const record = records.get(paymentId);
+  if (!record) return undefined;
+  const signed = { ...record, merchantReceipt, timestamp: Date.now() };
+  records.set(paymentId, signed);
+  persistStore();
+  return signed;
 }
 
 export function getSettlementRecord(paymentId: Hex) {

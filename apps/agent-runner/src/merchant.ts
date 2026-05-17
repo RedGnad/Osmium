@@ -2,18 +2,30 @@ import type { Address, Hex } from "viem";
 import type { RunnerConfig } from "./config.js";
 import { readLiveSettlementProof } from "./liveSettlement.js";
 import { hashLabel } from "./osmium.js";
-import { getSettlementRecord, listSettlementRecords, recordSettlement, recordUnlock } from "./auditStore.js";
+import { getSettlementRecord, listSettlementRecords, recordMerchantReceipt, recordSettlement, recordUnlock } from "./auditStore.js";
+import { buildMerchantReceiptAttestation } from "./merchantReceipt.js";
 
 const robinhoodAssets = {
   TSLA: {
     token: "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E" as Address,
     service: "market_data_snapshot",
-    title: "TSLA market data snapshot"
+    title: "TSLA market data snapshot",
+    resourceKind: "market_data",
+    responseLabel: "verified_market_data_demo"
   },
   AMD: {
     token: "0x71178BAc73cBeb415514eB542a8995b82669778d" as Address,
-    service: "market_data_snapshot",
-    title: "AMD market data snapshot"
+    service: "risk_snapshot",
+    title: "AMD risk snapshot",
+    resourceKind: "risk",
+    responseLabel: "ai_infra_risk_snapshot"
+  },
+  AMZN: {
+    token: "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02" as Address,
+    service: "corporate_action_alert",
+    title: "AMZN corporate-action alert",
+    resourceKind: "corporate_action",
+    responseLabel: "corporate_action_alert_demo"
   }
 } as const;
 
@@ -21,7 +33,7 @@ export type MerchantAsset = keyof typeof robinhoodAssets;
 
 function normalizeAsset(asset: unknown): MerchantAsset {
   const symbol = String(asset ?? "TSLA").toUpperCase();
-  if (symbol !== "TSLA" && symbol !== "AMD") {
+  if (symbol !== "TSLA" && symbol !== "AMD" && symbol !== "AMZN") {
     throw new Error("unsupported merchant asset");
   }
   return symbol;
@@ -30,12 +42,13 @@ function normalizeAsset(asset: unknown): MerchantAsset {
 export function marketDataQuote(config: RunnerConfig, rawAsset: unknown) {
   const asset = normalizeAsset(rawAsset);
   const descriptor = robinhoodAssets[asset];
-  const serviceId = hashLabel(`merchant:${asset}:market-data`);
-  const dataHash = hashLabel(`merchant:${asset}:market-data:snapshot`);
+  const serviceId = hashLabel(`merchant:${asset}:${descriptor.service}`);
+  const dataHash = hashLabel(`merchant:${asset}:${descriptor.service}:response`);
 
   return {
     asset,
     service: descriptor.service,
+    resourceKind: descriptor.resourceKind,
     title: descriptor.title,
     price: "0.25",
     priceWei: "250000000000000000",
@@ -43,8 +56,9 @@ export function marketDataQuote(config: RunnerConfig, rawAsset: unknown) {
     merchant: config.merchantAddress,
     serviceId,
     dataHash,
-    receiptHash: hashLabel(`receipt:${asset}:market-data:${serviceId}`),
+    receiptHash: hashLabel(`receipt:${asset}:${descriptor.service}:${serviceId}`),
     receiptMode: "required",
+    receiptStandard: "EIP-712 MerchantReceipt",
     expiresInSeconds: 300
   };
 }
@@ -55,6 +69,7 @@ export async function unlockMarketData(config: RunnerConfig, body: { asset?: unk
     paymentId: Hex;
     receiptHash: Hex;
     token: Address;
+    transactions?: { settle?: Hex };
     replay: { blocked: boolean; reasonName: string };
   };
 
@@ -72,26 +87,45 @@ export async function unlockMarketData(config: RunnerConfig, body: { asset?: unk
       asset: quote.asset,
       token: quote.token,
       receiptHash,
-      txHash: "0x",
+      txHash: proof.transactions?.settle ?? "0x",
       amount: quote.priceWei,
-      merchant: quote.merchant
+      merchant: quote.merchant,
+      service: quote.service,
+      title: quote.title,
+      responseHash: quote.dataHash
     });
   }
-  if (unlocked) recordUnlock(paymentId);
+  const merchantReceipt = unlocked
+    ? await buildMerchantReceiptAttestation(config, {
+        merchant: quote.merchant,
+        asset: quote.token,
+        amount: quote.priceWei,
+        resourceId: quote.serviceId,
+        responseHash: quote.dataHash,
+        paymentId,
+        settlementTxHash: stored?.txHash ?? proof.transactions?.settle
+      })
+    : null;
+  if (unlocked) {
+    recordUnlock(paymentId);
+    if (merchantReceipt) recordMerchantReceipt(paymentId, merchantReceipt);
+  }
 
   return {
     asset: quote.asset,
     service: quote.service,
+    title: quote.title,
     merchant: quote.merchant,
     paymentId,
     receiptHash,
     dataHash: quote.dataHash,
     unlocked,
+    merchantReceipt,
     replayProof: proof.replay,
     payload: unlocked
       ? {
           symbol: quote.asset,
-          snapshot: "verified_market_data_demo",
+          snapshot: descriptorPayload(quote.asset),
           source: "Osmium Verified Market Data API",
           settlement: "receipt verified on Robinhood Chain"
         }
@@ -128,7 +162,8 @@ export async function marketDataResource(config: RunnerConfig, query: { asset?: 
         serviceId: quote.serviceId,
         dataHash: quote.dataHash,
         receiptHash: quote.receiptHash,
-        settlement: "OsmiumSettlementRouter"
+        settlement: "OsmiumSettlementRouter",
+        receiptStandard: quote.receiptStandard
       }
     }
   };
@@ -136,4 +171,8 @@ export async function marketDataResource(config: RunnerConfig, query: { asset?: 
 
 export function merchantAuditLog() {
   return listSettlementRecords();
+}
+
+function descriptorPayload(asset: MerchantAsset) {
+  return robinhoodAssets[asset].responseLabel;
 }

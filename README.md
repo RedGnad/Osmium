@@ -22,7 +22,7 @@ Osmium is not a generic treasury execution firewall and it is not an AI wallet. 
 
 > Onchain SpendOps for AI finance agents on Robinhood Chain.
 
-The primary user is a builder or operator running an AI finance agent that needs to pay for data, APIs, MCP tools, or services without receiving unrestricted wallet authority. The first workflow is a market-data agent buying a verified data service for a Robinhood stock token. Osmium enforces merchant, token, amount, receipt, budget, context, and replay constraints before settlement can move funds.
+The primary user is a builder or operator running an AI finance agent that needs to pay for data, APIs, MCP tools, or services without receiving unrestricted wallet authority. The first workflow is an AI finance agent buying verified services around Robinhood stock tokens. Osmium enforces merchant, token, amount, receipt, budget, context, and replay constraints before settlement can move funds.
 
 The demo keeps one clear workflow but shows multi-asset capability: TSLA is the live settlement proof, while the same policy model supports Robinhood test assets such as AMD, AMZN, PLTR, and NFLX.
 
@@ -92,13 +92,22 @@ The runner also exposes a mini verified merchant surface:
 
 - `GET /merchant/quote?asset=TSLA`
 - `GET /merchant/quote?asset=AMD`
+- `GET /merchant/quote?asset=AMZN`
 - `POST /merchant/receipt`
 - `GET /merchant/market-data?asset=TSLA`
 - `GET /x402/supported`
 - `POST /x402/verify`
 - `POST /x402/settle`
 
-This turns the demo from "agent sends a token" into "agent buys a verified market-data service, settles through Osmium, then unlocks data with a receipt proof."
+This turns the demo from "agent sends a token" into "agent buys a verified Robinhood agent service, settles through Osmium, then unlocks data with a receipt proof."
+
+The demo merchant exposes a small Robinhood Agent Services pack:
+
+| Resource | Asset | Status |
+| --- | --- | --- |
+| Market data snapshot | `TSLA` | Live settlement proof |
+| Risk snapshot | `AMD` | Quote-supported service proof |
+| Corporate-action alert | `AMZN` | Quote-supported service proof |
 
 Osmium now implements an x402-compatible resource and facilitator surface for Robinhood Chain delegated settlement:
 
@@ -118,6 +127,33 @@ POST /x402/settle
 ```
 
 This is not the Coinbase CDP facilitator on Robinhood Chain. It is a custom policy-aware x402-compatible facilitator for Osmium's delegated vault model: the operator funds a router vault, the agent requests a paid resource, the facilitator verifies the Osmium policy, and settlement moves through the `OsmiumSettlementRouter`.
+
+## Merchant-Signed Receipts
+
+Osmium returns an EIP-712 `MerchantReceipt` attestation when a protected merchant resource unlocks. The receipt binds:
+
+- merchant and agent;
+- policy id and chain id;
+- token asset and amount;
+- resource id and response hash;
+- payment id and settlement transaction hash;
+- expiry.
+
+If `MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY` is configured on the runner, the merchant service signs the typed data and the response includes `merchantReceipt.signature`. If it is not configured, the runner still returns the typed data in `unsigned-demo` mode so judges can inspect exactly what the merchant would sign without exposing a secret in the repo.
+
+This does not claim to verify the economic quality of offchain data. It upgrades the old receipt-hash boundary into a signed service attestation that proves which merchant resource was unlocked for which settlement.
+
+## Onchain Proof Matrix
+
+| Scenario | Expected result | Proof surface |
+| --- | --- | --- |
+| Verified merchant + valid receipt | Settled | `PaymentSettled`, merchant balance delta, filed receipt |
+| Replay payment id | Denied | Policy preview returns `Replay` |
+| Unknown merchant | Denied | Policy preview returns `UnknownMerchant` |
+| Missing receipt | Denied | Policy preview returns `MissingReceipt` |
+| Over max payment | Denied | Policy preview returns `OverMaxTx` |
+| Context mismatch | Denied | Stylus intent/context binding returns `ContextMismatch` |
+| Wrong token | Denied | Router policy token check / policy preview |
 
 Developer integration starts in `packages/osmium-sdk`:
 
@@ -152,7 +188,18 @@ forge build
 forge test
 pnpm agent:typecheck
 pnpm web:build
+pnpm sdk:typecheck
 ```
+
+Important policy invariants covered by the implementation and demo surface:
+
+- denied payments do not move funds;
+- `paymentId` cannot settle twice;
+- rolling budget is consumed only through `SettlementRouter`;
+- merchant must be allowlisted;
+- receipt is required when policy requires it;
+- context hash mismatch blocks settlement;
+- direct state-changing authorization is disabled outside the router.
 
 Stylus commands:
 
@@ -240,7 +287,7 @@ It prints owner, router, and merchant balances before and after settlement, the 
 - The x402 integration is a custom Osmium facilitator for Robinhood Chain delegated vault settlement. It is x402-compatible at the HTTP resource/facilitator layer, but it does not claim CDP facilitator support on Robinhood Chain.
 - Merchant categories are stored as metadata, but current policy enforcement is merchant allowlist based rather than category based.
 - Intent hashes are globally unique in the current engine; use a distinct intent hash per live policy, or point the runner at the active TSLA policy as this demo does.
-- Receipts prove that an agent supplied a receipt hash; they do not independently verify offchain service quality.
+- Merchant receipts now include EIP-712 typed data and can be signed by a configured service key; they still do not independently verify offchain service quality.
 - Merchant real-world identity/KYB, Coinbase CDP facilitator integration, private policy rules, and cross-chain settlement are out of scope for this MVP.
 - The public dashboard should not expose runner secrets. Keep `/demo/run` local, server-side, or protected by a private operator flow.
 - Precondition failures such as wrong policy token or insufficient router vault balance revert; policy denials emit auditable engine/router events.

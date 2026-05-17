@@ -1,4 +1,32 @@
-export type OsmiumAsset = "TSLA" | "AMD";
+export type OsmiumAsset = "TSLA" | "AMD" | "AMZN";
+
+export type MerchantReceiptAttestation = {
+  standard: "EIP-712";
+  primaryType: "MerchantReceipt";
+  domain: {
+    name: string;
+    version: string;
+    chainId: number;
+    verifyingContract: string;
+  };
+  message: {
+    merchant: string;
+    agent: string;
+    policyId: string;
+    asset: string;
+    amount: string;
+    resourceId: string;
+    responseHash: string;
+    paymentId: string;
+    chainId: string;
+    settlementTxHash: string;
+    expiresAt: string;
+  };
+  signer: string | null;
+  signature: string | null;
+  mode: "signed" | "unsigned-demo";
+  note: string;
+};
 
 export type OsmiumClientOptions = {
   runnerUrl: string;
@@ -8,6 +36,7 @@ export type OsmiumClientOptions = {
 export type MerchantQuote = {
   asset: OsmiumAsset;
   service: string;
+  resourceKind?: string;
   title: string;
   price: string;
   priceWei: string;
@@ -17,6 +46,7 @@ export type MerchantQuote = {
   dataHash: string;
   receiptHash: string;
   receiptMode: string;
+  receiptStandard?: string;
 };
 
 export type SpendPreview = {
@@ -52,6 +82,7 @@ export type UnlockResult = {
   receiptHash: string;
   dataHash: string;
   unlocked: boolean;
+  merchantReceipt?: MerchantReceiptAttestation | null;
   payload: unknown;
 };
 
@@ -72,6 +103,7 @@ export type MarketDataResponse =
         serviceId: string;
         dataHash: string;
         receiptHash: string;
+        receiptStandard?: string;
         settlement: string;
       };
     };

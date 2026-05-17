@@ -23,6 +23,7 @@ Use Render secret environment variables for:
 
 - `ADMIN_PRIVATE_KEY`
 - `AGENT_PRIVATE_KEY`
+- `MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY` if you want signed EIP-712 merchant receipts
 - `RUNNER_API_KEY`
 - `RUNNER_REQUIRE_API_KEY=true`
 - `RUNNER_ALLOWED_ORIGIN=https://your-dashboard.example`
@@ -36,9 +37,10 @@ Never commit `.env`.
 - `POST /demo/live-settlement/preview`: public read-only balances, latest receipt, and replay proof.
 - `POST /demo/live-settlement/run`: protected endpoint that settles TSLA through the router.
 - `GET /merchant/quote?asset=TSLA`: public verified market-data quote.
-- `GET /merchant/quote?asset=AMD`: public verified market-data quote.
+- `GET /merchant/quote?asset=AMD`: public risk-snapshot quote.
+- `GET /merchant/quote?asset=AMZN`: public corporate-action-alert quote.
 - `POST /merchant/receipt`: verifies the latest receipt and unlocks the demo data payload.
-- `GET /merchant/audit`: in-memory settlement/unlock audit records for the running demo service.
+- `GET /merchant/audit`: JSON-backed settlement/unlock audit records for the running demo service.
 - `GET /merchant/market-data?asset=TSLA`: x402-compatible resource endpoint. Without proof it returns `402 Payment Required` plus a `PAYMENT-REQUIRED` header; with `paymentId` and `receiptHash` it returns unlocked data plus `PAYMENT-RESPONSE`.
 - `GET /x402/supported`: lists the Osmium custom scheme, network, assets, and settlement model.
 - `POST /x402/verify`: verifies an Osmium x402 payment payload against the Stylus policy engine without moving funds.
@@ -46,7 +48,9 @@ Never commit `.env`.
 
 The preview path uses `previewAuthorizationWithIntent`. The state-changing path uses `OsmiumSettlementRouter.settleWithIntent`, which calls `authorizePaymentForAgent` on the Stylus engine.
 
-The merchant path is intentionally small: it models one verified Market Data API instead of a full marketplace. The agent asks for a TSLA or AMD quote, receives a price, merchant address, service id, data hash, and receipt requirement, then Osmium settlement unlocks the data once the receipt is visible onchain.
+The merchant path is intentionally small: it models one verified Agent Services API instead of a full marketplace. The agent can request TSLA market data, an AMD risk snapshot, or an AMZN corporate-action alert. Each quote returns a price, merchant address, service id, response hash, receipt requirement, and EIP-712 receipt standard. The live settlement proof is TSLA; AMD and AMZN demonstrate the same resource/payment interface without claiming live settlement.
+
+When a resource unlocks, the runner returns a `merchantReceipt` object. If `MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY` is configured, this is an EIP-712 signed `MerchantReceipt` binding merchant, agent, policy, asset, amount, resource id, response hash, payment id, chain id, settlement tx hash, and expiry. If the key is absent, the runner returns the typed data in `unsigned-demo` mode so the proof format remains inspectable without committing or exposing a signing key.
 
 The x402 path is intentionally precise: Osmium does not claim to use the Coinbase CDP facilitator on Robinhood Chain. It implements a custom x402-compatible scheme, `osmium-exact`, for delegated vault settlement on `eip155:46630`.
 

@@ -905,13 +905,20 @@ function App() {
       </aside>
 
       <section className="workspace">
-        <header className="topbar">
-          <div>
-            <span className="eyebrow">{currentView.eyebrow}</span>
-            <h1>{currentView.title}</h1>
-            <p>{currentView.description}</p>
-            <TopBadges runnerStatus={runnerStatus} />
-          </div>
+        <header className={view === "command" ? "topbar commandTopbar" : "topbar"}>
+          {view === "command" ? (
+            <div className="commandTopline">
+              <span className="eyebrow">Live clearing desk</span>
+              <TopBadges runnerStatus={runnerStatus} />
+            </div>
+          ) : (
+            <div>
+              <span className="eyebrow">{currentView.eyebrow}</span>
+              <h1>{currentView.title}</h1>
+              <p>{currentView.description}</p>
+              <TopBadges runnerStatus={runnerStatus} />
+            </div>
+          )}
           <button
             className="walletButton"
             onClick={connectWallet}
@@ -948,20 +955,26 @@ function App() {
               settlement={settlement}
               onRequest={() => requestMarketDataResource(activeAsset)}
             />
-            <section className="clearingTape" aria-label="Live clearing tape">
-              <span>RH-46630</span>
-              <strong>OSMIUM CLEARING HOUSE</strong>
-              <span>SCHEME OSMIUM-EXACT</span>
-              <span>ASSET TSLA LIVE</span>
-              <span>RESOURCE MARKET-DATA</span>
-              <span>HUMAN CLEARANCE REQUIRED</span>
-            </section>
-            <CommandStatusStrip
-              activeAsset={activeAsset}
-              quote={quote}
-              runnerStatus={runnerStatus}
-              settlement={settlement}
-            />
+            <details className="liveContextDrawer">
+              <summary>
+                <span>Runtime context</span>
+                <strong>Robinhood 46630 · TSLA live · custom x402 rail</strong>
+              </summary>
+              <section className="clearingTape" aria-label="Live clearing tape">
+                <span>RH-46630</span>
+                <strong>OSMIUM CLEARING HOUSE</strong>
+                <span>SCHEME OSMIUM-EXACT</span>
+                <span>ASSET TSLA LIVE</span>
+                <span>RESOURCE MARKET-DATA</span>
+                <span>HUMAN CLEARANCE REQUIRED</span>
+              </section>
+              <CommandStatusStrip
+                activeAsset={activeAsset}
+                quote={quote}
+                runnerStatus={runnerStatus}
+                settlement={settlement}
+              />
+            </details>
             <section className="cockpitGrid">
               <X402FlowPanel
                 activeAsset={activeAsset}
@@ -976,7 +989,11 @@ function App() {
                 onSettle={settleX402Flow}
                 onVerify={verifyX402Flow}
               />
-              <aside className="operatorSnapshot">
+              <details className="operatorSnapshot operatorDrawer">
+                <summary>
+                  <span>Proof context</span>
+                  <strong>balances, agent and latest receipt</strong>
+                </summary>
                 <CockpitSummary
                   activeAsset={activeAsset}
                   account={account}
@@ -986,7 +1003,7 @@ function App() {
                   settlement={settlement}
                 />
                 <SettlementPanel settlement={settlement} />
-              </aside>
+              </details>
             </section>
             <details className="secondaryDrills">
               <summary>Denied request drills</summary>

@@ -292,6 +292,19 @@ input:focus-visible {
   padding-bottom: 16px;
 }
 
+.commandTopbar {
+  align-items: center;
+  min-height: 42px;
+  padding-bottom: 12px;
+}
+
+.commandTopline {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .topbar > div {
   display: grid;
   gap: 8px;
@@ -395,6 +408,65 @@ h1 {
 
 .clearingTape strong {
   color: var(--cleared);
+}
+
+.liveContextDrawer,
+.operatorDrawer {
+  background: rgba(13, 17, 23, 0.72);
+  border: 1px solid var(--border);
+  display: grid;
+}
+
+.liveContextDrawer summary,
+.operatorDrawer summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 0 14px;
+}
+
+.liveContextDrawer summary span,
+.operatorDrawer summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.liveContextDrawer summary strong,
+.operatorDrawer summary strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
+}
+
+.liveContextDrawer[open],
+.operatorDrawer[open] {
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.liveContextDrawer[open] .clearingTape,
+.liveContextDrawer[open] .cockpitStatus {
+  margin: 0 12px;
+}
+
+.operatorDrawer {
+  align-content: start;
+  gap: 0;
+}
+
+.operatorDrawer[open] {
+  padding: 0 0 12px;
+}
+
+.operatorDrawer[open] .cockpitSummary,
+.operatorDrawer[open] .proofPanel {
+  margin: 0 12px;
 }
 
 .clearingHero {

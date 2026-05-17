@@ -955,27 +955,7 @@ function App() {
               settlement={settlement}
               onRequest={() => requestMarketDataResource(activeAsset)}
             />
-            <details className="liveContextDrawer">
-              <summary>
-                <span>Runtime context</span>
-                <strong>Robinhood 46630 · TSLA live · custom x402 rail</strong>
-              </summary>
-              <section className="clearingTape" aria-label="Live clearing tape">
-                <span>RH-46630</span>
-                <strong>OSMIUM CLEARING HOUSE</strong>
-                <span>SCHEME OSMIUM-EXACT</span>
-                <span>ASSET TSLA LIVE</span>
-                <span>RESOURCE MARKET-DATA</span>
-                <span>HUMAN CLEARANCE REQUIRED</span>
-              </section>
-              <CommandStatusStrip
-                activeAsset={activeAsset}
-                quote={quote}
-                runnerStatus={runnerStatus}
-                settlement={settlement}
-              />
-            </details>
-            <section className="cockpitGrid">
+            <section className="requestWorkspace">
               <X402FlowPanel
                 activeAsset={activeAsset}
                 busy={busy}
@@ -1005,6 +985,26 @@ function App() {
                 <SettlementPanel settlement={settlement} />
               </details>
             </section>
+            <details className="liveContextDrawer">
+              <summary>
+                <span>Runtime context</span>
+                <strong>Robinhood 46630 · TSLA live · custom x402 rail</strong>
+              </summary>
+              <section className="clearingTape" aria-label="Live clearing tape">
+                <span>RH-46630</span>
+                <strong>OSMIUM CLEARING HOUSE</strong>
+                <span>SCHEME OSMIUM-EXACT</span>
+                <span>ASSET TSLA LIVE</span>
+                <span>RESOURCE MARKET-DATA</span>
+                <span>HUMAN CLEARANCE REQUIRED</span>
+              </section>
+              <CommandStatusStrip
+                activeAsset={activeAsset}
+                quote={quote}
+                runnerStatus={runnerStatus}
+                settlement={settlement}
+              />
+            </details>
             <details className="secondaryDrills">
               <summary>Denied request drills</summary>
               {riskWorkbench}
@@ -1085,11 +1085,10 @@ function ClearingHero({
     <section className="clearingHero" aria-label="Osmium product story">
       <div className="heroCopy">
         <span className="heroKicker">Policy-aware x402 clearing for AI finance agents</span>
-        <h2>Give agents a clearing lane, not a blank check.</h2>
+        <h2>Give agents clearance, not keys.</h2>
         <p>
-          Osmium turns a paid resource request into a deterministic clearing
-          sequence: merchant 402, Stylus policy verification, human clearance,
-          router settlement, filed receipt and replay denial.
+          The agent requests paid market data. Osmium verifies policy, asks for
+          operator clearance, settles through the router and files the receipt.
         </p>
         <div className="heroActions">
           <button
@@ -1110,23 +1109,10 @@ function ClearingHero({
             <span className="glassLink muted">Live proof loads after settlement</span>
           )}
         </div>
-        <div className="featureDeck" aria-label="Product differentiators">
-          <div>
-            <strong>Policy before payment</strong>
-            <span>Stylus verifies merchant, token, amount, context and replay.</span>
-          </div>
-          <div>
-            <strong>x402 resource gate</strong>
-            <span>Market data returns 402 until a valid receipt unlocks it.</span>
-          </div>
-          <div>
-            <strong>Operator clearance</strong>
-            <span>Funds move only after a session-scoped human approval.</span>
-          </div>
-          <div>
-            <strong>Settlement ledger</strong>
-            <span>Receipts, txs and replay denials become inspectable evidence.</span>
-          </div>
+        <div className="heroClaims" aria-label="Product differentiators">
+          <span>Agent requests</span>
+          <strong>Osmium clears</strong>
+          <span>Router settles</span>
         </div>
       </div>
 
@@ -1443,26 +1429,39 @@ function X402FlowPanel({
         )}
       </div>
 
-      <div className="clearanceDoctrine" aria-label="Clearance doctrine">
-        <span>The agent asked.</span>
-        <span>Osmium cleared.</span>
-        <span>The router settled.</span>
-        <span>The ledger remembered.</span>
-      </div>
+      <details className="sequenceDrawer" open={Boolean(flow.paymentRequired)}>
+        <summary>
+          <div>
+            <span>Clearance checkpoints</span>
+            <strong>{"request -> 402 -> verify -> clear -> settle -> file -> unlock"}</strong>
+          </div>
+          <ProofStamp tone={flow.unlocked ? "cleared" : flow.paymentRequired ? "pending" : "protocol"}>
+            {flow.unlocked ? "COMPLETE" : flow.paymentRequired ? "IN PROGRESS" : "READY"}
+          </ProofStamp>
+        </summary>
+        <ClearingRail steps={steps} />
+      </details>
 
-      <ClearingRail steps={steps} />
-
-      <section className="approvalBox">
+      <details className="approvalBox" open={flow.verifyValid && !flow.txHash}>
+        <summary className="approvalSummary">
+          <div className="approvalCopy">
+            <span>Operator clearance packet</span>
+            <strong>
+              {flow.verifyValid && !flow.txHash
+                ? "Review the ticket before funds move"
+                : "Hidden until policy verifies"}
+            </strong>
+            <small>
+              The agent requested paid market data. Osmium requires policy
+              clearance and an operator decision before settlement.
+            </small>
+          </div>
+          <ProofStamp tone={flow.verifyValid ? "pending" : "protocol"}>
+            {flow.verifyValid ? "READY" : "LOCKED"}
+          </ProofStamp>
+        </summary>
         <div className="approvalSeal" aria-hidden="true">
           HUMAN CLEARANCE
-        </div>
-        <div className="approvalCopy">
-          <span>Operator clearance required</span>
-          <strong>Review the ticket before funds move</strong>
-          <small>
-            The agent requested paid market data. Osmium requires policy
-            clearance and an operator decision before settlement.
-          </small>
         </div>
         <dl className="approvalFacts">
           <InfoRow label="Agent" value="Market Data Agent" />
@@ -1530,7 +1529,7 @@ function X402FlowPanel({
             Clear and settle
           </button>
         ) : null}
-      </section>
+      </details>
 
       <details className="advancedDetails">
         <summary>Advanced proof details</summary>

@@ -472,14 +472,14 @@ h1 {
 .clearingHero {
   align-items: stretch;
   background:
-    radial-gradient(circle at 75% 20%, rgba(57, 255, 136, 0.11), transparent 26%),
-    radial-gradient(circle at 92% 75%, rgba(120, 166, 255, 0.1), transparent 30%),
+    radial-gradient(circle at 78% 18%, rgba(57, 255, 136, 0.075), transparent 25%),
+    radial-gradient(circle at 92% 75%, rgba(120, 166, 255, 0.06), transparent 30%),
     rgba(13, 17, 23, 0.72);
   border: 1px solid rgba(216, 209, 192, 0.18);
   display: grid;
-  gap: 22px;
-  grid-template-columns: minmax(0, 0.98fr) minmax(420px, 0.82fr);
-  min-height: 480px;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.62fr);
+  min-height: 390px;
   overflow: hidden;
   padding: 28px;
   position: relative;
@@ -518,8 +518,8 @@ h1 {
 .heroCopy {
   align-content: center;
   display: grid;
-  gap: 20px;
-  max-width: 760px;
+  gap: 18px;
+  max-width: 780px;
 }
 
 .heroKicker {
@@ -533,7 +533,7 @@ h1 {
 
 .heroCopy h2 {
   color: var(--text);
-  font-size: clamp(38px, 5vw, 74px);
+  font-size: clamp(36px, 5vw, 70px);
   letter-spacing: -0.02em;
   line-height: 0.94;
   margin: 0;
@@ -542,7 +542,7 @@ h1 {
 
 .heroCopy p {
   color: var(--muted-strong);
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.55;
   margin: 0;
   max-width: 690px;
@@ -577,6 +577,36 @@ h1 {
   border: 1px solid rgba(216, 209, 192, 0.16);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.heroClaims {
+  align-items: center;
+  border: 1px solid rgba(216, 209, 192, 0.16);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 46px;
+}
+
+.heroClaims span,
+.heroClaims strong {
+  align-items: center;
+  color: var(--muted-strong);
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  height: 100%;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  padding: 0 10px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.heroClaims strong {
+  border-left: 1px solid rgba(216, 209, 192, 0.16);
+  border-right: 1px solid rgba(216, 209, 192, 0.16);
+  color: var(--cleared);
 }
 
 .featureDeck div {
@@ -620,8 +650,8 @@ h1 {
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 28px 90px rgba(0, 0, 0, 0.34);
   display: grid;
-  gap: 16px;
-  min-height: 420px;
+  gap: 14px;
+  min-height: 334px;
   overflow: hidden;
   padding: 18px;
   position: relative;
@@ -665,7 +695,7 @@ h1 {
 }
 
 .liquidCore {
-  min-height: 260px;
+  min-height: 190px;
   position: relative;
 }
 
@@ -677,13 +707,13 @@ h1 {
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
   filter: blur(0.2px);
-  height: 168px;
+  height: 136px;
   left: 50%;
   opacity: 0.85;
   position: absolute;
   top: 52%;
   transform: translate(-50%, -50%);
-  width: 168px;
+  width: 136px;
   animation: liquidPulse 6s ease-in-out infinite;
 }
 
@@ -692,8 +722,8 @@ h1 {
   border: 1px solid rgba(244, 247, 250, 0.14);
   display: grid;
   gap: 4px;
-  min-width: 230px;
-  padding: 12px;
+  min-width: 210px;
+  padding: 10px;
   position: absolute;
 }
 
@@ -721,11 +751,11 @@ h1 {
 
 .stackLayer.policy {
   right: 0;
-  top: 96px;
+  top: 76px;
 }
 
 .stackLayer.router {
-  bottom: 14px;
+  bottom: 4px;
   left: 34px;
 }
 
@@ -883,11 +913,16 @@ h1 {
   grid-column: 2;
 }
 
-.cockpitGrid {
+.cockpitGrid,
+.requestWorkspace {
   align-items: start;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.72fr);
+}
+
+.requestWorkspace {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .judgePanel {
@@ -1146,7 +1181,7 @@ h1 {
   border-left: 0;
   display: grid;
   gap: 6px;
-  min-height: 132px;
+  min-height: 104px;
   padding: 10px;
   position: relative;
 }
@@ -1201,6 +1236,60 @@ h1 {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.sequenceDrawer {
+  background: #0b0e13;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: grid;
+}
+
+.sequenceDrawer summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 54px;
+  padding: 0 14px;
+}
+
+.sequenceDrawer summary::-webkit-details-marker {
+  display: none;
+}
+
+.sequenceDrawer summary > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sequenceDrawer summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sequenceDrawer summary strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sequenceDrawer[open] {
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.sequenceDrawer[open] .clearingRail {
+  margin: 0 12px;
 }
 
 .protocolRail::before {
@@ -1284,9 +1373,46 @@ pre,
   border-left: 2px solid var(--pending);
   border-radius: 4px;
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  gap: 0;
+  padding: 0;
   position: relative;
+}
+
+.approvalSummary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  list-style: none;
+  min-height: 82px;
+  padding: 16px;
+}
+
+.approvalSummary::-webkit-details-marker {
+  display: none;
+}
+
+.approvalBox[open] {
+  gap: 14px;
+  padding-bottom: 16px;
+}
+
+.approvalBox[open] > :not(summary):not(.approvalSeal) {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+.approvalBox:not([open]) {
+  background:
+    linear-gradient(90deg, rgba(106, 168, 255, 0.04) 1px, transparent 1px),
+    #0b0e13;
+  border-color: var(--border);
+  border-left-color: var(--protocol);
+}
+
+.approvalBox:not([open]) .approvalSeal {
+  display: none;
 }
 
 .approvalSeal {

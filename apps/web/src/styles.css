@@ -397,6 +397,287 @@ h1 {
   color: var(--cleared);
 }
 
+.clearingHero {
+  align-items: stretch;
+  background:
+    radial-gradient(circle at 75% 20%, rgba(57, 255, 136, 0.11), transparent 26%),
+    radial-gradient(circle at 92% 75%, rgba(120, 166, 255, 0.1), transparent 30%),
+    rgba(13, 17, 23, 0.72);
+  border: 1px solid rgba(216, 209, 192, 0.18);
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 0.98fr) minmax(420px, 0.82fr);
+  min-height: 480px;
+  overflow: hidden;
+  padding: 28px;
+  position: relative;
+}
+
+.clearingHero::before {
+  background:
+    linear-gradient(90deg, transparent, rgba(216, 209, 192, 0.12), transparent),
+    linear-gradient(rgba(216, 209, 192, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(216, 209, 192, 0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 26px 26px, 26px 26px;
+  content: "";
+  inset: 0;
+  opacity: 0.52;
+  pointer-events: none;
+  position: absolute;
+}
+
+.clearingHero::after {
+  background: linear-gradient(90deg, transparent, rgba(57, 255, 136, 0.22), transparent);
+  content: "";
+  height: 1px;
+  left: -30%;
+  position: absolute;
+  right: -30%;
+  top: 0;
+  animation: clearanceSweep 7s ease-in-out infinite;
+}
+
+.heroCopy,
+.heroVisual {
+  position: relative;
+  z-index: 1;
+}
+
+.heroCopy {
+  align-content: center;
+  display: grid;
+  gap: 20px;
+  max-width: 760px;
+}
+
+.heroKicker {
+  color: var(--protocol);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heroCopy h2 {
+  color: var(--text);
+  font-size: clamp(38px, 5vw, 74px);
+  letter-spacing: -0.02em;
+  line-height: 0.94;
+  margin: 0;
+  max-width: 820px;
+}
+
+.heroCopy p {
+  color: var(--muted-strong);
+  font-size: 18px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 690px;
+}
+
+.heroActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.glassLink {
+  align-items: center;
+  background: rgba(244, 247, 250, 0.055);
+  border: 1px solid rgba(216, 209, 192, 0.18);
+  color: var(--text);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 13px;
+  text-decoration: none;
+}
+
+.glassLink.muted {
+  color: var(--muted);
+}
+
+.featureDeck {
+  border: 1px solid rgba(216, 209, 192, 0.16);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.featureDeck div {
+  display: grid;
+  gap: 6px;
+  min-height: 108px;
+  padding: 14px;
+}
+
+.featureDeck div:nth-child(2n) {
+  border-left: 1px solid rgba(216, 209, 192, 0.16);
+}
+
+.featureDeck div:nth-child(n + 3) {
+  border-top: 1px solid rgba(216, 209, 192, 0.16);
+}
+
+.featureDeck strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.featureDeck span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.heroVisual {
+  align-content: center;
+  display: grid;
+}
+
+.liquidGlassPane {
+  backdrop-filter: blur(22px) saturate(1.25);
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035) 44%, rgba(57, 255, 136, 0.06)),
+    rgba(7, 9, 12, 0.72);
+  border: 1px solid rgba(244, 247, 250, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 28px 90px rgba(0, 0, 0, 0.34);
+  display: grid;
+  gap: 16px;
+  min-height: 420px;
+  overflow: hidden;
+  padding: 18px;
+  position: relative;
+}
+
+.liquidGlassPane::before {
+  background: linear-gradient(115deg, transparent 0 32%, rgba(255, 255, 255, 0.18) 45%, transparent 58% 100%);
+  content: "";
+  inset: -40% -120%;
+  opacity: 0.48;
+  position: absolute;
+  transform: rotate(8deg);
+  animation: glassSweep 8s ease-in-out infinite;
+}
+
+.glassHeader,
+.liquidCore,
+.heroProofStrip,
+.heroStateLine {
+  position: relative;
+  z-index: 1;
+}
+
+.glassHeader {
+  align-items: center;
+  border-bottom: 1px solid rgba(244, 247, 250, 0.14);
+  display: flex;
+  justify-content: space-between;
+  min-height: 42px;
+  padding-bottom: 12px;
+}
+
+.glassHeader > span,
+.heroStateLine span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.liquidCore {
+  min-height: 260px;
+  position: relative;
+}
+
+.liquidOrb {
+  background:
+    radial-gradient(circle at 38% 34%, rgba(255, 255, 255, 0.48), transparent 10%),
+    radial-gradient(circle at 55% 48%, rgba(57, 255, 136, 0.36), transparent 32%),
+    radial-gradient(circle at 47% 52%, rgba(120, 166, 255, 0.32), transparent 36%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  filter: blur(0.2px);
+  height: 168px;
+  left: 50%;
+  opacity: 0.85;
+  position: absolute;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  width: 168px;
+  animation: liquidPulse 6s ease-in-out infinite;
+}
+
+.stackLayer {
+  background: rgba(3, 5, 6, 0.68);
+  border: 1px solid rgba(244, 247, 250, 0.14);
+  display: grid;
+  gap: 4px;
+  min-width: 230px;
+  padding: 12px;
+  position: absolute;
+}
+
+.stackLayer span {
+  color: var(--protocol);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stackLayer strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.stackLayer small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stackLayer.agent {
+  left: 0;
+  top: 16px;
+}
+
+.stackLayer.policy {
+  right: 0;
+  top: 96px;
+}
+
+.stackLayer.router {
+  bottom: 14px;
+  left: 34px;
+}
+
+.heroProofStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heroStateLine {
+  align-items: center;
+  border-top: 1px solid rgba(244, 247, 250, 0.14);
+  display: flex;
+  justify-content: space-between;
+  min-height: 42px;
+  padding-top: 12px;
+}
+
+.heroStateLine strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
 .commandGrid {
   align-items: start;
   grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.75fr);
@@ -1668,6 +1949,14 @@ code {
   .x402Actions {
     grid-column: auto;
   }
+
+  .clearingHero {
+    grid-template-columns: 1fr;
+  }
+
+  .liquidGlassPane {
+    min-height: 360px;
+  }
 }
 
 @media (max-width: 1060px) {
@@ -1684,6 +1973,8 @@ code {
   .systemStrip,
   .cockpitStatus,
   .clearingTape,
+  .clearingHero,
+  .featureDeck,
   .clearanceTicket,
   .clearingRail,
   .cockpitGrid,
@@ -1736,6 +2027,7 @@ code {
   .decisionSummary,
   .assetTabs,
   .impactLedger,
+  .heroActions,
   .judgeLead,
   .judgeStep,
   .protocolRail {
@@ -1748,12 +2040,14 @@ code {
   }
 
   .statusCard + .statusCard,
-  .impactLedger div:nth-child(2n) {
+  .impactLedger div:nth-child(2n),
+  .featureDeck div:nth-child(2n) {
     border-left: 0;
   }
 
   .statusCard + .statusCard,
-  .impactLedger div + div {
+  .impactLedger div + div,
+  .featureDeck div + div {
     border-top: 1px solid var(--border);
   }
 
@@ -1814,8 +2108,43 @@ code {
   }
 
   .judgeLead button,
-  .approvalBox button {
+  .approvalBox button,
+  .heroActions button,
+  .heroActions a,
+  .heroActions span {
     width: 100%;
+  }
+}
+
+@keyframes clearanceSweep {
+  0%,
+  100% {
+    transform: translateX(-18%);
+  }
+  50% {
+    transform: translateX(18%);
+  }
+}
+
+@keyframes glassSweep {
+  0%,
+  100% {
+    transform: translateX(-16%) rotate(8deg);
+  }
+  50% {
+    transform: translateX(16%) rotate(8deg);
+  }
+}
+
+@keyframes liquidPulse {
+  0%,
+  100% {
+    border-radius: 42% 58% 56% 44% / 48% 42% 58% 52%;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  50% {
+    border-radius: 58% 42% 44% 56% / 42% 58% 42% 58%;
+    transform: translate(-50%, -50%) scale(1.04);
   }
 }
 

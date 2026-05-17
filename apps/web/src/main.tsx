@@ -940,6 +940,14 @@ function App() {
 
         {view === "command" ? (
           <section className="viewStack commandView">
+            <ClearingHero
+              activeAsset={activeAsset}
+              busy={busy}
+              flow={x402Flow}
+              runnerStatus={runnerStatus}
+              settlement={settlement}
+              onRequest={() => requestMarketDataResource(activeAsset)}
+            />
             <section className="clearingTape" aria-label="Live clearing tape">
               <span>RH-46630</span>
               <strong>OSMIUM CLEARING HOUSE</strong>
@@ -1027,6 +1035,124 @@ function App() {
         ) : null}
       </section>
     </main>
+  );
+}
+
+function ClearingHero({
+  activeAsset,
+  busy,
+  flow,
+  runnerStatus,
+  settlement,
+  onRequest,
+}: {
+  activeAsset: AssetSymbol;
+  busy: string;
+  flow: X402FlowState;
+  runnerStatus: string;
+  settlement: LiveSettlement | null;
+  onRequest: () => void;
+}) {
+  const liveTx = settlement?.transactions.settle;
+  const heroState = flow.unlocked
+    ? "RESOURCE UNLOCKED"
+    : flow.txHash
+      ? "SETTLEMENT FILED"
+      : flow.verifyValid
+        ? "AWAITING CLEARANCE"
+        : flow.paymentRequired
+          ? "402 ISSUED"
+          : "READY";
+
+  return (
+    <section className="clearingHero" aria-label="Osmium product story">
+      <div className="heroCopy">
+        <span className="heroKicker">Policy-aware x402 clearing for AI finance agents</span>
+        <h2>Give agents a clearing lane, not a blank check.</h2>
+        <p>
+          Osmium turns a paid resource request into a deterministic clearing
+          sequence: merchant 402, Stylus policy verification, human clearance,
+          router settlement, filed receipt and replay denial.
+        </p>
+        <div className="heroActions">
+          <button
+            className="primary"
+            disabled={busy !== ""}
+            onClick={onRequest}
+            title="Start the protected market data request"
+          >
+            <Radio size={17} />
+            Start clearing flow
+          </button>
+          {liveTx && isFullTxHash(liveTx) ? (
+            <a className="glassLink" href={txUrl(liveTx)} rel="noreferrer" target="_blank">
+              <ExternalLink size={15} />
+              Live settlement proof
+            </a>
+          ) : (
+            <span className="glassLink muted">Live proof loads after settlement</span>
+          )}
+        </div>
+        <div className="featureDeck" aria-label="Product differentiators">
+          <div>
+            <strong>Policy before payment</strong>
+            <span>Stylus verifies merchant, token, amount, context and replay.</span>
+          </div>
+          <div>
+            <strong>x402 resource gate</strong>
+            <span>Market data returns 402 until a valid receipt unlocks it.</span>
+          </div>
+          <div>
+            <strong>Operator clearance</strong>
+            <span>Funds move only after a session-scoped human approval.</span>
+          </div>
+          <div>
+            <strong>Settlement ledger</strong>
+            <span>Receipts, txs and replay denials become inspectable evidence.</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="heroVisual" aria-label="Clearing mechanism visual">
+        <div className="liquidGlassPane">
+          <div className="glassHeader">
+            <span>OSMIUM CLEARING LANE</span>
+            <ProofStamp tone={runnerStatus === "online" ? "cleared" : "pending"}>
+              {runnerStatus}
+            </ProofStamp>
+          </div>
+          <div className="liquidCore">
+            <div className="liquidOrb" />
+            <div className="stackLayer agent">
+              <span>01</span>
+              <strong>Agent requests data</strong>
+              <small>{activeAsset} market-data snapshot</small>
+            </div>
+            <div className="stackLayer policy">
+              <span>02</span>
+              <strong>Osmium clears policy</strong>
+              <small>merchant / token / receipt / replay</small>
+            </div>
+            <div className="stackLayer router">
+              <span>03</span>
+              <strong>Router settles</strong>
+              <small>{settlement ? formatToken(settlement.amount, activeAsset) : "0.25 TSLA"} to verified merchant</small>
+            </div>
+          </div>
+          <div className="heroProofStrip">
+            <ProofStamp tone="protocol">402</ProofStamp>
+            <ProofStamp tone={flow.verifyValid ? "cleared" : "protocol"}>POLICY</ProofStamp>
+            <ProofStamp tone={flow.txHash ? "cleared" : "pending"}>CLEARANCE</ProofStamp>
+            <ProofStamp tone={flow.unlocked ? "cleared" : "protocol"}>RECEIPT</ProofStamp>
+            <ProofStamp tone={settlement?.replay.blocked ? "denied" : "protocol"}>REPLAY</ProofStamp>
+          </div>
+          <div className="heroStateLine">
+            <span>Current state</span>
+            <strong>{heroState}</strong>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

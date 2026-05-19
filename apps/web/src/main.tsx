@@ -245,40 +245,40 @@ const viewCopy: Record<
   { eyebrow: string; title: string; description: string }
 > = {
   command: {
-    eyebrow: "Clearing house",
-    title: "Agents request. Osmium clears.",
+    eyebrow: "Operator console",
+    title: "Run a safe agent payment",
     description:
-      "Osmium is the clearing house where AI finance agents request paid resources, policy verifies, operators clear and the router settles.",
+      "Follow one AI finance agent as it requests paid data, passes policy checks, asks for approval, pays, and receives a signed receipt.",
   },
   policy: {
-    eyebrow: "Rulebook",
-    title: "TSLA Clearing Rulebook",
+    eyebrow: "Payment policy",
+    title: "TSLA Payment Policy",
     description:
-      "The deterministic rules that decide whether an agent request can be cleared.",
+      "The deterministic rules that decide whether an agent payment can move funds.",
   },
   merchant: {
-    eyebrow: "Protected resource",
-    title: "Verified Market Data API",
+    eyebrow: "Data service",
+    title: "Verified Data Service",
     description:
-      "The paid market-data resource that stays locked until clearance is granted.",
+      "The paid Robinhood agent service that stays locked until Osmium verifies payment.",
   },
   audit: {
-    eyebrow: "Settlement ledger",
-    title: "Settlement Ledger",
+    eyebrow: "Proof log",
+    title: "Proof Log",
     description:
-      "A financial record of issued 402s, clearance decisions, receipts and replay denials.",
+      "A readable record of payment attempts, signed receipts, blocked replays and tx proofs.",
   },
   developer: {
-    eyebrow: "Integration desk",
-    title: "Integrate clearing in 10 minutes",
+    eyebrow: "Developer guide",
+    title: "Integrate safe agent payments",
     description:
-      "Request a protected resource, verify clearance, settle through Osmium, then unlock.",
+      "Request a protected resource, verify policy, execute payment through Osmium, then unlock.",
   },
   settings: {
-    eyebrow: "Runtime registry",
-    title: "Live clearing runtime",
+    eyebrow: "Settings",
+    title: "Live Deployment",
     description:
-      "Live deployment details, supported network and honest prototype boundaries.",
+      "Deployment details, supported network and honest prototype boundaries.",
   },
 };
 
@@ -570,11 +570,11 @@ function App() {
   async function settleX402Flow() {
     setError("");
     if (activeAsset !== "TSLA") {
-      setError("x402 settlement is currently wired to the TSLA live proof. AMD and AMZN are quote-supported.");
+      setError("Live payment is currently wired to TSLA. AMD and AMZN are quote-supported service examples.");
       return;
     }
     if (!operatorKey.trim()) {
-      setError("Enter the operator API key to execute x402 settlement.");
+      setError("Paste the Render RUNNER_API_KEY to approve and pay.");
       return;
     }
     try {
@@ -596,7 +596,7 @@ function App() {
         settlement?: LiveSettlement;
         errorMessage?: string;
       };
-      if (!result.success) throw new Error(result.errorMessage ?? "x402 settlement failed.");
+      if (!result.success) throw new Error(result.errorMessage ?? "Payment approval failed.");
       if (result.settlement) setSettlement(result.settlement);
       const resource = await callRunnerRawGet(
         `/merchant/market-data?asset=TSLA&paymentId=${result.paymentId}&receiptHash=${result.receiptHash}`,
@@ -616,13 +616,13 @@ function App() {
       }));
       addSpendEvent({
         status: "Filed",
-        detail: "RECEIPT FILED / x402-compatible TSLA market data",
+        detail: "SIGNED RECEIPT / x402-compatible TSLA market data",
         tx: result.transaction,
         receipt: result.receiptHash,
         ok: resource.status === 200,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "x402 settlement failed.");
+      setError(err instanceof Error ? err.message : "Payment approval failed.");
     } finally {
       setBusy("");
     }
@@ -665,12 +665,12 @@ function App() {
     setError("");
     if (activeAsset !== "TSLA") {
       setError(
-        "Operator execution is currently wired to the TSLA live settlement proof. AMD and AMZN are quote-supported.",
+        "Live payment is currently wired to TSLA. AMD and AMZN are quote-supported service examples.",
       );
       return;
     }
     if (!operatorKey.trim()) {
-      setError("Enter the operator API key to execute a live settlement.");
+      setError("Paste the Render RUNNER_API_KEY to approve and pay.");
       return;
     }
     try {
@@ -715,7 +715,7 @@ function App() {
       setError(
         err instanceof Error
           ? err.message
-          : "Live settlement execution failed.",
+          : "Live payment failed.",
       );
     } finally {
       setBusy("");
@@ -840,19 +840,19 @@ function App() {
     label: string;
     icon: ReactNode;
   }> = [
-    { id: "command", label: "Clearing Desk", icon: <Layers3 size={17} /> },
-    { id: "policy", label: "Rulebook", icon: <KeyRound size={17} /> },
-    { id: "merchant", label: "Resource", icon: <Store size={17} /> },
-    { id: "audit", label: "Ledger", icon: <FileCheck2 size={17} /> },
-    { id: "developer", label: "Integration", icon: <Code2 size={17} /> },
-    { id: "settings", label: "Registry", icon: <SlidersHorizontal size={17} /> },
+    { id: "command", label: "Run Demo", icon: <PlayCircle size={17} /> },
+    { id: "policy", label: "Policy", icon: <KeyRound size={17} /> },
+    { id: "merchant", label: "Data Service", icon: <Store size={17} /> },
+    { id: "audit", label: "Proof Log", icon: <FileCheck2 size={17} /> },
+    { id: "developer", label: "Developers", icon: <Code2 size={17} /> },
+    { id: "settings", label: "Settings", icon: <SlidersHorizontal size={17} /> },
   ];
   const riskWorkbench = (
     <section className="decisionDesk">
       <div className="panelHeader">
         <div>
-          <span>Risk Test Bench</span>
-          <strong>Allow / block decisions</strong>
+          <span>Failure cases</span>
+          <strong>Blocked payment examples</strong>
         </div>
         <div className="toolbar">
           <button
@@ -875,10 +875,10 @@ function App() {
             className="primary"
             onClick={refreshLiveProof}
             disabled={busy !== ""}
-            title="Read latest settlement ledger state"
+            title="Read latest payment proof"
           >
             <FileCheck2 size={17} />
-            Settlement Ledger
+              Latest proof
           </button>
         </div>
       </div>
@@ -894,8 +894,8 @@ function App() {
       />
 
       <div className="decisionSummary">
-        <Kpi label="Cleared" value={String(allowed)} />
-        <Kpi label="Denied" value={String(blocked)} />
+        <Kpi label="Allowed" value={String(allowed)} />
+        <Kpi label="Blocked" value={String(blocked)} />
         <Kpi label="Requests" value={String(demo.length)} />
       </div>
 
@@ -904,7 +904,7 @@ function App() {
           <div className="emptyState">
             <ShieldCheck size={42} />
             <span>
-              Preview the merchant request path to load clearance decisions.
+              Preview blocked scenarios after you understand the main payment flow.
             </span>
           </div>
         ) : (
@@ -923,7 +923,7 @@ function App() {
           </div>
           <div>
             <span>Osmium</span>
-            <strong>Clearing House</strong>
+            <strong>Agent Payments</strong>
           </div>
         </div>
 
@@ -952,7 +952,7 @@ function App() {
         <header className={view === "command" ? "topbar commandTopbar" : "topbar"}>
           {view === "command" ? (
             <div className="commandTopline">
-              <span className="eyebrow">Live clearing desk</span>
+              <span className="eyebrow">Live operator console</span>
               <TopBadges runnerStatus={runnerStatus} />
             </div>
           ) : (
@@ -997,7 +997,18 @@ function App() {
               flow={x402Flow}
               runnerStatus={runnerStatus}
               settlement={settlement}
-              onRequest={() => requestMarketDataResource(activeAsset)}
+              onRequest={async () => {
+                await requestMarketDataResource(activeAsset);
+                document
+                  .getElementById("payment-walkthrough")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
+            <CommandStatusStrip
+              activeAsset={activeAsset}
+              quote={quote}
+              runnerStatus={runnerStatus}
+              settlement={settlement}
             />
             <section className="requestWorkspace">
               <X402FlowPanel
@@ -1015,8 +1026,8 @@ function App() {
               />
               <details className="operatorSnapshot operatorDrawer">
                 <summary>
-                  <span>Proof context</span>
-                  <strong>balances, agent and latest receipt</strong>
+                  <span>Technical context</span>
+                  <strong>balances, agent and latest signed receipt</strong>
                 </summary>
                 <CockpitSummary
                   activeAsset={activeAsset}
@@ -1032,22 +1043,16 @@ function App() {
             <details className="liveContextDrawer">
               <summary>
                 <span>Runtime context</span>
-                <strong>Robinhood 46630 · TSLA live · custom x402 rail</strong>
+                <strong>Robinhood 46630 · TSLA live · protected payment rail</strong>
               </summary>
               <section className="clearingTape" aria-label="Live clearing tape">
                 <span>RH-46630</span>
-                <strong>OSMIUM CLEARING HOUSE</strong>
+                <strong>OSMIUM AGENT PAYMENTS</strong>
                 <span>SCHEME OSMIUM-EXACT</span>
                 <span>ASSET TSLA LIVE</span>
                 <span>RESOURCE MARKET-DATA</span>
-                <span>HUMAN CLEARANCE REQUIRED</span>
+                <span>HUMAN APPROVAL REQUIRED</span>
               </section>
-              <CommandStatusStrip
-                activeAsset={activeAsset}
-                quote={quote}
-                runnerStatus={runnerStatus}
-                settlement={settlement}
-              />
             </details>
             <details className="secondaryDrills">
               <summary>Denied request drills</summary>
@@ -1118,9 +1123,9 @@ function ClearingHero({
   const heroState = flow.unlocked
     ? "RESOURCE UNLOCKED"
     : flow.txHash
-      ? "SETTLEMENT FILED"
+      ? "PAYMENT PROOF READY"
       : flow.verifyValid
-        ? "AWAITING CLEARANCE"
+        ? "AWAITING APPROVAL"
         : flow.paymentRequired
           ? "402 ISSUED"
           : "READY";
@@ -1128,11 +1133,12 @@ function ClearingHero({
   return (
     <section className="clearingHero" aria-label="Osmium product story">
       <div className="heroCopy">
-        <span className="heroKicker">Policy-aware x402 clearing for AI finance agents</span>
-        <h2>Give agents clearance, not keys.</h2>
+        <span className="heroKicker">Safe payments for AI finance agents</span>
+        <h2>Watch an AI agent pay safely.</h2>
         <p>
-          The agent requests paid market data. Osmium verifies policy, asks for
-          operator clearance, settles through the router and files the receipt.
+          This console runs one live testnet payment. The agent asks for TSLA
+          data, Osmium checks the rules, you approve the spend, then the data
+          unlocks with a signed receipt.
         </p>
         <div className="heroActions">
           <button
@@ -1142,28 +1148,37 @@ function ClearingHero({
             title="Start the protected market data request"
           >
             <Radio size={17} />
-            Start clearing flow
+            1. Request paid data
           </button>
           {liveTx && isFullTxHash(liveTx) ? (
             <a className="glassLink" href={txUrl(liveTx)} rel="noreferrer" target="_blank">
               <ExternalLink size={15} />
-              Live settlement proof
+              View latest tx proof
             </a>
           ) : (
-            <span className="glassLink muted">Live proof loads after settlement</span>
+            <span className="glassLink muted">Tx proof appears after payment</span>
           )}
         </div>
+        <div className="operatorBrief">
+          <strong>Your role</strong>
+          <span>
+            You are the operator. The agent never receives the private key; it
+            can only request a payment that you approve after Osmium verifies
+            the policy.
+          </span>
+        </div>
         <div className="heroClaims" aria-label="Product differentiators">
-          <span>Agent requests</span>
-          <strong>Osmium clears</strong>
-          <span>Router settles</span>
+          <span>Request API</span>
+          <strong>Check policy</strong>
+          <span>Approve payment</span>
+          <span>Signed receipt</span>
         </div>
       </div>
 
       <div className="heroVisual" aria-label="Clearing mechanism visual">
         <div className="liquidGlassPane">
           <div className="glassHeader">
-            <span>OSMIUM CLEARING LANE</span>
+            <span>SAFE AGENT PAYMENT</span>
             <ProofStamp tone={runnerStatus === "online" ? "cleared" : "pending"}>
               {runnerStatus}
             </ProofStamp>
@@ -1172,17 +1187,17 @@ function ClearingHero({
             <div className="liquidOrb" />
             <div className="stackLayer agent">
               <span>01</span>
-              <strong>Agent requests data</strong>
+              <strong>Agent asks for data</strong>
               <small>{activeAsset} market-data snapshot</small>
             </div>
             <div className="stackLayer policy">
               <span>02</span>
-              <strong>Osmium clears policy</strong>
+              <strong>Osmium checks policy</strong>
               <small>merchant / token / receipt / replay</small>
             </div>
             <div className="stackLayer router">
               <span>03</span>
-              <strong>Router settles</strong>
+              <strong>Payment executes</strong>
               <small>{settlement ? formatToken(settlement.amount, activeAsset) : "0.25 TSLA"} to verified merchant</small>
             </div>
           </div>
@@ -1210,14 +1225,14 @@ function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
       <section className="panel policyHero">
         <div className="panelHeader">
           <div>
-            <span>Clearing rulebook</span>
-            <strong>{asset.symbol} Clearing Rulebook</strong>
+            <span>Payment rules</span>
+            <strong>{asset.symbol} Agent Payment Policy</strong>
           </div>
           <StatusStamp tone="cleared">ARMED</StatusStamp>
         </div>
         <p>
-          This policy turns an agent request into a deterministic clearance
-          decision before any vault funds can move.
+          This policy decides whether the agent is allowed to pay before any
+          router funds can move.
         </p>
       </section>
       <section className="panel">
@@ -1259,7 +1274,7 @@ function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
         </div>
         <dl className="infoList">
           <InfoRow label="Merchant" value="verified only" />
-          <InfoRow label="Filed receipt" value="required" />
+          <InfoRow label="Signed receipt" value="required" />
           <InfoRow label="Context" value="bound" />
           <InfoRow label="Replay" value="denied" />
         </dl>
@@ -1327,41 +1342,41 @@ function X402FlowPanel({
     : `router vault debits ${amountLabel}`;
   const nextAction = !flow.paymentRequired
     ? {
-        label: "Request clearance",
-        detail: "Ask for protected market data and receive the expected 402.",
+        label: "Request paid data",
+        detail: "Ask the merchant API for TSLA data. It should answer with 402 Payment Required.",
         action: onRequest,
         disabled: busy !== "",
         icon: <Radio size={17} />,
       }
     : !flow.verifyValid
       ? {
-          label: "Verify clearance",
-          detail: "Check merchant, token, amount, receipt, context and replay constraints.",
+          label: "Check policy",
+          detail: "Osmium checks merchant, token, amount, receipt, context and replay before funds can move.",
           action: onVerify,
           disabled: busy !== "",
           icon: <ShieldCheck size={17} />,
         }
       : !flow.txHash
         ? {
-            label: "Clear And Settle",
+            label: "Approve and pay",
             detail: hasOperatorKey
-              ? "Operator clearance will move funds through the SettlementRouter."
-              : "Enter the operator key before any funds can move.",
+              ? "Approving sends a real testnet TSLA payment through the SettlementRouter."
+              : "Paste your Render RUNNER_API_KEY to approve this operator-only payment.",
             action: onSettle,
             disabled: busy !== "" || !canSettle,
             icon: <PlayCircle size={17} />,
           }
         : {
-            label: "Request New Clearance",
+            label: "Start another request",
             detail: flow.unlocked
-              ? "Receipt filed, data unlocked and replay denied. Run another request."
-              : "Settlement proof exists; unlock is expected to complete on retry.",
+              ? "Data is unlocked, the receipt is signed and replay is blocked."
+              : "Payment proof exists; retry unlock if the merchant data is still locked.",
             action: onRequest,
             disabled: busy !== "",
             icon: <Radio size={17} />,
           };
   const decision =
-    flow.unlocked ? "CLEARED" : flow.verifyValid ? "AWAITING CLEARANCE" : "PENDING";
+    flow.unlocked ? "DATA UNLOCKED" : flow.verifyValid ? "WAITING FOR APPROVAL" : "READY";
   const ticketTone = flow.unlocked ? "cleared" : flow.verifyValid ? "pending" : "queued";
   const steps: Array<{
     label: string;
@@ -1385,13 +1400,13 @@ function X402FlowPanel({
       label: "VERIFY",
       code: "policy",
       status: flow.verifyValid ? "done" : flow.paymentRequired ? "active" : "pending",
-      proof: flow.verifyValid ? "CLEARED" : (flow.verifyStatus ?? "NOT VERIFIED"),
+      proof: flow.verifyValid ? "VALID" : (flow.verifyStatus ?? "NOT VERIFIED"),
     },
     {
-      label: "CLEAR",
+      label: "APPROVE",
       code: "operator",
       status: flow.verifyValid && !flow.txHash ? "active" : flow.txHash ? "done" : "pending",
-      proof: flow.txHash ? "GRANTED" : hasOperatorKey ? "READY" : "OPERATOR KEY",
+      proof: flow.txHash ? "APPROVED" : hasOperatorKey ? "READY" : "OPERATOR KEY",
     },
     {
       label: "SETTLE",
@@ -1400,68 +1415,69 @@ function X402FlowPanel({
       proof: flow.txHash ? short(flow.txHash) : "NO TX",
     },
     {
-      label: "FILE",
-      code: "receipt",
+      label: "RECEIPT",
+      code: "signed",
       status: flow.unlocked ? "done" : flow.txHash ? "active" : "pending",
-      proof: flow.unlocked ? "FILED" : "LOCKED",
+      proof: flow.unlocked ? "SIGNED" : "LOCKED",
     },
     {
-      label: "UNLOCK",
-      code: "replay denied",
+      label: "DATA",
+      code: "unlock",
       status: flow.unlocked ? "done" : "pending",
-      proof: latest?.unlocked ? "DENIED" : "WAITING",
+      proof: latest?.unlocked ? "UNLOCKED" : "WAITING",
     },
   ];
 
   return (
-    <section className="judgePanel">
+    <section className="judgePanel" id="payment-walkthrough">
       <div className="panelHeader">
         <div>
-          <span>Clearing House</span>
-          <strong>Clearing sequence</strong>
+          <span>Live demo</span>
+          <strong>Agent payment walkthrough</strong>
         </div>
         <StatusStamp tone={flow.unlocked ? "cleared" : "pending"}>
-          {flow.unlocked ? "RECEIPT FILED" : "CLEARANCE PENDING"}
+          {flow.unlocked ? "DATA UNLOCKED" : flow.verifyValid ? "APPROVAL NEEDED" : "READY"}
         </StatusStamp>
       </div>
 
       <section className={`clearanceTicket ${ticketTone}`} aria-label="Clearance ticket">
         <div className="ticketSeal" aria-hidden="true">
-          <span>NO KEY</span>
-          <strong>CLEARANCE</strong>
+          <span>NO BLANK</span>
+          <strong>CHECK</strong>
         </div>
         <div className="ticketSpine">
           <span>OSMIUM</span>
-          <strong>CLEARING HOUSE</strong>
+          <strong>PAYMENT CHECK</strong>
         </div>
         <div className="ticketBody">
           <div className="ticketTop">
             <div>
-              <span>Clearance ticket</span>
-              <strong>{caseId}</strong>
-              <small>Agents request. Osmium clears.</small>
+              <span>Payment request</span>
+              <strong>Market Data Agent wants TSLA data</strong>
+              <small>Osmium will not let the agent pay until policy and operator approval pass.</small>
             </div>
             <ProofStamp tone={flow.unlocked ? "cleared" : "pending"}>
               {decision}
             </ProofStamp>
           </div>
           <div className="ticketFacts">
-            <InfoRow label="Agent" value="Market Data Agent" />
+            <InfoRow label="Request id" value={caseId} />
+            <InfoRow label="Agent wants" value="TSLA market data" />
             <InfoRow label="Merchant" value="Verified Market Data API" />
-            <InfoRow label="Asset" value={activeAsset} />
-            <InfoRow label="Amount" value={amountLabel} />
-            <InfoRow label="Next required action" value={nextAction.label} />
+            <InfoRow label="Cost" value={amountLabel} />
+            <InfoRow label="Protection" value="policy + operator approval" />
+            <InfoRow label="Do next" value={nextAction.label} />
           </div>
         </div>
       </section>
 
       <div className="judgeLead">
         <div>
-          <span>Next action</span>
+          <span>Do this next</span>
           <strong>{nextAction.label}</strong>
           <small>{nextAction.detail}</small>
         </div>
-        {nextAction.label === "Clear And Settle" ? null : (
+        {nextAction.label === "Approve and pay" ? null : (
           <button
             className="primary"
             disabled={nextAction.disabled}
@@ -1477,8 +1493,8 @@ function X402FlowPanel({
       <details className="sequenceDrawer" open={Boolean(flow.paymentRequired)}>
         <summary>
           <div>
-            <span>Clearance checkpoints</span>
-            <strong>{"request -> 402 -> verify -> clear -> settle -> file -> unlock"}</strong>
+            <span>Technical timeline</span>
+            <strong>{"request data -> 402 -> policy check -> approval -> payment -> signed receipt"}</strong>
           </div>
           <ProofStamp tone={flow.unlocked ? "cleared" : flow.paymentRequired ? "pending" : "protocol"}>
             {flow.unlocked ? "COMPLETE" : flow.paymentRequired ? "IN PROGRESS" : "READY"}
@@ -1490,15 +1506,15 @@ function X402FlowPanel({
       <details className="approvalBox" open={flow.verifyValid && !flow.txHash}>
         <summary className="approvalSummary">
           <div className="approvalCopy">
-            <span>Operator clearance packet</span>
+            <span>Approval step</span>
             <strong>
               {flow.verifyValid && !flow.txHash
-                ? "Review the ticket before funds move"
+                ? "Approve a real testnet payment"
                 : "Hidden until policy verifies"}
             </strong>
             <small>
-              The agent requested paid market data. Osmium requires policy
-              clearance and an operator decision before settlement.
+              This is the only step that can move funds. It calls the protected
+              Render runner endpoint with your operator key.
             </small>
           </div>
           <ProofStamp tone={flow.verifyValid ? "pending" : "protocol"}>
@@ -1506,19 +1522,19 @@ function X402FlowPanel({
           </ProofStamp>
         </summary>
         <div className="approvalSeal" aria-hidden="true">
-          HUMAN CLEARANCE
+          OPERATOR APPROVAL
         </div>
         <dl className="approvalFacts">
           <InfoRow label="Agent" value="Market Data Agent" />
-          <InfoRow label="Action" value="Buy verified market data" />
+          <InfoRow label="Agent wants" value="Buy TSLA market data" />
           <InfoRow label="Merchant" value="Verified Market Data API" />
           <InfoRow label="Asset" value={activeAsset} />
           <InfoRow label="Amount" value={amountLabel} />
           <InfoRow
-            label="Clearance check"
+            label="Policy check"
             value={flow.verifyValid ? "valid" : "not verified"}
           />
-          <InfoRow label="Filed receipt" value="required" />
+          <InfoRow label="Signed receipt" value="required after payment" />
           <InfoRow label="Replay protection" value="enabled" />
         </dl>
         <div className="impactLedger" aria-label="Settlement impact">
@@ -1540,7 +1556,7 @@ function X402FlowPanel({
           </div>
         </div>
         <label className="x402Operator">
-          <span>Session-only operator key</span>
+          <span>Operator API key (Render RUNNER_API_KEY)</span>
           <input
             aria-label="Operator API key"
             disabled={busy !== ""}
@@ -1552,7 +1568,7 @@ function X402FlowPanel({
           <small>
             {hasOperatorKey
               ? "session-only key loaded"
-              : "used only to authorize this clearance; never stored in frontend env"}
+              : "stored only in this browser session; never put it in Vercel env"}
           </small>
         </label>
         <div className="approvalChecks" aria-label="Policy checks">
@@ -1568,10 +1584,10 @@ function X402FlowPanel({
             className="primary"
             disabled={busy !== "" || !canSettle}
             onClick={onSettle}
-            title="Clear and settle through Osmium"
+            title="Approve and pay through Osmium"
           >
             <PlayCircle size={16} />
-            Clear and settle
+            Approve and pay 0.25 TSLA
           </button>
         ) : null}
       </details>
@@ -1602,7 +1618,7 @@ function X402FlowPanel({
             value={flow.paymentId ? short(flow.paymentId) : "pending"}
           />
           <InfoRow
-            label="Filed Receipt"
+            label="Signed receipt"
             value={flow.receiptHash ? short(flow.receiptHash) : "pending"}
           />
           <InfoRow
@@ -1634,10 +1650,10 @@ function X402FlowPanel({
         <button
           disabled={busy !== "" || !hasOperatorKey || activeAsset !== "TSLA"}
           onClick={onExecute}
-          title="Fallback to the classic live settlement endpoint"
+          title="Advanced fallback to the classic live settlement endpoint"
         >
           <FileCheck2 size={16} />
-          Router settlement fallback
+          Advanced: router fallback
         </button>
       </details>
     </section>
@@ -1648,7 +1664,7 @@ function TopBadges({ runnerStatus }: { runnerStatus: string }) {
   return (
     <div className="topBadges" aria-label="Live deployment badges">
       <span>Robinhood Chain Testnet</span>
-      <span>Custom x402 clearing rail</span>
+      <span>Policy-gated payment rail</span>
       <span className={runnerStatus === "online" ? "online" : ""}>
         Runner {runnerStatus}
       </span>
@@ -1728,7 +1744,7 @@ function MerchantPanel({
         </div>
         <p>
           Protected resource: <strong>/merchant/market-data</strong>. It returns
-          402 until Osmium clears the request and files a receipt.
+          402 until Osmium verifies payment and returns a signed receipt.
         </p>
         <button
           className="primary"
@@ -1835,12 +1851,12 @@ function ScenarioRail({
   onReplay: () => void;
 }) {
   const scenarios = [
-    { label: "File latest receipt", state: "allow", action: onPay },
-    { label: "Read settlement ledger", state: "execute", action: onExecute },
-    { label: "Deny unknown merchant", state: "block", action: onUnknown },
-    { label: "Deny missing receipt", state: "block", action: onMissing },
-    { label: "Deny over max", state: "block", action: onOver },
-    { label: "Deny replay", state: "live", action: onReplay },
+    { label: "Unlock with latest proof", state: "allow", action: onPay },
+    { label: "Read latest payment proof", state: "execute", action: onExecute },
+    { label: "Block unknown merchant", state: "block", action: onUnknown },
+    { label: "Block missing receipt", state: "block", action: onMissing },
+    { label: "Block over-limit payment", state: "block", action: onOver },
+    { label: "Block replay", state: "live", action: onReplay },
   ];
 
   return (
@@ -1889,7 +1905,7 @@ function CommandStatusStrip({
   settlement: LiveSettlement | null;
 }) {
   return (
-    <section className="cockpitStatus" aria-label="Clearing desk status">
+    <section className="cockpitStatus" aria-label="Operator status">
       <StatusCard
         icon={<Database size={17} />}
         label="Agent"
@@ -1968,10 +1984,10 @@ function CockpitSummary({
     <section className="panel cockpitSummary">
       <div className="panelHeader">
         <div>
-          <span>Clearing desk</span>
-          <strong>Can this ticket clear?</strong>
+          <span>Operator summary</span>
+          <strong>What is live right now?</strong>
         </div>
-        <StatusStamp tone="pending">CLEARANCE REQUIRED</StatusStamp>
+        <StatusStamp tone="pending">APPROVAL REQUIRED</StatusStamp>
       </div>
       <dl className="infoList">
         <InfoRow label="Agent" value="Market Data Agent" />
@@ -2002,7 +2018,7 @@ function AttemptRow({ item }: { item: DemoPreview }) {
       </div>
       <div>
         <strong>{item.label}</strong>
-        <span>{ok ? "Cleared by policy" : item.preview.reasonName}</span>
+        <span>{ok ? "Allowed by policy" : item.preview.reasonName}</span>
       </div>
       <code>{`reason ${item.preview.reason}`}</code>
     </div>
@@ -2019,14 +2035,14 @@ function SettlementPanel({
       <section className="panel proofPanel">
         <div className="panelHeader">
           <div>
-            <span>Settlement Ledger</span>
-            <strong>Awaiting filed receipt</strong>
+            <span>Payment proof</span>
+            <strong>No payment proof yet</strong>
           </div>
           <ArrowRightLeft size={20} />
         </div>
         <div className="emptyProof">
           <CircleDollarSign size={42} />
-          <span>Run the clearance sequence to file the latest TSLA receipt.</span>
+          <span>Run the guided payment to create a tx, signed receipt and replay proof.</span>
         </div>
       </section>
     );
@@ -2037,7 +2053,7 @@ function SettlementPanel({
     <section className="panel proofPanel">
       <div className="panelHeader">
         <div>
-          <span>Settlement Ledger</span>
+          <span>Payment proof</span>
           <strong>
             Policy {settlement.policyId} / {symbol}
           </strong>
@@ -2051,7 +2067,7 @@ function SettlementPanel({
         <LedgerRow
           label="Amount"
           value={formatToken(settlement.amount, symbol)}
-          detail="clearance amount"
+          detail="approved amount"
         />
         <LedgerRow
           label="Merchant"
@@ -2063,7 +2079,7 @@ function SettlementPanel({
           )}
         />
         <LedgerRow
-          label="Router Vault"
+          label="Router vault"
           value={formatToken(settlement.after.routerVault, symbol)}
           detail={formatDelta(
             settlement.before.routerVault,
@@ -2072,12 +2088,12 @@ function SettlementPanel({
           )}
         />
         <LedgerRow
-          label="Payment Id"
+          label="Payment id"
           value={short(settlement.paymentId)}
           detail="anti-replay key"
         />
         <LedgerRow
-          label="Filed Receipt"
+          label="Signed receipt"
           value={short(settlement.receiptHash)}
           detail="stored onchain"
         />
@@ -2114,7 +2130,7 @@ function AuditTrail({
     <section className="panel auditPanel">
       <div className="panelHeader">
         <div>
-          <span>Settlement Ledger</span>
+          <span>Proof log</span>
           <strong>{rows.length + merchantAudit.length} events</strong>
         </div>
         <FileCheck2 size={20} />
@@ -2126,7 +2142,7 @@ function AuditTrail({
           <>
             <div className="auditHeader">
               <span>Time</span>
-              <span>Clearance Event</span>
+              <span>Event</span>
               <span>Decision</span>
               <span>Proof</span>
             </div>
@@ -2141,10 +2157,10 @@ function AuditTrail({
                     ? "merchant-signed receipt verified"
                     : record.merchantReceipt?.signature
                       ? "merchant-signed receipt unverified"
-                    : `filed receipt ${short(record.receiptHash)}`}
+                    : `signed receipt ${short(record.receiptHash)}`}
                 </span>
                 <ProofStamp tone={record.unlocked ? "cleared" : "protocol"}>
-                  {record.merchantReceipt?.verified ? "SIGNED" : record.unlocked ? "FILED" : "SETTLED"}
+                  {record.merchantReceipt?.verified ? "SIGNED" : record.unlocked ? "UNLOCKED" : "PAID"}
                 </ProofStamp>
                 {isFullTxHash(record.txHash) ? (
                   <a
@@ -2184,8 +2200,8 @@ function DeveloperPanel() {
       <section className="panel">
         <div className="panelHeader">
           <div>
-            <span>Integration desk</span>
-            <strong>Integrate clearance in 10 minutes</strong>
+            <span>Integration guide</span>
+            <strong>Integrate safe agent payments in 10 minutes</strong>
           </div>
           <Code2 size={20} />
         </div>
@@ -2197,15 +2213,15 @@ function DeveloperPanel() {
             </div>
             <div>
               <ListChecks size={17} />
-              <span>Verify clearance requirements</span>
+              <span>Check payment policy</span>
             </div>
             <div>
               <ListChecks size={17} />
-              <span>Ask operator to clear settlement</span>
+              <span>Ask operator to approve payment</span>
             </div>
             <div>
               <ListChecks size={17} />
-              <span>Unlock data with paymentId and filed receipt</span>
+              <span>Unlock data with paymentId and signed receipt</span>
             </div>
           </div>
           <pre>
@@ -2227,15 +2243,15 @@ const data = await osmium.getMarketData("TSLA", {
         <div className="panelHeader">
           <div>
             <span>Endpoints</span>
-            <strong>x402-compatible clearance API</strong>
+            <strong>x402-compatible payment API</strong>
           </div>
           <Radio size={20} />
         </div>
         <dl className="infoList">
           <InfoRow label="Resource" value="GET /merchant/market-data" />
           <InfoRow label="Verify" value="POST /x402/verify" />
-          <InfoRow label="Clear + settle" value="POST /x402/settle" />
-          <InfoRow label="Proof ledger" value="GET /merchant/audit" />
+          <InfoRow label="Approve + pay" value="POST /x402/settle" />
+          <InfoRow label="Proof log" value="GET /merchant/audit" />
           <InfoRow label="Network" value="eip155:46630" />
           <InfoRow label="Assets" value="TSLA live / AMD risk / AMZN corporate action" />
         </dl>
@@ -2351,8 +2367,8 @@ function buildAuditRows(
     ...(settlement
       ? [
           {
-            status: "CLEARANCE GRANTED",
-            detail: `SETTLEMENT EXECUTED / ${formatToken(settlement.amount)} / filed receipt ${short(settlement.receiptHash)}`,
+            status: "PAYMENT APPROVED",
+            detail: `PAYMENT EXECUTED / ${formatToken(settlement.amount)} / signed receipt ${short(settlement.receiptHash)}`,
             ok: true,
           },
           {

@@ -22,7 +22,6 @@ import {
   PlayCircle,
   Radio,
   ShieldCheck,
-  SlidersHorizontal,
   Store,
   Wallet,
   XCircle,
@@ -840,12 +839,9 @@ function App() {
     label: string;
     icon: ReactNode;
   }> = [
-    { id: "command", label: "Run Demo", icon: <PlayCircle size={17} /> },
-    { id: "policy", label: "Policy", icon: <KeyRound size={17} /> },
-    { id: "merchant", label: "Data Service", icon: <Store size={17} /> },
-    { id: "audit", label: "Proof Log", icon: <FileCheck2 size={17} /> },
-    { id: "developer", label: "Developers", icon: <Code2 size={17} /> },
-    { id: "settings", label: "Settings", icon: <SlidersHorizontal size={17} /> },
+    { id: "command", label: "Payment", icon: <PlayCircle size={17} /> },
+    { id: "audit", label: "Proof", icon: <FileCheck2 size={17} /> },
+    { id: "developer", label: "Build", icon: <Code2 size={17} /> },
   ];
   const riskWorkbench = (
     <section className="decisionDesk">
@@ -923,7 +919,7 @@ function App() {
           </div>
           <div>
             <span>Osmium</span>
-            <strong>Agent Payments</strong>
+            <strong>Payment Control</strong>
           </div>
         </div>
 
@@ -941,11 +937,6 @@ function App() {
           ))}
         </nav>
 
-        <div className="railCard">
-          <span>Runtime</span>
-          <strong>{runnerStatus}</strong>
-          <small>{config.runnerUrl.replace(/^https?:\/\//, "")}</small>
-        </div>
       </aside>
 
       <section className="workspace">
@@ -1005,58 +996,9 @@ function App() {
                 onSettle={settleX402Flow}
                 onVerify={verifyX402Flow}
               />
-              <CommandStatusStrip
-                activeAsset={activeAsset}
-                quote={quote}
-                runnerStatus={runnerStatus}
-                settlement={settlement}
-              />
-              <details className="productStoryDrawer">
-                <summary>
-                  <span>What Osmium does</span>
-                  <strong>Why this payment cannot happen like a normal wallet transfer</strong>
-                </summary>
-                <ClearingHero
-                  activeAsset={activeAsset}
-                  busy={busy}
-                  flow={x402Flow}
-                  runnerStatus={runnerStatus}
-                  settlement={settlement}
-                  onRequest={() => requestMarketDataResource(activeAsset)}
-                />
-              </details>
-              <details className="operatorSnapshot operatorDrawer">
-                <summary>
-                  <span>Technical context</span>
-                  <strong>balances, agent and latest signed receipt</strong>
-                </summary>
-                <CockpitSummary
-                  activeAsset={activeAsset}
-                  account={account}
-                  nativeBalance={nativeBalance}
-                  quote={quote}
-                  runnerStatus={runnerStatus}
-                  settlement={settlement}
-                />
-                <SettlementPanel settlement={settlement} />
-              </details>
             </section>
-            <details className="liveContextDrawer">
-              <summary>
-                <span>Runtime context</span>
-                <strong>Robinhood 46630 · TSLA live · protected payment rail</strong>
-              </summary>
-              <section className="clearingTape" aria-label="Live clearing tape">
-                <span>RH-46630</span>
-                <strong>OSMIUM AGENT PAYMENTS</strong>
-                <span>SCHEME OSMIUM-EXACT</span>
-                <span>ASSET TSLA LIVE</span>
-                <span>RESOURCE MARKET-DATA</span>
-                <span>HUMAN APPROVAL REQUIRED</span>
-              </section>
-            </details>
             <details className="secondaryDrills">
-              <summary>Denied request drills</summary>
+              <summary>Show blocked examples</summary>
               {riskWorkbench}
             </details>
           </section>
@@ -1383,7 +1325,7 @@ function X402FlowPanel({
             label: "Approve and pay",
             detail: hasOperatorKey
               ? "Approving sends a real testnet TSLA payment through the SettlementRouter."
-              : "Paste your Render RUNNER_API_KEY to approve this operator-only payment.",
+              : "Paste the operator key to approve this protected payment.",
             action: onSettle,
             disabled: busy !== "" || !canSettle,
             icon: <PlayCircle size={17} />,
@@ -1454,8 +1396,8 @@ function X402FlowPanel({
     <section className="judgePanel" id="payment-walkthrough">
       <div className="panelHeader">
         <div>
-          <span>Start here</span>
-          <strong>Run the live agent payment</strong>
+          <span>One payment to review</span>
+          <strong>Approve the agent, then verify the proof</strong>
         </div>
         <StatusStamp tone={flow.unlocked ? "cleared" : "pending"}>
           {flow.unlocked ? "DATA UNLOCKED" : flow.verifyValid ? "APPROVAL NEEDED" : "READY"}
@@ -1464,7 +1406,7 @@ function X402FlowPanel({
 
       <section className={`workflowDock ${isComplete ? "complete" : ""}`}>
         <div className="workflowBrief">
-          <span>Current instruction</span>
+          <span>Do this next</span>
           <strong>{nextAction.label}</strong>
           <small>{nextAction.detail}</small>
         </div>
@@ -1472,12 +1414,12 @@ function X402FlowPanel({
           {flow.verifyValid && !flow.txHash ? (
             <>
               <label className="dockKeyField">
-                <span>Paste Render RUNNER_API_KEY</span>
+                <span>Session approval key</span>
                 <input
                   aria-label="Operator API key"
                   disabled={busy !== ""}
                   onChange={(event) => setOperatorKey(event.target.value)}
-                  placeholder="une_clé_longue_random"
+                  placeholder="Paste operator key"
                   type="password"
                   value={operatorKey}
                 />
@@ -1523,62 +1465,60 @@ function X402FlowPanel({
 
       <section className="sequencePanel">
         <div className="sequencePanelHeader">
-          <span>Payment workflow</span>
-          <strong>{"Request data -> 402 -> policy check -> operator approval -> payment -> signed receipt"}</strong>
+          <span>Payment path</span>
+          <strong>Only the highlighted step needs your attention.</strong>
         </div>
         <ClearingRail steps={steps} />
       </section>
 
-      <details className="requestDetails" open={Boolean(flow.paymentRequired) && !isComplete}>
-        <summary>
-          <span>Payment request details</span>
-          <strong>Agent, merchant, amount and protection</strong>
-        </summary>
-        <section className={`clearanceTicket ${ticketTone}`} aria-label="Clearance ticket">
-          <div className="ticketSeal" aria-hidden="true">
-            <span>NO BLANK</span>
-            <strong>CHECK</strong>
-          </div>
-          <div className="ticketSpine">
-            <span>OSMIUM</span>
-            <strong>PAYMENT CHECK</strong>
-          </div>
-          <div className="ticketBody">
-            <div className="ticketTop">
-              <div>
-                <span>Payment request</span>
-                <strong>Market Data Agent wants TSLA data</strong>
-                <small>Osmium will not let the agent pay until policy and operator approval pass.</small>
+      {flow.paymentRequired ? (
+        <details className="requestDetails">
+          <summary>
+            <span>What is being approved?</span>
+            <strong>Show request summary</strong>
+          </summary>
+          <section className={`clearanceTicket ${ticketTone}`} aria-label="Clearance ticket">
+            <div className="ticketSeal" aria-hidden="true">
+              <span>NO BLANK</span>
+              <strong>CHECK</strong>
+            </div>
+            <div className="ticketSpine">
+              <span>OSMIUM</span>
+              <strong>PAYMENT CHECK</strong>
+            </div>
+            <div className="ticketBody">
+              <div className="ticketTop">
+                <div>
+                  <span>Payment request</span>
+                  <strong>Market Data Agent wants TSLA data</strong>
+                  <small>Osmium will not let the agent pay until policy and operator approval pass.</small>
+                </div>
+                <ProofStamp tone={flow.unlocked ? "cleared" : "pending"}>
+                  {decision}
+                </ProofStamp>
               </div>
-              <ProofStamp tone={flow.unlocked ? "cleared" : "pending"}>
-                {decision}
-              </ProofStamp>
+              <div className="ticketFacts">
+                <InfoRow label="Request id" value={caseId} />
+                <InfoRow label="Agent wants" value="TSLA market data" />
+                <InfoRow label="Merchant" value="Verified Market Data API" />
+                <InfoRow label="Cost" value={amountLabel} />
+                <InfoRow label="Protection" value="policy + operator approval" />
+                <InfoRow label="Do next" value={nextAction.label} />
+              </div>
             </div>
-            <div className="ticketFacts">
-              <InfoRow label="Request id" value={caseId} />
-              <InfoRow label="Agent wants" value="TSLA market data" />
-              <InfoRow label="Merchant" value="Verified Market Data API" />
-              <InfoRow label="Cost" value={amountLabel} />
-              <InfoRow label="Protection" value="policy + operator approval" />
-              <InfoRow label="Do next" value={nextAction.label} />
-            </div>
-          </div>
-        </section>
-      </details>
+          </section>
+        </details>
+      ) : null}
 
       {flow.verifyValid && !flow.txHash ? (
       <details className="approvalBox" open>
         <summary className="approvalSummary">
           <div className="approvalCopy">
-            <span>Approval step</span>
-            <strong>
-              {flow.verifyValid && !flow.txHash
-                ? "Approve a real testnet payment"
-                : "Hidden until policy verifies"}
-            </strong>
+            <span>Money can move here</span>
+            <strong>Approve this testnet payment?</strong>
             <small>
-              This is the only step that can move funds. It calls the protected
-              Render runner endpoint with your operator key.
+              The agent cannot spend by itself. Your approval calls the protected
+              runner and settles only after the policy check passes.
             </small>
           </div>
           <ProofStamp tone={flow.verifyValid ? "pending" : "protocol"}>
@@ -1630,6 +1570,7 @@ function X402FlowPanel({
       </details>
       ) : null}
 
+      {flow.paymentRequired || flow.txHash ? (
       <details className="advancedDetails">
         <summary>Advanced proof details</summary>
         <div className="x402Ledger">
@@ -1694,6 +1635,7 @@ function X402FlowPanel({
           Advanced: router fallback
         </button>
       </details>
+      ) : null}
     </section>
   );
 }
@@ -1701,10 +1643,11 @@ function X402FlowPanel({
 function TopBadges({ runnerStatus }: { runnerStatus: string }) {
   return (
     <div className="topBadges" aria-label="Live deployment badges">
-      <span>Robinhood Chain Testnet</span>
-      <span>Policy-gated payment rail</span>
+      <span>Robinhood testnet</span>
+      <span>Operator approval</span>
+      <span>Signed receipt</span>
       <span className={runnerStatus === "online" ? "online" : ""}>
-        Runner {runnerStatus}
+        {runnerStatus === "online" ? "System ready" : "System pending"}
       </span>
     </div>
   );
@@ -2196,7 +2139,7 @@ function AuditTrail({
             <span>Run the payment demo first. This log will then show tx proof, signed receipt, unlock and replay block.</span>
             <a className="glassLink" href="#command">
               <PlayCircle size={15} />
-              Run Demo
+              Run payment
             </a>
           </div>
         ) : (

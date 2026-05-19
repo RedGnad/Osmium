@@ -40,22 +40,13 @@ html {
 }
 
 body {
-  background:
-    linear-gradient(90deg, rgba(39, 48, 64, 0.45) 1px, transparent 1px),
-    linear-gradient(rgba(39, 48, 64, 0.24) 1px, transparent 1px),
-    var(--bg);
-  background-size: 96px 100%, 100% 96px, auto;
+  background: var(--bg);
   margin: 0;
   min-width: 320px;
 }
 
 body::before {
-  border-left: 1px solid rgba(244, 247, 250, 0.035);
-  border-right: 1px solid rgba(244, 247, 250, 0.025);
-  content: "";
-  inset: 0 9vw;
-  pointer-events: none;
-  position: fixed;
+  display: none;
 }
 
 button,
@@ -134,23 +125,26 @@ input:focus-visible {
 }
 
 .appShell {
-  display: grid;
-  grid-template-columns: 268px minmax(0, 1fr);
+  display: block;
   min-height: 100vh;
   position: relative;
 }
 
 .sideRail {
-  background: #07090c;
-  border-right: 1px solid var(--border);
+  align-items: center;
+  background: rgba(7, 9, 12, 0.92);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+  border-right: 0;
   color: var(--text);
   display: flex;
-  flex-direction: column;
-  gap: 28px;
-  padding: 24px 18px;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 14px clamp(18px, 4vw, 42px);
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: auto;
+  z-index: 20;
 }
 
 .brandLockup {
@@ -227,8 +221,8 @@ input:focus-visible {
 }
 
 .railNav {
-  display: grid;
-  gap: 7px;
+  display: flex;
+  gap: 8px;
 }
 
 .railNav button {
@@ -245,7 +239,7 @@ input:focus-visible {
   min-height: 42px;
   padding: 0 12px;
   text-decoration: none;
-  width: 100%;
+  width: auto;
 }
 
 .railNav button:hover,
@@ -256,31 +250,17 @@ input:focus-visible {
 }
 
 .railNav button.active {
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-
-.railCard {
-  background: #0b0e13;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  display: grid;
-  gap: 8px;
-  margin-top: auto;
-  padding: 14px;
-}
-
-.railCard strong {
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 17px;
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 .workspace {
   align-content: start;
   display: grid;
   gap: 18px;
+  margin: 0 auto;
+  max-width: 1180px;
   min-width: 0;
-  padding: 30px;
+  padding: 28px clamp(16px, 3vw, 30px) 70px;
 }
 
 .topbar {
@@ -288,14 +268,14 @@ input:focus-visible {
   display: flex;
   gap: 18px;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 16px;
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 
 .commandTopbar {
   align-items: center;
   min-height: 42px;
-  padding-bottom: 12px;
+  padding-bottom: 0;
 }
 
 .commandTopline {
@@ -336,13 +316,13 @@ h1 {
 
 .topBadges span {
   align-items: center;
-  background: #0c1015;
+  background: #0b0e13;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 999px;
   color: var(--muted-strong);
   display: inline-flex;
   min-height: 30px;
-  padding: 0 10px;
+  padding: 0 12px;
   text-transform: none;
 }
 
@@ -840,7 +820,7 @@ h1 {
 .secondaryDrills {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 14px;
   box-shadow: none;
 }
 
@@ -961,42 +941,37 @@ h1 {
 }
 
 .judgePanel {
-  background:
-    linear-gradient(90deg, rgba(57, 255, 136, 0.065) 1px, transparent 1px),
-    var(--panel);
-  background-size: 12px 100%, auto;
-  border-color: rgba(57, 255, 136, 0.3);
-  padding-left: 26px;
+  background: #0d1117;
+  border-color: rgba(216, 209, 192, 0.16);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
+  padding: 22px;
   position: relative;
 }
 
 .judgePanel::before {
-  background: var(--cleared);
+  background: linear-gradient(180deg, var(--pending), var(--cleared));
   content: "";
-  inset: 18px auto 18px 12px;
+  inset: 0 auto 0 0;
   position: absolute;
-  width: 2px;
+  width: 3px;
 }
 
 .workflowDock {
   align-items: center;
-  background:
-    linear-gradient(90deg, rgba(57, 255, 136, 0.07) 1px, transparent 1px),
-    #07110c;
-  background-size: 16px 100%, auto;
-  border: 1px solid rgba(57, 255, 136, 0.34);
-  border-left: 3px solid var(--accent);
+  background: #f3efe4;
+  border: 0;
+  border-left: 4px solid var(--pending);
+  color: #11151c;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1fr) minmax(330px, 0.55fr);
-  padding: 16px;
+  padding: 20px;
   min-width: 0;
 }
 
 .workflowDock.complete {
-  background:
-    linear-gradient(90deg, rgba(57, 255, 136, 0.045) 1px, transparent 1px),
-    #08120d;
+  background: #e9f7ec;
+  border-left-color: var(--cleared);
 }
 
 .workflowBrief {
@@ -1014,14 +989,19 @@ h1 {
   text-transform: uppercase;
 }
 
+.workflowDock .workflowBrief span,
+.workflowDock .dockKeyField span {
+  color: #5b6470;
+}
+
 .workflowBrief strong {
-  color: var(--text);
+  color: #11151c;
   font-size: clamp(26px, 3vw, 38px);
   line-height: 1.04;
 }
 
 .workflowBrief small {
-  color: var(--muted-strong);
+  color: #4b5563;
   font-size: 15px;
   line-height: 1.45;
   max-width: 760px;
@@ -1041,23 +1021,28 @@ h1 {
 }
 
 .dockKeyField {
-  background: #080a0d;
-  border: 1px solid rgba(246, 200, 95, 0.28);
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(17, 21, 28, 0.18);
+  border-radius: 10px;
   display: grid;
   gap: 8px;
   padding: 12px;
 }
 
 .dockKeyField input {
+  background: #ffffff;
+  border-color: rgba(17, 21, 28, 0.2);
+  color: #11151c;
   width: 100%;
 }
 
 .sequencePanel {
-  background: #0b0e13;
-  border: 1px solid var(--border);
+  background: #0a0d12;
+  border: 1px solid rgba(216, 209, 192, 0.12);
+  border-radius: 12px;
   display: grid;
   gap: 12px;
-  padding: 12px;
+  padding: 14px;
   min-width: 0;
 }
 
@@ -1520,13 +1505,10 @@ pre,
 }
 
 .approvalBox {
-  background:
-    linear-gradient(90deg, rgba(246, 200, 95, 0.05) 1px, transparent 1px),
-    #111018;
-  background-size: 18px 100%, auto;
+  background: #13100a;
   border: 1px solid rgba(244, 189, 93, 0.36);
-  border-left: 2px solid var(--pending);
-  border-radius: 4px;
+  border-left: 4px solid var(--pending);
+  border-radius: 12px;
   display: grid;
   gap: 0;
   padding: 0;
@@ -1559,9 +1541,7 @@ pre,
 }
 
 .approvalBox:not([open]) {
-  background:
-    linear-gradient(90deg, rgba(106, 168, 255, 0.04) 1px, transparent 1px),
-    #0b0e13;
+  background: #0b0e13;
   border-color: var(--border);
   border-left-color: var(--protocol);
 }
@@ -1588,7 +1568,7 @@ pre,
 .approvalFacts {
   background: #080a0d;
   border: 1px solid rgba(244, 189, 93, 0.18);
-  border-radius: 4px;
+  border-radius: 10px;
   display: grid;
   margin: 0;
   padding: 0 12px;
@@ -1596,8 +1576,10 @@ pre,
 
 .impactLedger {
   border: 1px solid var(--border);
+  border-radius: 10px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
 }
 
 .impactLedger div {
@@ -1667,7 +1649,7 @@ pre,
 .secondaryDrills {
   background: #0b0e13;
   border-color: var(--border);
-  padding: 13px;
+  padding: 13px 16px;
 }
 
 .advancedDetails summary,
@@ -1698,12 +1680,10 @@ pre,
 
 .pageGuide {
   align-items: stretch;
-  background:
-    linear-gradient(90deg, rgba(106, 168, 255, 0.045) 1px, transparent 1px),
-    #0b0e13;
-  background-size: 18px 100%, auto;
+  background: #0b0e13;
   border: 1px solid var(--border);
-  border-left: 2px solid var(--protocol);
+  border-left: 3px solid var(--protocol);
+  border-radius: 14px;
   display: grid;
   gap: 16px;
   grid-column: 1 / -1;
@@ -2340,28 +2320,23 @@ code {
 }
 
 @media (max-width: 1120px) {
-  .appShell {
-    grid-template-columns: 1fr;
-  }
-
   .sideRail {
-    display: none;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
-  .mobileNav {
-    display: flex;
-    gap: 8px;
+  .railNav {
+    flex: 1 1 auto;
     overflow-x: auto;
-    padding-bottom: 2px;
   }
 
-  .mobileNav button {
+  .railNav button {
     flex: 0 0 auto;
   }
 
-  .mobileNav button.active {
-    border-color: rgba(61, 240, 194, 0.28);
-    color: var(--accent);
+  .mobileNav {
+    display: none;
   }
 
   .workspace {
@@ -2424,6 +2399,23 @@ code {
 }
 
 @media (max-width: 640px) {
+  .sideRail {
+    padding: 12px;
+  }
+
+  .brandLockup strong {
+    font-size: 15px;
+  }
+
+  .railNav {
+    order: 2;
+    width: 100%;
+  }
+
+  .railNav button {
+    min-height: 38px;
+  }
+
   .workspace {
     padding: 16px;
   }

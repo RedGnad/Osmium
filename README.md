@@ -189,6 +189,47 @@ The Coinbase CDP-hosted x402 facilitator only routes a fixed allowlist of networ
 
 The x402 protocol is permissionless, so Osmium self-hosts a custom x402-compatible facilitator for `eip155:46630`. Same HTTP envelope, same `accepts[]` shape, different settlement primitive (`osmium-delegated-vault` instead of `permit2-witness-transfer`). The PaymentRequirements `extra.compatibility` field declares this divergence explicitly so x402-aware clients can opt in or fall through.
 
+## Self-Serve Alpha
+
+The Clear screen ships in two coexisting modes, controlled by a toggle above the Clearance Ticket:
+
+**Demo mode** — the judge path. No wallet connect required. An operator API key paste authorises the runner to settle from the team-funded TSLA vault. This path always remains accessible.
+
+**Self-serve mode** — the builder path. The connected wallet is fully sovereign over its own workspace:
+
+1. `policyEngine.createPolicy(agent=self, token=TSLA, maxPerTx, periodLimit, validUntil)` — msg.sender becomes the policy owner.
+2. `policyEngine.approveIntent(policyId, intentHash, contextHash, max, validUntil)` — authorises Osmium's canonical x402 intent on the user's policy.
+3. `TSLA.approve(SettlementRouter, allowance)` — one-time approval.
+4. `SettlementRouter.deposit(TSLA, amount)` — funds the user's own vault (`vaultBalance[wallet][TSLA]`).
+
+After provisioning, each clearance is one wallet popup: `SettlementRouter.settleWithIntent(policyId, …)` signed by the user's wallet. Osmium's runner does **not** sign the settlement; it observes the resulting transaction via `POST /x402/settle/observe` and ingests the audit row from on-chain truth.
+
+Workspace identifiers persist in `localStorage` keyed by wallet address — a returning user skips straight to settling.
+
+**What's testnet vs. production today:**
+
+| Surface | State |
+|---|---|
+| Robinhood Chain Testnet (eip155:46630) | live |
+| OsmiumPolicyEngine — Stylus, deployed | live |
+| OsmiumSettlementRouter — Solidity, deployed | live |
+| Demo mode (operator-key + team vault) | live |
+| Self-serve mode (wallet + own vault) | live, testnet-only |
+| Policy templates other than TSLA-strict | coming soon |
+| Custom policy editor | coming soon |
+| Workspace API keys / hosted control plane | V2 |
+| Merchant SDK npm package | V2 |
+| AMD/AMZN live settlement | quote-supported only |
+
+The "coming soon" surfaces appear in the UI as visibly disabled cards. They are not clickable and do not pretend to function.
+
+**Custodial boundary:**
+
+- Demo mode is **partially custodial** — the team's runner holds the spend key for the team's vault. Users observe; they do not custody anything.
+- Self-serve mode is **non-custodial** — the user holds the funds, signs every settlement, and can withdraw at any time via `SettlementRouter.withdraw(TSLA, amount)`. Osmium never has spend authority over the user's vault.
+
+`/x402/supported` continues to advertise only the `osmium-exact` scheme. The two modes share the protocol envelope; only the signer differs.
+
 ## Commands
 
 ```bash

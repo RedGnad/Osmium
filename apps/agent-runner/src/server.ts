@@ -3,6 +3,7 @@ import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
 import { readLiveSettlementProof, runLiveSettlement } from "./liveSettlement.js";
 import { marketDataQuote, marketDataResource, merchantAuditLog, unlockMarketData } from "./merchant.js";
+import { observeSettlement } from "./observeSettlement.js";
 import {
   buildPaymentRequired,
   buildPaymentPayload,
@@ -141,7 +142,25 @@ app.get("/merchant/market-data", async (req, res, next) => {
       return res.status(result.status).json(result.body);
     }
 
-    const paymentRequired = buildPaymentRequired(config, req.query.asset);
+    /* Self-serve callers pass ?policyId=&agent= (and optionally lane=self-serve)
+       to receive a 402 bound to their own onchain policy. */
+    const rawPolicy =
+      typeof req.query.policyId === "string" ? req.query.policyId : undefined;
+    const rawAgent =
+      typeof req.query.agent === "string" ? req.query.agent : undefined;
+    const rawLane =
+      typeof req.query.lane === "string" ? req.query.lane : undefined;
+    const lane =
+      rawLane === "self-serve" || rawLane === "demo" ? rawLane : undefined;
+    const agentOption =
+      rawAgent && /^0x[a-fA-F0-9]{40}$/.test(rawAgent)
+        ? (rawAgent as `0x${string}`)
+        : undefined;
+    const paymentRequired = buildPaymentRequired(config, req.query.asset, {
+      policyId: rawPolicy,
+      agent: agentOption,
+      lane
+    });
     res.header("PAYMENT-REQUIRED", encodeBase64Json(paymentRequired));
     res.status(402).json(paymentRequired);
   } catch (error) {
@@ -170,6 +189,17 @@ app.post("/x402/settle", requireApiKey, async (req, res, next) => {
     const result = await settleX402Payment(config, body);
     res.header("PAYMENT-RESPONSE", encodeBase64Json(result));
     res.status(result.success ? 200 : 402).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/* Trustless audit ingestion for the self-serve lane. No API key required —
+   we authenticate by reading the chain. */
+app.post("/x402/settle/observe", async (req, res, next) => {
+  try {
+    const result = await observeSettlement(config, req.body ?? {});
+    res.status(result.ok ? 200 : 422).json(result);
   } catch (error) {
     next(error);
   }

@@ -54,5 +54,20 @@ export const settlementRouterAbi = [
       { name: "token", type: "address" }
     ],
     outputs: [{ type: "uint256" }]
+  },
+  {
+    type: "event",
+    name: "PaymentSettled",
+    inputs: [
+      { name: "policyId", type: "uint256", indexed: true },
+      { name: "agent", type: "address", indexed: true },
+      { name: "merchant", type: "address", indexed: true },
+      { name: "owner", type: "address", indexed: false },
+      { name: "token", type: "address", indexed: false },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "paymentId", type: "bytes32", indexed: false },
+      { name: "intentHash", type: "bytes32", indexed: false },
+      { name: "receiptHash", type: "bytes32", indexed: false }
+    ]
   }
 ] as const;

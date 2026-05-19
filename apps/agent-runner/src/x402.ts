@@ -39,13 +39,26 @@ type OsmiumPaymentDetails = {
     receiptHash: Hex;
     paymentId: Hex;
     merchant: Address;
+    /* Onchain policy id — defaults to settlementDemoPolicyId.
+       Self-serve callers pass their own policyId via ?policyId= query. */
     policyId: string;
+    /* Address expected to msg.sender the settleWithIntent call.
+       Demo path: the runner's agentAddress. Self-serve: the user's wallet. */
+    agent: Address;
+    /* Lane: demo (runner-signed via /x402/settle) | self-serve (wallet-signed direct on chain) */
+    lane: "demo" | "self-serve";
     intentHash: Hex;
     contextHash: Hex;
     settlement: typeof OSMIUM_X402_SETTLEMENT;
     compatibility: OsmiumPaymentCompatibility;
     note: string;
   };
+};
+
+export type BuildPaymentOptions = {
+  policyId?: string;
+  agent?: Address;
+  lane?: "demo" | "self-serve";
 };
 
 export type OsmiumPaymentRequired = {
@@ -116,11 +129,25 @@ function marketDataHash(label: string) {
   return keccak256(toBytes(label));
 }
 
-export function buildPaymentRequired(config: RunnerConfig, rawAsset: unknown): OsmiumPaymentRequired {
+export function buildPaymentRequired(
+  config: RunnerConfig,
+  rawAsset: unknown,
+  options: BuildPaymentOptions = {}
+): OsmiumPaymentRequired {
   if (!config.settlementRouterAddress) throw new Error("OSMIUM_SETTLEMENT_ROUTER_ADDRESS is required");
   const quote = marketDataQuote(config, rawAsset);
   const paymentId = buildPaymentId(quote.asset);
   const receiptHash = marketDataHash(`receipt:x402:${paymentId}`);
+
+  const lane = options.lane ?? (options.policyId || options.agent ? "self-serve" : "demo");
+  const policyId = options.policyId?.trim()
+    ? options.policyId.trim()
+    : config.settlementDemoPolicyId.toString();
+  const agent =
+    options.agent ??
+    (config.agentAddress as Address | undefined) ??
+    ("0x0000000000000000000000000000000000000000" as Address);
+
   const details: OsmiumPaymentDetails = {
     scheme: OSMIUM_X402_SCHEME,
     network: networkId(config),
@@ -129,7 +156,10 @@ export function buildPaymentRequired(config: RunnerConfig, rawAsset: unknown): O
     payTo: config.settlementRouterAddress,
     maxTimeoutSeconds: quote.expiresInSeconds,
     resource: {
-      url: `/merchant/market-data?asset=${quote.asset}`,
+      url:
+        lane === "self-serve"
+          ? `/merchant/market-data?asset=${quote.asset}&policyId=${policyId}&agent=${agent}`
+          : `/merchant/market-data?asset=${quote.asset}`,
       description: `${quote.title} through Osmium policy-routed settlement`,
       mimeType: "application/json"
     },
@@ -141,7 +171,9 @@ export function buildPaymentRequired(config: RunnerConfig, rawAsset: unknown): O
       receiptHash,
       paymentId,
       merchant: quote.merchant,
-      policyId: config.settlementDemoPolicyId.toString(),
+      policyId,
+      agent,
+      lane,
       intentHash: config.demoIntentHash,
       contextHash: LIVE_SETTLEMENT_CONTEXT_HASH,
       settlement: OSMIUM_X402_SETTLEMENT,
@@ -150,7 +182,10 @@ export function buildPaymentRequired(config: RunnerConfig, rawAsset: unknown): O
         divergence: "delegated-vault-settlement",
         reason: "AI agents request clearance instead of holding spend authority"
       },
-      note: "Custom x402-compatible scheme for delegated vault settlement on Robinhood Chain."
+      note:
+        lane === "self-serve"
+          ? "Self-serve lane: settle from your own vault via your wallet. Runner does not hold spend authority."
+          : "Custom x402-compatible scheme for delegated vault settlement on Robinhood Chain."
     }
   };
 
@@ -195,27 +230,49 @@ export async function verifyX402Payment(config: RunnerConfig, body: X402Body) {
   if (!paymentPayload || !details) {
     return invalid("invalid_payload", "paymentPayload and paymentRequirements are required.");
   }
-  if (!config.agentAddress) return invalid("invalid_payload", "AGENT_ADDRESS is required.");
   if (!config.settlementRouterAddress) return invalid("invalid_payment_requirements", "SettlementRouter is not configured.");
-  if (details.scheme !== OSMIUM_X402_SCHEME) return invalid("invalid_scheme", "Unsupported Osmium x402 scheme.", config.agentAddress);
-  if (details.network !== networkId(config)) return invalid("invalid_network", "Unsupported x402 network.", config.agentAddress);
+
+  /* The "agent" is whoever the policy expects to call settle.
+     For demo lane it's the runner. For self-serve it's the user's wallet.
+     We pull it from the payment details so both lanes verify against the
+     same view of the world the client just received. */
+  const agent: Address =
+    (details.extra.agent as Address | undefined) ??
+    (config.agentAddress as Address | undefined) ??
+    ("0x0000000000000000000000000000000000000000" as Address);
+
+  if (details.scheme !== OSMIUM_X402_SCHEME) return invalid("invalid_scheme", "Unsupported Osmium x402 scheme.", agent);
+  if (details.network !== networkId(config)) return invalid("invalid_network", "Unsupported x402 network.", agent);
   if (details.payTo.toLowerCase() !== config.settlementRouterAddress.toLowerCase()) {
-    return invalid("invalid_payment_requirements", "Payment must settle through the OsmiumSettlementRouter.", config.agentAddress);
+    return invalid("invalid_payment_requirements", "Payment must settle through the OsmiumSettlementRouter.", agent);
   }
   if (paymentPayload.payload.scheme !== OSMIUM_X402_SETTLEMENT) {
-    return invalid("invalid_payload", "Payment payload must use Osmium delegated vault settlement.", config.agentAddress);
+    return invalid("invalid_payload", "Payment payload must use Osmium delegated vault settlement.", agent);
   }
 
   const quote = marketDataQuote(config, quoteAssetFrom(details));
   if (details.asset.toLowerCase() !== quote.token.toLowerCase()) {
-    return invalid("invalid_payment_requirements", "Payment asset does not match the merchant quote.", config.agentAddress);
+    return invalid("invalid_payment_requirements", "Payment asset does not match the merchant quote.", agent);
   }
   if (details.amount !== quote.priceWei) {
-    return invalid("invalid_payment_requirements", "Payment amount does not match the merchant quote.", config.agentAddress);
+    return invalid("invalid_payment_requirements", "Payment amount does not match the merchant quote.", agent);
   }
   if (paymentPayload.payload.paymentId !== details.extra.paymentId || paymentPayload.payload.receiptHash !== details.extra.receiptHash) {
-    return invalid("invalid_payload", "Payment payload is not bound to the server payment requirements.", config.agentAddress);
+    return invalid("invalid_payload", "Payment payload is not bound to the server payment requirements.", agent);
   }
+
+  /* Use whatever policy the 402 challenge advertised — defaults to the demo
+     policy on the demo lane, the user's own policy on self-serve. */
+  const policyIdRaw = details.extra.policyId ?? config.settlementDemoPolicyId.toString();
+  let policyIdBig: bigint;
+  try {
+    policyIdBig = BigInt(policyIdRaw);
+  } catch {
+    return invalid("invalid_payment_requirements", "policyId is not a valid integer.", agent);
+  }
+
+  const intentHash = details.extra.intentHash ?? config.demoIntentHash;
+  const contextHash = details.extra.contextHash ?? LIVE_SETTLEMENT_CONTEXT_HASH;
 
   const client = publicClient(config);
   const [allowed, reason] = await client.readContract({
@@ -223,10 +280,10 @@ export async function verifyX402Payment(config: RunnerConfig, body: X402Body) {
     abi: osmiumPolicyEngineAbi,
     functionName: "previewAuthorizationWithIntent",
     args: [
-      config.settlementDemoPolicyId,
-      config.demoIntentHash,
-      LIVE_SETTLEMENT_CONTEXT_HASH,
-      config.agentAddress,
+      policyIdBig,
+      intentHash,
+      contextHash,
+      agent,
       quote.merchant,
       quote.token,
       BigInt(quote.priceWei),
@@ -237,15 +294,17 @@ export async function verifyX402Payment(config: RunnerConfig, body: X402Body) {
 
   if (!allowed) {
     const reasonName = blockReasons[reason] ?? `Unknown(${reason})`;
-    return invalid(`policy_${reasonName}`, `PolicyEngine preview denied settlement: ${reasonName}.`, config.agentAddress);
+    return invalid(`policy_${reasonName}`, `PolicyEngine preview denied settlement: ${reasonName}.`, agent);
   }
 
   return {
     isValid: true,
-    payer: config.agentAddress,
+    payer: agent,
     network: networkId(config),
     scheme: OSMIUM_X402_SCHEME,
     settlement: OSMIUM_X402_SETTLEMENT,
+    policyId: policyIdRaw,
+    lane: details.extra.lane,
     paymentId: details.extra.paymentId,
     receiptHash: details.extra.receiptHash
   };

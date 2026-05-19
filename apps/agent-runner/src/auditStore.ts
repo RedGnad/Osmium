@@ -17,6 +17,13 @@ export type SettlementAuditRecord = {
   merchantReceipt?: MerchantReceiptAttestation;
   unlocked: boolean;
   timestamp: number;
+  /* Address that signed settleWithIntent. Demo lane → config.agentAddress.
+     Self-serve lane → the connected wallet that called the contract. */
+  payer?: Address;
+  /* Onchain policy that authorised the payment. Helps filter "my workspace". */
+  policyId?: string;
+  /* Tracks which Osmium lane recorded this row. */
+  lane?: "demo" | "self-serve";
 };
 
 const records = new Map<Hex, SettlementAuditRecord>();

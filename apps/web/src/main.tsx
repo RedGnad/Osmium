@@ -14,8 +14,19 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { createPublicClient, formatEther, http, type Address } from "viem";
+import type { Address } from "viem";
 import "./styles.css";
+import { WalletProvider, useWallet } from "./wallet/WalletProvider";
+import { ConnectModal } from "./wallet/ConnectModal";
+import { OnboardingWizard } from "./wallet/OnboardingWizard";
+import { PolicyTemplatePicker } from "./wallet/PolicyTemplatePicker";
+import { YourVaultPanel } from "./wallet/YourVaultPanel";
+import {
+  readWorkspace,
+  clearWorkspace,
+  settleWithIntentDirect,
+  type Workspace,
+} from "./wallet/workspace";
 
 /* ──────────────────────────────────────────────────────────────────────────
    Types — preserved as-is from the runner contract
@@ -167,6 +178,10 @@ type MerchantAuditRecord = {
   amount: string;
   unlocked: boolean;
   timestamp: number;
+  /* present when the row originated from /x402/settle/observe (self-serve) */
+  payer?: string;
+  policyId?: string;
+  lane?: "demo" | "self-serve";
 };
 
 type SpendEvent = {
@@ -220,6 +235,41 @@ type AssetSymbol = (typeof assets)[number]["symbol"];
 
 type ConsoleView = "clear" | "prove" | "build";
 
+/* The Clear screen runs in one of two modes.
+   Demo is the judge path with no wallet connect required (operator key paste,
+   team-funded vault). Self-serve is the operator-builds-its-own-workspace
+   path: wallet connect, own policy onchain, own vault, own settle signature. */
+type ClearMode = "demo" | "self-serve";
+
+const CLEAR_MODE_STORAGE_KEY = "osmium.clearMode";
+
+function getInitialClearMode(): ClearMode {
+  if (typeof window === "undefined") return "demo";
+  /* honor explicit URL override first (#clear?mode=self-serve) */
+  const hash = window.location.hash.replace(/^#/, "");
+  const queryIdx = hash.indexOf("?");
+  if (queryIdx >= 0) {
+    const params = new URLSearchParams(hash.slice(queryIdx + 1));
+    const m = params.get("mode");
+    if (m === "self-serve" || m === "demo") return m;
+  }
+  try {
+    const stored = localStorage.getItem(CLEAR_MODE_STORAGE_KEY);
+    if (stored === "self-serve" || stored === "demo") return stored;
+  } catch {
+    /* localStorage disabled */
+  }
+  return "demo";
+}
+
+function persistClearMode(mode: ClearMode) {
+  try {
+    localStorage.setItem(CLEAR_MODE_STORAGE_KEY, mode);
+  } catch {
+    /* ignore */
+  }
+}
+
 const hashFor: Record<ConsoleView, string> = {
   clear: "clear",
   prove: "prove",
@@ -242,13 +292,6 @@ function getInitialView(): ConsoleView {
   if (raw in legacyHashAlias) return legacyHashAlias[raw];
   return "clear";
 }
-
-const robinhoodTestnet = {
-  id: config.chainId,
-  name: "Robinhood Chain Testnet",
-  nativeCurrency: { name: "Ethereum", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: [config.rpcUrl] } },
-} as const;
 
 /* ──────────────────────────────────────────────────────────────────────────
    Helpers
@@ -353,8 +396,12 @@ function buildX402PaymentPayload(flow: X402FlowState) {
    ──────────────────────────────────────────────────────────────────────── */
 
 function App() {
-  const [account, setAccount] = useState<string>("not connected");
-  const [nativeBalance, setNativeBalance] = useState<string>("--");
+  const wallet = useWallet();
+  const account =
+    wallet.state.status === "connected"
+      ? (wallet.state.account as string)
+      : "not connected";
+  const nativeBalance = wallet.nativeBalance;
   const [runnerStatus, setRunnerStatus] = useState<
     "unknown" | "online" | "offline"
   >("unknown");
@@ -368,29 +415,26 @@ function App() {
   const [spendEvents, setSpendEvents] = useState<SpendEvent[]>([]);
   const [operatorKey, setOperatorKey] = useState("");
   const [view, setView] = useState<ConsoleView>(getInitialView);
+  const [clearMode, setClearModeState] =
+    useState<ClearMode>(getInitialClearMode);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
 
-  async function connectWallet() {
-    setError("");
-    const ethereum = (
-      window as unknown as {
-        ethereum?: { request: (args: unknown) => Promise<string[]> };
-      }
-    ).ethereum;
-    if (!ethereum) {
-      setError("No injected wallet detected.");
+  /* Workspace lives in localStorage keyed by wallet address. Whenever the
+     connected account changes, re-read so the rest of the app knows which
+     policy/intent to use in self-serve mode. */
+  useEffect(() => {
+    if (wallet.state.status !== "connected") {
+      setWorkspace(null);
       return;
     }
-    const [address] = await ethereum.request({ method: "eth_requestAccounts" });
-    setAccount(address);
+    setWorkspace(readWorkspace(wallet.state.account));
+  }, [wallet.state]);
 
-    const client = createPublicClient({
-      chain: robinhoodTestnet,
-      transport: http(config.rpcUrl),
-    });
-    const balance = await client.getBalance({ address: address as Address });
-    setNativeBalance(`${Number(formatEther(balance)).toFixed(4)} ETH`);
+  function setClearMode(next: ClearMode) {
+    setClearModeState(next);
+    persistClearMode(next);
   }
 
   async function refreshMerchantAudit() {
@@ -412,8 +456,18 @@ function App() {
     setError("");
     try {
       setBusy("x402-request");
+      /* In self-serve mode with a provisioned workspace, tell the runner to
+         bind the 402 challenge to the user's onchain policy + agent. The
+         runner gets ?policyId=&agent=&lane=self-serve and the response
+         encodes them into extra so verify/settle stay coherent. */
+      const params = new URLSearchParams({ asset });
+      if (clearMode === "self-serve" && workspace) {
+        params.set("policyId", workspace.policyId);
+        params.set("agent", workspace.agent);
+        params.set("lane", "self-serve");
+      }
       const response = await callRunnerRawGet(
-        `/merchant/market-data?asset=${asset}`,
+        `/merchant/market-data?${params.toString()}`,
       );
       const paymentRequired = response.body as X402PaymentRequired;
       const accepted = paymentRequired.accepts?.[0];
@@ -555,6 +609,102 @@ function App() {
     });
     setX402Flow({});
     setUnlock(null);
+  }
+
+  /* Self-serve settle path.
+     The user's wallet calls SettlementRouter.settleWithIntent directly.
+     The runner is never asked to sign anything. After the tx confirms, we
+     post the txHash to /x402/settle/observe so the runner records the
+     audit row from on-chain truth. */
+  async function settleSelfServe() {
+    setError("");
+    if (wallet.state.status !== "connected") {
+      setError("Connect your wallet to settle in self-serve mode.");
+      return;
+    }
+    if (wallet.state.onWrongChain) {
+      setError("Switch to Robinhood Chain Testnet to settle.");
+      return;
+    }
+    if (!workspace) {
+      setError("Provision your workspace first.");
+      return;
+    }
+    if (!wallet.adapter.walletClient) {
+      setError("Wallet client not ready.");
+      return;
+    }
+    const accepted = x402Flow.paymentRequired?.accepts[0];
+    if (!accepted) {
+      setError("Request the resource first to receive a 402 challenge.");
+      return;
+    }
+    /* Sanity: the 402 must have been issued against the user's policy. */
+    if (accepted.extra.policyId !== workspace.policyId) {
+      setError(
+        `The 402 challenge is bound to policy #${accepted.extra.policyId}, not your workspace policy #${workspace.policyId}. Re-request.`,
+      );
+      return;
+    }
+
+    try {
+      setBusy("self-serve-settle");
+      const txHash = await settleWithIntentDirect(
+        wallet.adapter.publicClient,
+        wallet.adapter.walletClient,
+        {
+          policyId: workspace.policyId,
+          intentHash: accepted.extra.intentHash as `0x${string}`,
+          contextHash: accepted.extra.contextHash as `0x${string}`,
+          merchant: accepted.extra.merchant as `0x${string}`,
+          token: accepted.asset as `0x${string}`,
+          amount: BigInt(accepted.amount),
+          paymentId: accepted.extra.paymentId as `0x${string}`,
+          receiptHash: accepted.extra.receiptHash as `0x${string}`,
+        },
+      );
+
+      /* Tell the runner to ingest the audit row from on-chain truth. */
+      try {
+        await callRunner("/x402/settle/observe", {
+          txHash,
+          lane: "self-serve",
+        });
+      } catch {
+        /* Audit ingestion is best-effort; the chain is the truth. */
+      }
+
+      /* Unlock the resource using the freshly-settled paymentId/receipt. */
+      const resource = await callRunnerRawGet(
+        `/merchant/market-data?asset=${activeAsset}&paymentId=${accepted.extra.paymentId}&receiptHash=${accepted.extra.receiptHash}`,
+      );
+      const unlocked = resource.body as MerchantUnlock;
+      setUnlock(unlocked);
+      await refreshMerchantAudit();
+      setX402Flow((current) => ({
+        ...current,
+        unlockStatus: resource.status,
+        paymentId: accepted.extra.paymentId as `0x${string}`,
+        receiptHash: accepted.extra.receiptHash as `0x${string}`,
+        txHash,
+        merchantReceipt: unlocked.merchantReceipt ?? null,
+        paymentResponse: resource.paymentResponse ?? undefined,
+        unlocked: resource.status === 200,
+      }));
+      addSpendEvent({
+        status: "Filed",
+        detail: `${unlocked.title ?? "TSLA market data"} unlocked · self-serve wallet`,
+        tx: txHash,
+        receipt: accepted.extra.receiptHash,
+        ok: resource.status === 200,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Self-serve settlement failed.",
+      );
+    } finally {
+      setBusy("");
+    }
   }
 
   async function previewBlockedScenario(kind: "unknown" | "missing" | "over") {
@@ -714,15 +864,34 @@ function App() {
                 : "Runner ?"}
           </span>
           <button
-            className="walletButton"
-            onClick={connectWallet}
-            title="Connect wallet"
+            className={`walletButton ${
+              wallet.state.status === "connected"
+                ? wallet.state.onWrongChain
+                  ? "wrongChain"
+                  : "connected"
+                : ""
+            }`}
+            onClick={() => wallet.modal.openModal()}
+            title={
+              wallet.state.status === "connected"
+                ? wallet.state.onWrongChain
+                  ? "Wrong network — click to switch"
+                  : "Wallet connected — click for account"
+                : "Connect a wallet"
+            }
+            type="button"
           >
+            <span className="wbDot" />
             <Wallet size={13} />
-            <span>{short(account)}</span>
+            <span>
+              {wallet.state.status === "connected"
+                ? `${wallet.state.account.slice(0, 6)}…${wallet.state.account.slice(-4)}`
+                : "Connect"}
+            </span>
           </button>
         </div>
       </header>
+      <ConnectModal />
 
       <TickerBar
         runnerStatus={runnerStatus}
@@ -737,6 +906,7 @@ function App() {
           <ClearView
             activeAsset={activeAsset}
             busy={busy}
+            clearMode={clearMode}
             flow={x402Flow}
             merchantAudit={merchantAudit}
             operatorKey={operatorKey}
@@ -744,9 +914,12 @@ function App() {
             unlock={unlock}
             quote={quote}
             runnerStatus={runnerStatus}
+            workspace={workspace}
             onClearKey={() => setOperatorKey("")}
+            onClearMode={setClearMode}
             onDeny={denyRequest}
             onRequest={() => requestMarketDataResource(activeAsset)}
+            onSelfServeSettle={settleSelfServe}
             onSettle={settleX402Flow}
             onSetOperatorKey={setOperatorKey}
             onVerify={verifyX402Flow}
@@ -757,6 +930,11 @@ function App() {
 
         {view === "prove" ? (
           <ProveView
+            connectedAccount={
+              wallet.state.status === "connected"
+                ? (wallet.state.account as string)
+                : null
+            }
             demo={demo}
             merchantAudit={merchantAudit}
             settlement={settlement}
@@ -827,6 +1005,7 @@ function TickerBar({
 function ClearView({
   activeAsset,
   busy,
+  clearMode,
   flow,
   merchantAudit,
   operatorKey,
@@ -834,9 +1013,12 @@ function ClearView({
   unlock,
   quote,
   runnerStatus,
+  workspace,
   onClearKey,
+  onClearMode,
   onDeny,
   onRequest,
+  onSelfServeSettle,
   onSetOperatorKey,
   onSettle,
   onVerify,
@@ -845,6 +1027,7 @@ function ClearView({
 }: {
   activeAsset: AssetSymbol;
   busy: string;
+  clearMode: ClearMode;
   flow: X402FlowState;
   merchantAudit: MerchantAuditRecord[];
   operatorKey: string;
@@ -852,9 +1035,12 @@ function ClearView({
   unlock: MerchantUnlock | null;
   quote: MerchantQuote | null;
   runnerStatus: string;
+  workspace: Workspace | null;
   onClearKey: () => void;
+  onClearMode: (mode: ClearMode) => void;
   onDeny: () => void;
   onRequest: () => void;
+  onSelfServeSettle: () => void;
   onSetOperatorKey: (v: string) => void;
   onSettle: () => void;
   onVerify: () => void;
@@ -862,9 +1048,18 @@ function ClearView({
   onReplay: () => void;
 }) {
   const hasOperatorKey = operatorKey.trim().length > 0;
-  const canSettle = Boolean(
+  /* Demo lane: needs the operator key. Self-serve: needs a provisioned
+     workspace that matches the policy on the current 402 challenge. */
+  const canSettleDemo = Boolean(
     flow.paymentRequired && hasOperatorKey && activeAsset === "TSLA",
   );
+  const canSettleSelfServe = Boolean(
+    flow.paymentRequired &&
+      workspace &&
+      flow.paymentRequired.accepts[0].extra.policyId === workspace.policyId,
+  );
+  const canSettle =
+    clearMode === "self-serve" ? canSettleSelfServe : canSettleDemo;
 
   const amountLabel = flow.amount
     ? formatToken(flow.amount, activeAsset)
@@ -1101,6 +1296,11 @@ function ClearView({
 
   return (
     <>
+      <LandingBand
+        clearMode={clearMode}
+        onClearMode={onClearMode}
+      />
+
       <header className="pageHead">
         <div>
           <div className="eyebrow">Operator console · TSLA clearance</div>
@@ -1118,6 +1318,12 @@ function ClearView({
           </div>
         </div>
       </header>
+
+      <ClearModeToggle mode={clearMode} onChange={onClearMode} />
+
+      {clearMode === "self-serve" ? (
+        <SelfServePlaceholder />
+      ) : null}
 
       <section className="statusStrip" aria-label="Clearing house readiness">
         <StatusCell
@@ -1192,12 +1398,15 @@ function ClearView({
           busy={busy}
           canSettle={canSettle}
           checks={policyChecks}
+          clearMode={clearMode}
           flow={flow}
           merchantImpact={merchantImpact}
           operatorKey={operatorKey}
           vaultImpact={vaultImpact}
+          workspace={workspace}
           onClearKey={onClearKey}
           onDeny={onDeny}
+          onSelfServeSettle={onSelfServeSettle}
           onSetOperatorKey={onSetOperatorKey}
           onSettle={onSettle}
         />
@@ -1321,6 +1530,235 @@ function ClearView({
 /* ──────────────────────────────────────────────────────────────────────────
    Clear screen primitives
    ──────────────────────────────────────────────────────────────────────── */
+
+function LandingBand({
+  clearMode,
+  onClearMode,
+}: {
+  clearMode: ClearMode;
+  onClearMode: (mode: ClearMode) => void;
+}) {
+  const wallet = useWallet();
+  return (
+    <section className="landingBand" aria-label="Audience">
+      <div className="landingBandLead">
+        <span className="landingBandEyebrow">For</span>
+        <span>
+          <strong>AI agent builders</strong>
+          {" · "}
+          <strong>paid-API and MCP merchants</strong>
+          {" · "}
+          <strong>Robinhood Chain & Arbitrum ecosystem teams</strong>
+        </span>
+      </div>
+      <div className="landingBandActions">
+        <button
+          type="button"
+          className={`landingBandCta ${clearMode === "demo" ? "active" : ""}`}
+          onClick={() => onClearMode("demo")}
+        >
+          Try live demo
+          <span className="landingBandHint">no wallet</span>
+        </button>
+        <button
+          type="button"
+          className={`landingBandCta ${clearMode === "self-serve" ? "active" : ""}`}
+          onClick={() => {
+            onClearMode("self-serve");
+            if (wallet.state.status !== "connected") wallet.modal.openModal();
+          }}
+        >
+          Connect wallet · self-serve
+          <span className="landingBandHint">your vault, your policy</span>
+        </button>
+        <a className="landingBandCta secondary" href="#build">
+          Read the SDK
+          <span className="landingBandHint">10-minute integration</span>
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function ClearModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: ClearMode;
+  onChange: (mode: ClearMode) => void;
+}) {
+  return (
+    <section className="modeToggle" aria-label="Clearing mode">
+      <div className="modeToggleLeft">
+        <span className="modeEyebrow">Clearing mode</span>
+        <span className="modeHint">
+          {mode === "demo"
+            ? "Judge path · team-funded vault, operator-key paste, no wallet required"
+            : "Builder path · your wallet signs, your vault funds, your policy onchain"}
+        </span>
+      </div>
+      <div
+        className="modeOptions"
+        role="tablist"
+        aria-label="Demo or self-serve"
+      >
+        <button
+          role="tab"
+          aria-selected={mode === "demo"}
+          className={`modeOption ${mode === "demo" ? "active" : ""}`}
+          type="button"
+          onClick={() => onChange("demo")}
+        >
+          <span className="modeOptionLabel">Demo</span>
+          <span className="modeOptionMeta">operator-key</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={mode === "self-serve"}
+          className={`modeOption ${mode === "self-serve" ? "active" : ""}`}
+          type="button"
+          onClick={() => onChange("self-serve")}
+        >
+          <span className="modeOptionLabel">Self-serve</span>
+          <span className="modeOptionMeta">your wallet · alpha</span>
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function SelfServePlaceholder() {
+  const wallet = useWallet();
+  const connected = wallet.state.status === "connected" ? wallet.state : null;
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+
+  /* Re-read the persisted workspace whenever the connected account changes
+     or the wizard reports completion. */
+  useEffect(() => {
+    if (!connected) {
+      setWorkspace(null);
+      return;
+    }
+    setWorkspace(readWorkspace(connected.account));
+  }, [connected?.account, connected]);
+
+  if (!connected) {
+    return (
+      <section className="selfServeIntro" aria-label="Self-serve onboarding">
+        <div className="selfServeIntroHead">
+          <span className="selfServeEyebrow">Self-serve alpha</span>
+          <h2>
+            Connect a wallet to provision{" "}
+            <em>your own clearance workspace.</em>
+          </h2>
+          <p>
+            You create your own policy onchain, fund your own vault, and sign
+            settlements from your own address. Osmium never touches your spend
+            key. The workspace persists in this browser.
+          </p>
+        </div>
+        <div className="selfServeIntroActions">
+          <button
+            className="btn primary"
+            onClick={() => wallet.modal.openModal()}
+            type="button"
+          >
+            Connect wallet <ArrowRight size={14} />
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (connected.onWrongChain) {
+    return (
+      <section className="selfServeIntro" aria-label="Wrong network">
+        <div className="selfServeIntroHead">
+          <span className="selfServeEyebrow">Wrong network</span>
+          <h2>
+            Switch to <em>Robinhood Chain Testnet.</em>
+          </h2>
+          <p>
+            Self-serve provisioning lives on eip155:46630. Your wallet is
+            reporting chain {connected.chainId}.
+          </p>
+        </div>
+        <div className="selfServeIntroActions">
+          <button
+            className="btn primary"
+            onClick={() => void wallet.adapter.switchToOsmiumChain()}
+            type="button"
+          >
+            Switch network <ArrowRight size={14} />
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (!workspace) {
+    return (
+      <>
+        <PolicyTemplatePicker />
+        <OnboardingWizard onComplete={(ws) => setWorkspace(ws)} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <YourVaultPanel workspace={workspace} />
+      <details className="advanced">
+        <summary>Workspace audit · raw values</summary>
+        <div className="advancedBody">
+          <ProofGrid
+            rows={[
+              { k: "Owner", v: workspace.owner },
+              { k: "Agent", v: workspace.agent },
+              { k: "Policy id", v: `#${workspace.policyId}` },
+              { k: "Token", v: workspace.token },
+              { k: "Intent hash", v: workspace.intentHash },
+              { k: "Context hash", v: workspace.contextHash },
+              {
+                k: "Policy valid until",
+                v: new Date(workspace.policyValidUntil * 1000).toISOString(),
+              },
+              {
+                k: "Intent valid until",
+                v: new Date(workspace.intentValidUntil * 1000).toISOString(),
+              },
+              {
+                k: "Create policy tx",
+                v: workspace.createPolicyTx ?? "—",
+              },
+              {
+                k: "Approve intent tx",
+                v: workspace.approveIntentTx ?? "—",
+              },
+              {
+                k: "Approve token tx",
+                v: workspace.approveTokenTx ?? "—",
+              },
+              { k: "Deposit tx", v: workspace.depositTx ?? "—" },
+            ]}
+          />
+          <div style={{ marginTop: 12 }}>
+            <button
+              className="btn danger"
+              type="button"
+              onClick={() => {
+                clearWorkspace(workspace.owner);
+                setWorkspace(null);
+              }}
+            >
+              Reset workspace (re-provision)
+            </button>
+          </div>
+        </div>
+      </details>
+    </>
+  );
+}
 
 function StatusCell({
   label,
@@ -1453,12 +1891,15 @@ function OperatorClearancePacket({
   busy,
   canSettle,
   checks,
+  clearMode,
   flow,
   merchantImpact,
   operatorKey,
   vaultImpact,
+  workspace,
   onClearKey,
   onDeny,
+  onSelfServeSettle,
   onSetOperatorKey,
   onSettle,
 }: {
@@ -1466,12 +1907,15 @@ function OperatorClearancePacket({
   busy: string;
   canSettle: boolean;
   checks: Array<{ label: string; tone: "cleared" | "pending" }>;
+  clearMode: ClearMode;
   flow: X402FlowState;
   merchantImpact: string;
   operatorKey: string;
   vaultImpact: string;
+  workspace: Workspace | null;
   onClearKey: () => void;
   onDeny: () => void;
+  onSelfServeSettle: () => void;
   onSetOperatorKey: (v: string) => void;
   onSettle: () => void;
 }) {
@@ -1479,6 +1923,7 @@ function OperatorClearancePacket({
   const receiptStatus = flow.merchantReceipt?.verified
     ? "EIP-712 verified"
     : "EIP-712 required";
+  const isSelfServe = clearMode === "self-serve";
   return (
     <section className="operatorPacket slide-in" aria-label="Operator clearance">
       <div className="packetSeal" aria-hidden="true">
@@ -1568,37 +2013,58 @@ function OperatorClearancePacket({
         </div>
       </div>
 
-      <div className={`keyField ${filled ? "filled" : ""}`}>
-        <label htmlFor="operatorKey">Session-only operator key</label>
-        <input
-          id="operatorKey"
-          type="password"
-          autoComplete="off"
-          spellCheck={false}
-          value={operatorKey}
-          onChange={(e) => onSetOperatorKey(e.target.value)}
-          placeholder="paste the runner operator key…"
-        />
-        <div className="keyHint">
-          {filled
-            ? "Held in this session only · cleared on tab close · never sent to chain"
-            : "Never stored in frontend env · session-only · masked"}
+      {isSelfServe ? (
+        <div className="selfServeSettleCard">
+          <div>
+            <span className="selfServeSettleEyebrow">Your wallet signs</span>
+            <strong>
+              {workspace
+                ? `Policy #${workspace.policyId} · ${workspace.owner.slice(0, 6)}…${workspace.owner.slice(-4)}`
+                : "Provision a workspace first"}
+            </strong>
+            <span className="selfServeSettleHint">
+              Calls SettlementRouter.settleWithIntent from your address. No
+              operator key required. Audit row ingested from on-chain truth
+              after confirmation.
+            </span>
+          </div>
         </div>
-        {filled ? (
-          <button className="keyClear" onClick={onClearKey} type="button">
-            clear
-          </button>
-        ) : null}
-      </div>
+      ) : (
+        <div className={`keyField ${filled ? "filled" : ""}`}>
+          <label htmlFor="operatorKey">Session-only operator key</label>
+          <input
+            id="operatorKey"
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            value={operatorKey}
+            onChange={(e) => onSetOperatorKey(e.target.value)}
+            placeholder="paste the runner operator key…"
+          />
+          <div className="keyHint">
+            {filled
+              ? "Held in this session only · cleared on tab close · never sent to chain"
+              : "Never stored in frontend env · session-only · masked"}
+          </div>
+          {filled ? (
+            <button className="keyClear" onClick={onClearKey} type="button">
+              clear
+            </button>
+          ) : null}
+        </div>
+      )}
 
       <div className="packetActions">
         <button
           className="btn primary"
           disabled={busy !== "" || !canSettle}
-          onClick={onSettle}
+          onClick={isSelfServe ? onSelfServeSettle : onSettle}
           type="button"
         >
-          Clear and settle · {amountLabel} <ArrowRight size={14} />
+          {isSelfServe
+            ? `Sign settleWithIntent · ${amountLabel}`
+            : `Clear and settle · ${amountLabel}`}{" "}
+          <ArrowRight size={14} />
         </button>
         <button
           className="btn danger"
@@ -1657,26 +2123,45 @@ type LedgerRow = {
 };
 
 function ProveView({
+  connectedAccount,
   demo,
   merchantAudit,
   settlement,
   spendEvents,
   unlock,
 }: {
+  connectedAccount: string | null;
   demo: DemoPreview[];
   merchantAudit: MerchantAuditRecord[];
   settlement: LiveSettlement | null;
   spendEvents: SpendEvent[];
   unlock: MerchantUnlock | null;
 }) {
+  const [filter, setFilter] = useState<"all" | "mine">("all");
+  const myWalletKey = connectedAccount?.toLowerCase();
+
+  const filteredAudit = useMemo(
+    () =>
+      filter === "mine" && myWalletKey
+        ? merchantAudit.filter(
+            (rec) => rec.payer?.toLowerCase() === myWalletKey,
+          )
+        : merchantAudit,
+    [merchantAudit, filter, myWalletKey],
+  );
+
   const rows = useMemo<LedgerRow[]>(() => {
     const r: LedgerRow[] = [];
 
-    merchantAudit.forEach((rec) => {
+    filteredAudit.forEach((rec) => {
+      const laneTag = rec.lane === "self-serve" ? " · self-serve" : "";
+      const payerTag = rec.payer
+        ? ` · payer ${rec.payer.slice(0, 6)}…${rec.payer.slice(-4)}`
+        : "";
       r.push({
         id: `audit-${rec.paymentId}-settle`,
         time: formatLedgerTime(rec.timestamp),
-        event: "Settlement executed",
+        event: `Settlement executed${laneTag}${payerTag}`,
         asset: rec.asset,
         amount: formatToken(rec.amount, rec.asset),
         decision: "FILED",
@@ -1788,10 +2273,50 @@ function ProveView({
             <strong>{rows.length}</strong> ledger rows
           </div>
           <div>
-            Merchant audit · <strong>{merchantAudit.length}</strong> filings
+            Merchant audit · <strong>{filteredAudit.length}</strong> /{" "}
+            {merchantAudit.length} filings
           </div>
         </div>
       </header>
+
+      <div className="ledgerFilter" role="tablist" aria-label="Filter">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filter === "all"}
+          className={`ledgerFilterTab ${filter === "all" ? "active" : ""}`}
+          onClick={() => setFilter("all")}
+        >
+          All clearances
+          <span className="ledgerFilterCount">{merchantAudit.length}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filter === "mine"}
+          className={`ledgerFilterTab ${filter === "mine" ? "active" : ""}`}
+          onClick={() => setFilter("mine")}
+          disabled={!myWalletKey}
+          title={
+            myWalletKey
+              ? `Filter rows where payer == ${connectedAccount}`
+              : "Connect a wallet to filter by your address"
+          }
+        >
+          My wallet
+          {myWalletKey ? (
+            <span className="ledgerFilterCount">
+              {
+                merchantAudit.filter(
+                  (r) => r.payer?.toLowerCase() === myWalletKey,
+                ).length
+              }
+            </span>
+          ) : (
+            <span className="ledgerFilterMeta">connect</span>
+          )}
+        </button>
+      </div>
 
       <section className="ledgerHead" aria-label="Ledger summary">
         <div className="stat">
@@ -2340,6 +2865,8 @@ function highlight(source: string): ReactNode {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <WalletProvider>
+      <App />
+    </WalletProvider>
   </StrictMode>,
 );

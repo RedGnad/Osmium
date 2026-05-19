@@ -2,7 +2,11 @@ packages:
   - "apps/*"
   - "packages/*"
 
-strictDepBuilds: true
+# strictDepBuilds removed — pnpm 10 was treating any postinstall not on the
+# allowlist as a hard error, which blocked WalletConnect / Reown UI
+# sub-packages that we deliberately skip building (the headless
+# EthereumProvider is all we use). Default behaviour ("warn but install")
+# is what we want.
 
 allowBuilds:
   "esbuild@0.27.7": true

@@ -122,6 +122,11 @@ type X402PaymentRequired = {
       intentHash: string;
       contextHash: string;
       settlement: "osmium-delegated-vault";
+      compatibility?: {
+        upstream: "exact-on-permit2";
+        divergence: "delegated-vault-settlement";
+        reason: string;
+      };
     };
   }>;
 };
@@ -2029,6 +2034,54 @@ const data = await osmium.getMarketData({
           <dt className="k">Router</dt>
           <dd className="v">{short(config.routerAddress)}</dd>
         </dl>
+      </section>
+
+      <section className="rationale" aria-labelledby="why-osmium-exact">
+        <div className="rationaleSpine">
+          <span>RATIONALE</span>
+        </div>
+        <div className="rationaleBody">
+          <div className="rationaleHead">
+            <span className="rationaleEyebrow">Scheme rationale</span>
+            <h2 id="why-osmium-exact">
+              Why <em>osmium-exact?</em>
+            </h2>
+          </div>
+          <div className="rationaleProse">
+            <p>
+              Standard x402 <code>exact</code> settles from the buyer wallet
+              via EIP-3009 or Permit2.
+            </p>
+            <p>
+              Osmium uses the x402 HTTP envelope, but replaces the settlement
+              primitive with <em>delegated vault clearance.</em>
+            </p>
+            <p className="rationaleStrong">
+              The agent never holds unrestricted spend authority.
+            </p>
+            <p className="rationaleStrong">
+              It requests, Osmium verifies, the operator clears, the router
+              settles.
+            </p>
+          </div>
+          <dl className="rationaleCompat">
+            <div>
+              <dt>Upstream</dt>
+              <dd>exact-on-permit2</dd>
+            </div>
+            <div>
+              <dt>Divergence</dt>
+              <dd>delegated-vault-settlement</dd>
+            </div>
+            <div>
+              <dt>Reason</dt>
+              <dd>
+                AI agents request clearance instead of holding spend
+                authority.
+              </dd>
+            </div>
+          </dl>
+        </div>
       </section>
 
       <div className="steps">

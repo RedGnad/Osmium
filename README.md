@@ -183,6 +183,12 @@ The public RPC is rate-limited. For deployment and activation, set `RH_RPC_URL` 
 
 Useful testnet assets include `USDG`, `WETH`, and stock tokens like `TSLA`, `AMZN`, `PLTR`, `NFLX`, and `AMD`.
 
+### Why not the CDP facilitator?
+
+The Coinbase CDP-hosted x402 facilitator only routes a fixed allowlist of networks (Base, Polygon, Arbitrum, World, Solana). Robinhood Chain testnet (`eip155:46630`) is not on that allowlist, and the CDP facilitator settles via EIP-3009/Permit2 on the buyer wallet — incompatible with Osmium's delegated-vault model.
+
+The x402 protocol is permissionless, so Osmium self-hosts a custom x402-compatible facilitator for `eip155:46630`. Same HTTP envelope, same `accepts[]` shape, different settlement primitive (`osmium-delegated-vault` instead of `permit2-witness-transfer`). The PaymentRequirements `extra.compatibility` field declares this divergence explicitly so x402-aware clients can opt in or fall through.
+
 ## Commands
 
 ```bash

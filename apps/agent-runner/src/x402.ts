@@ -17,6 +17,12 @@ type X402Resource = {
   mimeType: string;
 };
 
+type OsmiumPaymentCompatibility = {
+  upstream: "exact-on-permit2";
+  divergence: "delegated-vault-settlement";
+  reason: "AI agents request clearance instead of holding spend authority";
+};
+
 type OsmiumPaymentDetails = {
   scheme: typeof OSMIUM_X402_SCHEME;
   network: string;
@@ -37,6 +43,7 @@ type OsmiumPaymentDetails = {
     intentHash: Hex;
     contextHash: Hex;
     settlement: typeof OSMIUM_X402_SETTLEMENT;
+    compatibility: OsmiumPaymentCompatibility;
     note: string;
   };
 };
@@ -138,6 +145,11 @@ export function buildPaymentRequired(config: RunnerConfig, rawAsset: unknown): O
       intentHash: config.demoIntentHash,
       contextHash: LIVE_SETTLEMENT_CONTEXT_HASH,
       settlement: OSMIUM_X402_SETTLEMENT,
+      compatibility: {
+        upstream: "exact-on-permit2",
+        divergence: "delegated-vault-settlement",
+        reason: "AI agents request clearance instead of holding spend authority"
+      },
       note: "Custom x402-compatible scheme for delegated vault settlement on Robinhood Chain."
     }
   };

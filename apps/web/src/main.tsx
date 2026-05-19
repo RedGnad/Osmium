@@ -1077,19 +1077,25 @@ function ClearView({
     { label: "Context bound", tone: flow.verifyValid ? "cleared" : "pending" },
   ];
 
-  const vaultImpact = settlement
-    ? `${formatToken(settlement.before.routerVault, activeAsset)} → ${formatToken(
-        settlement.after.routerVault,
-        activeAsset,
-      )} (${formatDelta(settlement.before.routerVault, settlement.after.routerVault, activeAsset)})`
-    : `Router vault debits ${amountLabel}`;
+  /* Forecast the impact of the *next* settlement.
+     /demo/live-settlement/preview returns identical before/after snapshots
+     (no transaction is executed between the two reads), so any "delta"
+     derived from it is structurally zero. We project from the known amount
+     instead. The router vault is intentionally a pass-through: the runner
+     tops it up just-in-time and settleWithIntent drains it in the same flow,
+     so its net change is always zero by design. */
+  const amountWei = flow.amount ?? "250000000000000000";
+  const merchantBeforeWei = settlement?.before.merchantToken ?? "0";
+  const merchantAfterWei = (
+    BigInt(merchantBeforeWei) + BigInt(amountWei)
+  ).toString();
 
-  const merchantImpact = settlement
-    ? `${formatToken(settlement.before.merchantToken, activeAsset)} → ${formatToken(
-        settlement.after.merchantToken,
-        activeAsset,
-      )} (${formatDelta(settlement.before.merchantToken, settlement.after.merchantToken, activeAsset)})`
-    : `Merchant receives ${amountLabel}`;
+  const merchantImpact = `${formatToken(merchantBeforeWei, activeAsset)} → ${formatToken(
+    merchantAfterWei,
+    activeAsset,
+  )}  (+${formatToken(amountWei, activeAsset)})`;
+
+  const vaultImpact = `pass-through · ${amountLabel} in, ${amountLabel} out`;
 
   const showPacket = Boolean(flow.verifyValid && !flow.txHash);
 
@@ -1540,12 +1546,12 @@ function OperatorClearancePacket({
 
       <div className="packetImpact">
         <div className="impact">
-          <div className="impactLabel">Router vault impact</div>
-          <div className="impactDelta">{vaultImpact}</div>
+          <div className="impactLabel">Merchant balance · forecast</div>
+          <div className="impactDelta">{merchantImpact}</div>
         </div>
         <div className="impact">
-          <div className="impactLabel">Merchant balance impact</div>
-          <div className="impactDelta">{merchantImpact}</div>
+          <div className="impactLabel">Router vault · pass-through</div>
+          <div className="impactDelta">{vaultImpact}</div>
         </div>
       </div>
 

@@ -1566,6 +1566,64 @@ pre,
   grid-column: 1 / -1;
 }
 
+.pageGuide {
+  align-items: stretch;
+  background:
+    linear-gradient(90deg, rgba(106, 168, 255, 0.045) 1px, transparent 1px),
+    #0b0e13;
+  background-size: 18px 100%, auto;
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--protocol);
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.78fr) max-content;
+  padding: 16px;
+}
+
+.pageGuide > div {
+  display: grid;
+  gap: 6px;
+}
+
+.pageGuide span {
+  color: var(--protocol);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pageGuide strong {
+  color: var(--text);
+  font-size: 21px;
+  line-height: 1.12;
+}
+
+.pageGuide p {
+  color: var(--muted-strong);
+  line-height: 1.48;
+  margin: 0;
+}
+
+.pageGuide ol {
+  border-left: 1px solid var(--border);
+  color: var(--muted-strong);
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 0 28px;
+}
+
+.pageGuide li {
+  padding-left: 4px;
+}
+
+.pageGuide .glassLink {
+  align-self: center;
+}
+
 .policyHero p,
 .merchantHero p {
   color: var(--muted-strong);
@@ -1762,6 +1820,19 @@ pre,
   min-height: 128px;
   padding: 16px;
   text-align: center;
+}
+
+.emptyAudit {
+  flex-direction: column;
+}
+
+.emptyAudit strong {
+  color: var(--text);
+  font-size: 17px;
+}
+
+.emptyAudit span {
+  max-width: 520px;
 }
 
 .emptyState svg,
@@ -2123,7 +2194,9 @@ pre {
   color: #d8f6ed;
   margin: 0;
   overflow: auto;
+  overflow-wrap: anywhere;
   padding: 16px;
+  white-space: pre-wrap;
 }
 
 code {
@@ -2209,6 +2282,7 @@ code {
   .policyGrid,
   .merchantGrid,
   .settingsGrid,
+  .pageGuide,
   .x402Steps,
   .x402Ledger,
   .mainGrid,
@@ -2257,8 +2331,15 @@ code {
   .heroActions,
   .judgeLead,
   .judgeStep,
-  .protocolRail {
+  .protocolRail,
+  .pageGuide {
     grid-template-columns: 1fr;
+  }
+
+  .pageGuide ol {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 12px 0 0 22px;
   }
 
   .decisionSummary div + div {

@@ -1081,6 +1081,16 @@ function App() {
 
         {view === "audit" ? (
           <section className="viewStack auditView">
+            <PageGuide
+              eyebrow="After the demo runs"
+              title="This is where the app proves what happened."
+              description="The proof log is empty before a payment. After the live flow, it should show the transaction, signed merchant receipt, data unlock and replay protection."
+              bullets={[
+                "Tx hash links to the Robinhood explorer.",
+                "Signed receipt shows the merchant attested to the response.",
+                "Replay proof shows the same paymentId cannot be reused.",
+              ]}
+            />
             <section className="evidenceGrid">
               <SettlementPanel settlement={settlement} />
               <AuditTrail rows={auditRows} merchantAudit={merchantAudit} />
@@ -1235,6 +1245,16 @@ function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
           router funds can move.
         </p>
       </section>
+      <PageGuide
+        eyebrow="How to read this page"
+        title="Policy is the rule gate before approval."
+        description="The live demo only reveals the approval button after these rules pass. This is where a user sees why the agent cannot spend freely."
+        bullets={[
+          "The merchant must be verified.",
+          "The payment must stay under the max spend.",
+          "A signed receipt and replay protection are required.",
+        ]}
+      />
       <section className="panel">
         <div className="panelHeader">
           <div>
@@ -1244,7 +1264,7 @@ function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
           <CircleDollarSign size={20} />
         </div>
         <dl className="infoList">
-          <InfoRow label="TSLA" value="live settlement" />
+          <InfoRow label="TSLA" value="live payment" />
           <InfoRow label="AMD" value="risk snapshot quote-supported" />
           <InfoRow label="AMZN" value="corporate-action alert quote-supported" />
           <InfoRow label="Network" value="Robinhood Chain Testnet" />
@@ -1261,7 +1281,7 @@ function PolicyPanel({ activeAsset }: { activeAsset: AssetSymbol }) {
         <dl className="infoList">
           <InfoRow label="Max payment" value="0.50 token" />
           <InfoRow label="Period budget" value="3.00 token" />
-          <InfoRow label="Funds move" value="router only" />
+          <InfoRow label="Funds move" value="only after router approval" />
         </dl>
       </section>
       <section className="panel">
@@ -1746,16 +1766,32 @@ function MerchantPanel({
           Protected resource: <strong>/merchant/market-data</strong>. It returns
           402 until Osmium verifies payment and returns a signed receipt.
         </p>
-        <button
-          className="primary"
-          onClick={onQuote}
-          disabled={busy}
-          title="Request protected merchant resource"
-        >
-          <Store size={17} />
-          Request protected resource
-        </button>
+        <div className="heroActions">
+          <button
+            className="primary"
+            onClick={onQuote}
+            disabled={busy}
+            title="Request protected merchant resource"
+          >
+            <Store size={17} />
+            Preview service quote
+          </button>
+          <a className="glassLink" href="#command">
+            <PlayCircle size={15} />
+            Run live payment
+          </a>
+        </div>
       </section>
+      <PageGuide
+        eyebrow="What the agent buys"
+        title="The merchant is a paid data API, not a wallet recipient."
+        description="This page explains the resource Osmium protects. In the demo, the agent requests TSLA market data, receives HTTP 402, then unlocks the response after payment proof."
+        bullets={[
+          "TSLA is the live paid resource.",
+          "AMD and AMZN show the same service model for other Robinhood assets.",
+          "The response unlocks only with paymentId plus signed receipt.",
+        ]}
+      />
       <section className="panel">
         <div className="panelHeader">
           <div>
@@ -1799,7 +1835,7 @@ function MerchantPanel({
           <Layers3 size={20} />
         </div>
         <dl className="infoList">
-          <InfoRow label="TSLA" value="market-data snapshot / live settlement" />
+          <InfoRow label="TSLA" value="market-data snapshot / live payment" />
           <InfoRow label="AMD" value="risk snapshot / quote-supported" />
           <InfoRow label="AMZN" value="corporate-action alert / quote-supported" />
         </dl>
@@ -1927,7 +1963,7 @@ function CommandStatusStrip({
         detail={
           settlement
             ? `${formatToken(settlement.after.routerVault)} router balance`
-            : "SettlementRouter custody"
+            : "router holds funds"
         }
         tone="ok"
       />
@@ -2137,7 +2173,14 @@ function AuditTrail({
       </div>
       <div className="auditRows">
         {rows.length === 0 && merchantAudit.length === 0 ? (
-          <div className="emptyAudit">No events yet</div>
+          <div className="emptyAudit">
+            <strong>No proof yet</strong>
+            <span>Run the payment demo first. This log will then show tx proof, signed receipt, unlock and replay block.</span>
+            <a className="glassLink" href="#command">
+              <PlayCircle size={15} />
+              Run Demo
+            </a>
+          </div>
         ) : (
           <>
             <div className="auditHeader">
@@ -2197,6 +2240,16 @@ function AuditTrail({
 function DeveloperPanel() {
   return (
     <section className="developerPanel docsPanel">
+      <PageGuide
+        eyebrow="Developer mental model"
+        title="Treat Osmium as the approval layer between agent intent and payment."
+        description="Your agent requests a protected resource. Osmium verifies the payment policy, routes the operator-approved payment, and returns proof the merchant can verify."
+        bullets={[
+          "Resource request returns a payment challenge.",
+          "Policy verification is separate from payment execution.",
+          "Operator approval is required before funds move.",
+        ]}
+      />
       <section className="panel">
         <div className="panelHeader">
           <div>
@@ -2265,7 +2318,7 @@ const data = await osmium.getMarketData("TSLA", {
           <ShieldCheck size={20} />
         </div>
         <dl className="infoList">
-          <InfoRow label="Verified merchant + receipt" value="settles through router" />
+          <InfoRow label="Verified merchant + receipt" value="pays through router" />
           <InfoRow label="Replay paymentId" value="denied by PolicyEngine" />
           <InfoRow label="Unknown merchant" value="denied before funds move" />
           <InfoRow label="Missing receipt" value="denied by receipt gate" />
@@ -2280,6 +2333,16 @@ const data = await osmium.getMarketData("TSLA", {
 function SettingsPanel({ runnerStatus }: { runnerStatus: string }) {
   return (
     <section className="settingsGrid">
+      <PageGuide
+        eyebrow="Deployment map"
+        title="What is live, and what is intentionally demo-grade."
+        description="This page is for judges and operators who want to verify the network, contracts, runner and limits without reading the repository."
+        bullets={[
+          "Robinhood Chain testnet is the live network.",
+          "PolicyEngine and SettlementRouter are deployed contracts.",
+          "The audit store is demo-persistent, not a production indexer.",
+        ]}
+      />
       <section className="panel">
         <div className="panelHeader">
           <div>
@@ -2322,10 +2385,41 @@ function SettingsPanel({ runnerStatus }: { runnerStatus: string }) {
           </div>
           <div>
             <ListChecks size={17} />
-            <span>TSLA is live settlement; AMD and AMZN are quote-supported service proofs.</span>
+            <span>TSLA is live payment; AMD and AMZN are quote-supported service proofs.</span>
           </div>
         </div>
       </section>
+    </section>
+  );
+}
+
+function PageGuide({
+  bullets,
+  description,
+  eyebrow,
+  title,
+}: {
+  bullets: string[];
+  description: string;
+  eyebrow: string;
+  title: string;
+}) {
+  return (
+    <section className="pageGuide">
+      <div>
+        <span>{eyebrow}</span>
+        <strong>{title}</strong>
+        <p>{description}</p>
+      </div>
+      <ol>
+        {bullets.map((bullet) => (
+          <li key={bullet}>{bullet}</li>
+        ))}
+      </ol>
+      <a className="glassLink" href="#command">
+        <PlayCircle size={15} />
+        Run the live payment
+      </a>
     </section>
   );
 }

@@ -411,14 +411,16 @@ h1 {
 }
 
 .liveContextDrawer,
-.operatorDrawer {
+.operatorDrawer,
+.productStoryDrawer {
   background: rgba(13, 17, 23, 0.72);
   border: 1px solid var(--border);
   display: grid;
 }
 
 .liveContextDrawer summary,
-.operatorDrawer summary {
+.operatorDrawer summary,
+.productStoryDrawer summary {
   align-items: center;
   cursor: pointer;
   display: flex;
@@ -429,7 +431,8 @@ h1 {
 }
 
 .liveContextDrawer summary span,
-.operatorDrawer summary span {
+.operatorDrawer summary span,
+.productStoryDrawer summary span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
@@ -437,7 +440,8 @@ h1 {
 }
 
 .liveContextDrawer summary strong,
-.operatorDrawer summary strong {
+.operatorDrawer summary strong,
+.productStoryDrawer summary strong {
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 12px;
@@ -445,7 +449,8 @@ h1 {
 }
 
 .liveContextDrawer[open],
-.operatorDrawer[open] {
+.operatorDrawer[open],
+.productStoryDrawer[open] {
   gap: 12px;
   padding-bottom: 12px;
 }
@@ -458,6 +463,10 @@ h1 {
 .operatorDrawer {
   align-content: start;
   gap: 0;
+}
+
+.productStoryDrawer[open] .clearingHero {
+  margin: 0 12px;
 }
 
 .operatorDrawer[open] {
@@ -866,6 +875,7 @@ h1 {
   min-height: 70px;
   padding: 12px 16px;
   position: relative;
+  min-width: 0;
 }
 
 .statusCard + .statusCard {
@@ -968,6 +978,106 @@ h1 {
   width: 2px;
 }
 
+.workflowDock {
+  align-items: center;
+  background:
+    linear-gradient(90deg, rgba(57, 255, 136, 0.07) 1px, transparent 1px),
+    #07110c;
+  background-size: 16px 100%, auto;
+  border: 1px solid rgba(57, 255, 136, 0.34);
+  border-left: 3px solid var(--accent);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.55fr);
+  padding: 16px;
+  min-width: 0;
+}
+
+.workflowDock.complete {
+  background:
+    linear-gradient(90deg, rgba(57, 255, 136, 0.045) 1px, transparent 1px),
+    #08120d;
+}
+
+.workflowBrief {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.workflowBrief span,
+.sequencePanelHeader span,
+.dockKeyField span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.workflowBrief strong {
+  color: var(--text);
+  font-size: clamp(26px, 3vw, 38px);
+  line-height: 1.04;
+}
+
+.workflowBrief small {
+  color: var(--muted-strong);
+  font-size: 15px;
+  line-height: 1.45;
+  max-width: 760px;
+}
+
+.workflowAction {
+  align-content: center;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.workflowAction button,
+.workflowAction .glassLink {
+  min-height: 48px;
+  width: 100%;
+}
+
+.dockKeyField {
+  background: #080a0d;
+  border: 1px solid rgba(246, 200, 95, 0.28);
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.dockKeyField input {
+  width: 100%;
+}
+
+.sequencePanel {
+  background: #0b0e13;
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.sequencePanelHeader {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.sequencePanelHeader strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .clearanceTicket {
   background:
     radial-gradient(circle at 0 22px, transparent 0 6px, rgba(216, 209, 192, 0.06) 6px 7px, transparent 7px),
@@ -983,6 +1093,7 @@ h1 {
   min-height: 188px;
   overflow: hidden;
   position: relative;
+  min-width: 0;
 }
 
 .clearanceTicket.pending {
@@ -1270,7 +1381,8 @@ h1 {
   display: grid;
 }
 
-.sequenceDrawer summary {
+.sequenceDrawer summary,
+.requestDetails summary {
   align-items: center;
   cursor: pointer;
   display: flex;
@@ -1281,7 +1393,8 @@ h1 {
   padding: 0 14px;
 }
 
-.sequenceDrawer summary::-webkit-details-marker {
+.sequenceDrawer summary::-webkit-details-marker,
+.requestDetails summary::-webkit-details-marker {
   display: none;
 }
 
@@ -1291,14 +1404,16 @@ h1 {
   min-width: 0;
 }
 
-.sequenceDrawer summary span {
+.sequenceDrawer summary span,
+.requestDetails summary span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
-.sequenceDrawer summary strong {
+.sequenceDrawer summary strong,
+.requestDetails summary strong {
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 12px;
@@ -1314,6 +1429,21 @@ h1 {
 }
 
 .sequenceDrawer[open] .clearingRail {
+  margin: 0 12px;
+}
+
+.requestDetails {
+  background: #0b0e13;
+  border: 1px solid var(--border);
+  display: grid;
+}
+
+.requestDetails[open] {
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.requestDetails[open] .clearanceTicket {
   margin: 0 12px;
 }
 
@@ -2270,6 +2400,7 @@ code {
   .cockpitStatus,
   .clearingTape,
   .clearingHero,
+  .workflowDock,
   .featureDeck,
   .clearanceTicket,
   .clearingRail,
@@ -2332,8 +2463,29 @@ code {
   .judgeLead,
   .judgeStep,
   .protocolRail,
+  .workflowDock,
   .pageGuide {
     grid-template-columns: 1fr;
+  }
+
+  .sequencePanelHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sequencePanelHeader strong {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .workflowBrief strong {
+    font-size: 28px;
+  }
+
+  .dockKeyField,
+  .workflowAction button,
+  .workflowAction .glassLink {
+    min-width: 0;
   }
 
   .pageGuide ol {

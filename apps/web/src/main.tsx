@@ -991,25 +991,6 @@ function App() {
 
         {view === "command" ? (
           <section className="viewStack commandView">
-            <ClearingHero
-              activeAsset={activeAsset}
-              busy={busy}
-              flow={x402Flow}
-              runnerStatus={runnerStatus}
-              settlement={settlement}
-              onRequest={async () => {
-                await requestMarketDataResource(activeAsset);
-                document
-                  .getElementById("payment-walkthrough")
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-            />
-            <CommandStatusStrip
-              activeAsset={activeAsset}
-              quote={quote}
-              runnerStatus={runnerStatus}
-              settlement={settlement}
-            />
             <section className="requestWorkspace">
               <X402FlowPanel
                 activeAsset={activeAsset}
@@ -1024,6 +1005,26 @@ function App() {
                 onSettle={settleX402Flow}
                 onVerify={verifyX402Flow}
               />
+              <CommandStatusStrip
+                activeAsset={activeAsset}
+                quote={quote}
+                runnerStatus={runnerStatus}
+                settlement={settlement}
+              />
+              <details className="productStoryDrawer">
+                <summary>
+                  <span>What Osmium does</span>
+                  <strong>Why this payment cannot happen like a normal wallet transfer</strong>
+                </summary>
+                <ClearingHero
+                  activeAsset={activeAsset}
+                  busy={busy}
+                  flow={x402Flow}
+                  runnerStatus={runnerStatus}
+                  settlement={settlement}
+                  onRequest={() => requestMarketDataResource(activeAsset)}
+                />
+              </details>
               <details className="operatorSnapshot operatorDrawer">
                 <summary>
                   <span>Technical context</span>
@@ -1360,6 +1361,7 @@ function X402FlowPanel({
         activeAsset,
       )}`
     : `router vault debits ${amountLabel}`;
+  const isComplete = Boolean(flow.unlocked);
   const nextAction = !flow.paymentRequired
     ? {
         label: "Request paid data",
@@ -1387,9 +1389,9 @@ function X402FlowPanel({
             icon: <PlayCircle size={17} />,
           }
         : {
-            label: "Start another request",
+            label: "Payment complete",
             detail: flow.unlocked
-              ? "Data is unlocked, the receipt is signed and replay is blocked."
+              ? "Tx, signed receipt and data unlock are complete. Review the proof log or run again."
               : "Payment proof exists; retry unlock if the merchant data is still locked.",
             action: onRequest,
             disabled: busy !== "",
@@ -1452,78 +1454,120 @@ function X402FlowPanel({
     <section className="judgePanel" id="payment-walkthrough">
       <div className="panelHeader">
         <div>
-          <span>Live demo</span>
-          <strong>Agent payment walkthrough</strong>
+          <span>Start here</span>
+          <strong>Run the live agent payment</strong>
         </div>
         <StatusStamp tone={flow.unlocked ? "cleared" : "pending"}>
           {flow.unlocked ? "DATA UNLOCKED" : flow.verifyValid ? "APPROVAL NEEDED" : "READY"}
         </StatusStamp>
       </div>
 
-      <section className={`clearanceTicket ${ticketTone}`} aria-label="Clearance ticket">
-        <div className="ticketSeal" aria-hidden="true">
-          <span>NO BLANK</span>
-          <strong>CHECK</strong>
-        </div>
-        <div className="ticketSpine">
-          <span>OSMIUM</span>
-          <strong>PAYMENT CHECK</strong>
-        </div>
-        <div className="ticketBody">
-          <div className="ticketTop">
-            <div>
-              <span>Payment request</span>
-              <strong>Market Data Agent wants TSLA data</strong>
-              <small>Osmium will not let the agent pay until policy and operator approval pass.</small>
-            </div>
-            <ProofStamp tone={flow.unlocked ? "cleared" : "pending"}>
-              {decision}
-            </ProofStamp>
-          </div>
-          <div className="ticketFacts">
-            <InfoRow label="Request id" value={caseId} />
-            <InfoRow label="Agent wants" value="TSLA market data" />
-            <InfoRow label="Merchant" value="Verified Market Data API" />
-            <InfoRow label="Cost" value={amountLabel} />
-            <InfoRow label="Protection" value="policy + operator approval" />
-            <InfoRow label="Do next" value={nextAction.label} />
-          </div>
-        </div>
-      </section>
-
-      <div className="judgeLead">
-        <div>
-          <span>Do this next</span>
+      <section className={`workflowDock ${isComplete ? "complete" : ""}`}>
+        <div className="workflowBrief">
+          <span>Current instruction</span>
           <strong>{nextAction.label}</strong>
           <small>{nextAction.detail}</small>
         </div>
-        {nextAction.label === "Approve and pay" ? null : (
-          <button
-            className="primary"
-            disabled={nextAction.disabled}
-            onClick={nextAction.action}
-            title={nextAction.label}
-          >
-            {nextAction.icon}
-            {nextAction.label}
-          </button>
-        )}
-      </div>
+        <div className="workflowAction">
+          {flow.verifyValid && !flow.txHash ? (
+            <>
+              <label className="dockKeyField">
+                <span>Paste Render RUNNER_API_KEY</span>
+                <input
+                  aria-label="Operator API key"
+                  disabled={busy !== ""}
+                  onChange={(event) => setOperatorKey(event.target.value)}
+                  placeholder="une_clé_longue_random"
+                  type="password"
+                  value={operatorKey}
+                />
+              </label>
+              <button
+                className="primary"
+                disabled={busy !== "" || !canSettle}
+                onClick={onSettle}
+                title="Approve and pay through Osmium"
+              >
+                <PlayCircle size={16} />
+                Approve and pay 0.25 TSLA
+              </button>
+            </>
+          ) : isComplete ? (
+            <>
+              <a className="glassLink" href="#audit">
+                <FileCheck2 size={15} />
+                View proof log
+              </a>
+              <button
+                disabled={busy !== ""}
+                onClick={onRequest}
+                title="Start another paid data request"
+              >
+                <Radio size={17} />
+                Run again
+              </button>
+            </>
+          ) : (
+            <button
+              className="primary"
+              disabled={nextAction.disabled}
+              onClick={nextAction.action}
+              title={nextAction.label}
+            >
+              {nextAction.icon}
+              {nextAction.label}
+            </button>
+          )}
+        </div>
+      </section>
 
-      <details className="sequenceDrawer" open={Boolean(flow.paymentRequired)}>
-        <summary>
-          <div>
-            <span>Technical timeline</span>
-            <strong>{"request data -> 402 -> policy check -> approval -> payment -> signed receipt"}</strong>
-          </div>
-          <ProofStamp tone={flow.unlocked ? "cleared" : flow.paymentRequired ? "pending" : "protocol"}>
-            {flow.unlocked ? "COMPLETE" : flow.paymentRequired ? "IN PROGRESS" : "READY"}
-          </ProofStamp>
-        </summary>
+      <section className="sequencePanel">
+        <div className="sequencePanelHeader">
+          <span>Payment workflow</span>
+          <strong>{"Request data -> 402 -> policy check -> operator approval -> payment -> signed receipt"}</strong>
+        </div>
         <ClearingRail steps={steps} />
+      </section>
+
+      <details className="requestDetails" open={Boolean(flow.paymentRequired) && !isComplete}>
+        <summary>
+          <span>Payment request details</span>
+          <strong>Agent, merchant, amount and protection</strong>
+        </summary>
+        <section className={`clearanceTicket ${ticketTone}`} aria-label="Clearance ticket">
+          <div className="ticketSeal" aria-hidden="true">
+            <span>NO BLANK</span>
+            <strong>CHECK</strong>
+          </div>
+          <div className="ticketSpine">
+            <span>OSMIUM</span>
+            <strong>PAYMENT CHECK</strong>
+          </div>
+          <div className="ticketBody">
+            <div className="ticketTop">
+              <div>
+                <span>Payment request</span>
+                <strong>Market Data Agent wants TSLA data</strong>
+                <small>Osmium will not let the agent pay until policy and operator approval pass.</small>
+              </div>
+              <ProofStamp tone={flow.unlocked ? "cleared" : "pending"}>
+                {decision}
+              </ProofStamp>
+            </div>
+            <div className="ticketFacts">
+              <InfoRow label="Request id" value={caseId} />
+              <InfoRow label="Agent wants" value="TSLA market data" />
+              <InfoRow label="Merchant" value="Verified Market Data API" />
+              <InfoRow label="Cost" value={amountLabel} />
+              <InfoRow label="Protection" value="policy + operator approval" />
+              <InfoRow label="Do next" value={nextAction.label} />
+            </div>
+          </div>
+        </section>
       </details>
 
-      <details className="approvalBox" open={flow.verifyValid && !flow.txHash}>
+      {flow.verifyValid && !flow.txHash ? (
+      <details className="approvalBox" open>
         <summary className="approvalSummary">
           <div className="approvalCopy">
             <span>Approval step</span>
@@ -1575,22 +1619,6 @@ function X402FlowPanel({
             <strong>{latest?.unlocked ? "paymentId consumed" : "pending settlement"}</strong>
           </div>
         </div>
-        <label className="x402Operator">
-          <span>Operator API key (Render RUNNER_API_KEY)</span>
-          <input
-            aria-label="Operator API key"
-            disabled={busy !== ""}
-            onChange={(event) => setOperatorKey(event.target.value)}
-            placeholder="x-osmium-api-key"
-            type="password"
-            value={operatorKey}
-          />
-          <small>
-            {hasOperatorKey
-              ? "session-only key loaded"
-              : "stored only in this browser session; never put it in Vercel env"}
-          </small>
-        </label>
         <div className="approvalChecks" aria-label="Policy checks">
           <ProofStamp tone="cleared">Merchant verified</ProofStamp>
           <ProofStamp tone="cleared">Token allowed</ProofStamp>
@@ -1599,18 +1627,8 @@ function X402FlowPanel({
           <ProofStamp tone="cleared">Replay protected</ProofStamp>
           <ProofStamp tone="cleared">Context bound</ProofStamp>
         </div>
-        {flow.verifyValid && !flow.txHash ? (
-          <button
-            className="primary"
-            disabled={busy !== "" || !canSettle}
-            onClick={onSettle}
-            title="Approve and pay through Osmium"
-          >
-            <PlayCircle size={16} />
-            Approve and pay 0.25 TSLA
-          </button>
-        ) : null}
       </details>
+      ) : null}
 
       <details className="advancedDetails">
         <summary>Advanced proof details</summary>

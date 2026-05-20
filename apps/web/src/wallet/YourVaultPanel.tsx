@@ -1,17 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  ExternalLink,
-  Plus,
-  RefreshCw,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, RefreshCw } from "lucide-react";
 import { formatEther, parseEther, type Hex } from "viem";
 import { useWallet } from "./WalletProvider";
 import {
   approveTokenSpending,
   depositToVault,
-  mintTestTokens,
   readTokenAllowance,
   readTokenBalance,
   readVaultBalance,
@@ -20,6 +13,7 @@ import {
 } from "./workspace";
 import {
   DEFAULTS,
+  ROBINHOOD_FAUCET_URL,
   SETTLEMENT_ROUTER_ADDRESS,
   TSLA_ADDRESS,
   robinhoodTestnet,
@@ -34,9 +28,7 @@ export function YourVaultPanel({ workspace }: { workspace: Workspace }) {
   const [vault, setVault] = useState<bigint>(0n);
   const [wallet, setWalletBal] = useState<bigint>(0n);
   const [allowance, setAllowance] = useState<bigint>(0n);
-  const [busy, setBusy] = useState<"deposit" | "withdraw" | "mint" | null>(
-    null,
-  );
+  const [busy, setBusy] = useState<"deposit" | "withdraw" | null>(null);
   const [amount, setAmount] = useState<string>("0.25");
   const [lastTx, setLastTx] = useState<Hex | null>(null);
   const [error, setError] = useState<string>("");
@@ -144,26 +136,6 @@ export function YourVaultPanel({ workspace }: { workspace: Workspace }) {
     }
   }
 
-  async function doMint() {
-    if (!connected || !adapter.walletClient) return;
-    setBusy("mint");
-    setError("");
-    try {
-      const tx = await mintTestTokens(
-        adapter.publicClient,
-        adapter.walletClient,
-        connected.account,
-        DEFAULTS.testMintWei,
-      );
-      setLastTx(tx);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "mint failed");
-    } finally {
-      setBusy(null);
-    }
-  }
-
   if (!connected) return null;
 
   return (
@@ -238,16 +210,16 @@ export function YourVaultPanel({ workspace }: { workspace: Workspace }) {
           <ArrowUp size={13} />
           {busy === "withdraw" ? "Withdrawing…" : "Withdraw"}
         </button>
-        <button
-          type="button"
+        <a
           className="btn ghost"
-          onClick={() => void doMint()}
-          disabled={busy !== null}
-          title="Mint test TSLA (MockERC20 is unrestricted on testnet)"
+          href={ROBINHOOD_FAUCET_URL}
+          target="_blank"
+          rel="noreferrer"
+          title="TSLA is a role-gated Robinhood token — claim test balances from the faucet"
         >
-          <Plus size={13} />
-          {busy === "mint" ? "Minting…" : "Mint 5 test"}
-        </button>
+          <ExternalLink size={13} />
+          Get TSLA · faucet
+        </a>
         <button
           type="button"
           className="btn ghost"

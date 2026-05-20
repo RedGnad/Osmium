@@ -56,17 +56,13 @@ export const erc20Abi = [
     ],
     outputs: [{ type: "bool" }],
   },
-  {
-    type: "function",
-    name: "mint",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "to", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [],
-  },
 ] as const;
+
+/* TSLA on Robinhood Chain testnet is a role-gated token — it is NOT freely
+   mintable. Test balances come from the official faucet (5 of each stock
+   token + ETH, once per 24h per address). */
+export const ROBINHOOD_FAUCET_URL =
+  "https://faucet.testnet.chain.robinhood.com";
 
 export const settlementRouterAbi = [
   {
@@ -199,8 +195,6 @@ export const DEFAULTS = {
   intentValidDays: 30,
   /* default deposit on first run — user can change. 1 TSLA. */
   initialDepositWei: 1_000_000_000_000_000_000n,
-  /* default test mint when the user has nothing. 5 TSLA. */
-  testMintWei: 5_000_000_000_000_000_000n,
 } as const;
 
 /* Canonical Robinhood Chain Testnet definition consumed by viem clients. */

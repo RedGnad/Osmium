@@ -150,8 +150,14 @@ export async function runLiveSettlement(options: LiveSettlementOptions = {}) {
   const vaultTopUp = before.routerVault >= amount ? 0n : amount - before.routerVault;
   if (vaultTopUp > 0n) {
     if (before.ownerToken < vaultTopUp) {
+      const need = (Number(vaultTopUp) / 1e18).toFixed(2);
+      const have = (Number(before.ownerToken) / 1e18).toFixed(2);
       throw new Error(
-        `Insufficient ${token} balance to top up SettlementRouter vault: need ${vaultTopUp.toString()}, have ${before.ownerToken.toString()}.`
+        `Demo TSLA vault depleted. The demo agent wallet ${account.address} ` +
+          `holds ${have} TSLA but needs ${need} to settle. Top it up from the ` +
+          `Robinhood Chain faucet at faucet.testnet.chain.robinhood.com ` +
+          `(enter the agent address, claim 5 TSLA), then retry. ` +
+          `Self-serve operators are unaffected — they fund their own vault.`
       );
     }
 

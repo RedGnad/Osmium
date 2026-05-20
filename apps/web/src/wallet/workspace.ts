@@ -262,20 +262,6 @@ export async function withdrawFromVault(
   });
 }
 
-export async function mintTestTokens(
-  publicClient: PublicClient,
-  walletClient: WalletClient,
-  to: Address,
-  amount: bigint,
-): Promise<Hex> {
-  return writeFromWallet(walletClient, publicClient, {
-    address: TSLA_ADDRESS,
-    abi: erc20Abi,
-    functionName: "mint",
-    args: [to, amount],
-  });
-}
-
 export async function settleWithIntentDirect(
   publicClient: PublicClient,
   walletClient: WalletClient,

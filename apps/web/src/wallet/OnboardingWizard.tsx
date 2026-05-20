@@ -18,7 +18,6 @@ import {
   approveTokenSpending,
   createPolicyOnchain,
   depositToVault,
-  mintTestTokens,
   readTokenAllowance,
   readTokenBalance,
   readWorkspace,
@@ -28,6 +27,7 @@ import {
 import {
   DEFAULTS,
   POLICY_ENGINE_ADDRESS,
+  ROBINHOOD_FAUCET_URL,
   SETTLEMENT_ROUTER_ADDRESS,
   TSLA_ADDRESS,
   robinhoodTestnet,
@@ -103,7 +103,6 @@ export function OnboardingWizard({
   const [depositInput, setDepositInput] = useState<string>(
     formatEther(DEFAULTS.initialDepositWei),
   );
-  const [minting, setMinting] = useState(false);
 
   /* Resume from a previously stored workspace if one already exists for this
      wallet. If the workspace looks complete we exit immediately. */
@@ -318,27 +317,9 @@ export function OnboardingWizard({
     }
   }
 
-  async function mintTest() {
-    if (!connected || !adapter.walletClient) return;
-    setMinting(true);
-    try {
-      await mintTestTokens(
-        adapter.publicClient,
-        adapter.walletClient,
-        connected.account,
-        DEFAULTS.testMintWei,
-      );
-      await refreshBalances();
-    } catch {
-      /* swallow — minting is a convenience */
-    } finally {
-      setMinting(false);
-    }
-  }
-
-  /* If a connected wallet has no balance and minting is convenient, surface
-     a discreet mint button. The MockERC20 has unrestricted `mint`. */
-  const showMintHelper =
+  /* TSLA is a role-gated Robinhood token — not freely mintable. When the
+     connected wallet holds nothing, point the operator at the faucet. */
+  const showFaucetHelper =
     connected && tokenBalance === 0n && step4.status !== "done";
 
   const steps = useMemo(
@@ -439,24 +420,24 @@ export function OnboardingWizard({
         </div>
       </header>
 
-      {showMintHelper ? (
+      {showFaucetHelper ? (
         <div className="wizardHelper">
           <div>
             <strong>You hold 0 TSLA.</strong>
             <span>
-              The MockERC20 testnet token is unrestricted — mint{" "}
-              {Number(formatEther(DEFAULTS.testMintWei)).toFixed(0)} TSLA to
-              yourself to provision a workspace.
+              TSLA is a role-gated Robinhood testnet token — not freely
+              mintable. Claim 5 TSLA + gas from the official faucet (once
+              per 24h), then come back and refresh.
             </span>
           </div>
-          <button
+          <a
             className="btn ghost"
-            type="button"
-            onClick={() => void mintTest()}
-            disabled={minting}
+            href={ROBINHOOD_FAUCET_URL}
+            target="_blank"
+            rel="noreferrer"
           >
-            {minting ? "Minting…" : "Mint 5 TSLA"} <ArrowRight size={13} />
-          </button>
+            Open Robinhood faucet <ExternalLink size={13} />
+          </a>
         </div>
       ) : null}
 

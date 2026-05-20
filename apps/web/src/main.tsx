@@ -481,6 +481,9 @@ function App() {
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  /* True once any blocked-clearance proof has been run, so the Clear screen
+     can confirm "filed under Prove". */
+  const [deniedTestRan, setDeniedTestRan] = useState(false);
 
   /* Workspace lives in localStorage keyed by wallet address. Whenever the
      connected account changes, re-read so the rest of the app knows which
@@ -789,11 +792,12 @@ function App() {
           ok: match.preview.allowed,
         });
       }
+      setDeniedTestRan(true);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Denial scenario preview failed.",
+          : "Blocked-clearance proof failed.",
       );
     } finally {
       setBusy("");
@@ -815,6 +819,7 @@ function App() {
         receipt: proof.receiptHash,
         ok: !proof.replay.blocked,
       });
+      setDeniedTestRan(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Replay check failed.");
     } finally {
@@ -986,6 +991,7 @@ function App() {
             busy={busy}
             clearMode={clearMode}
             demoToken={demoToken}
+            deniedTestRan={deniedTestRan}
             error={error}
             flow={x402Flow}
             merchantAudit={merchantAudit}
@@ -1087,6 +1093,7 @@ function ClearView({
   busy,
   clearMode,
   demoToken,
+  deniedTestRan,
   error,
   flow,
   merchantAudit,
@@ -1111,6 +1118,7 @@ function ClearView({
   busy: string;
   clearMode: ClearMode;
   demoToken: string | null;
+  deniedTestRan: boolean;
   error: string;
   flow: X402FlowState;
   merchantAudit: MerchantAuditRecord[];
@@ -1550,47 +1558,45 @@ function ClearView({
       </details>
 
       <details className="advanced">
-        <summary>Denial cases · why a clearance gets blocked</summary>
+        <summary>Blocked clearance proofs · optional</summary>
         <div className="advancedBody">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "12px",
-            }}
-          >
+          <p className="denialIntro">
+            Optional policy tests. These do not move funds — they prove
+            Osmium denies unsafe agent requests and files the result in the
+            Settlement Ledger.
+          </p>
+          <div className="denialGrid">
             <DenialChip
-              label="Unknown merchant"
+              label="Test unknown merchant"
               busy={busy === "unknown"}
               onClick={() => onPreviewBlocked("unknown")}
             />
             <DenialChip
-              label="Missing receipt"
+              label="Test missing receipt"
               busy={busy === "missing"}
               onClick={() => onPreviewBlocked("missing")}
             />
             <DenialChip
-              label="Over spend limit"
+              label="Test over-limit spend"
               busy={busy === "over"}
               onClick={() => onPreviewBlocked("over")}
             />
             <DenialChip
-              label="Replay attempt"
+              label="Test replay denial"
               busy={busy === "replay"}
               onClick={onReplay}
             />
           </div>
-          <p
-            style={{
-              marginTop: "16px",
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              letterSpacing: "0.08em",
-              color: "var(--muted)",
-            }}
-          >
-            Each preview filed in the Settlement Ledger under Prove.
+          <p className="denialNote">
+            Replay denial uses the last filed paymentId and proves it cannot
+            be reused after a successful clearance.
           </p>
+          {deniedTestRan ? (
+            <p className="denialFiled">
+              <Check size={12} strokeWidth={3} /> Denied case filed under
+              Prove → Settlement Ledger.
+            </p>
+          ) : null}
         </div>
       </details>
 

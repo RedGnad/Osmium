@@ -3039,3 +3039,31 @@ button, input { font: inherit; color: inherit; }
 }
 .keyField.demoKey input { color: var(--paper); letter-spacing: 0.02em; }
 .keyField.demoKey .keyHint { color: var(--paper-deep); }
+
+/* inline error inside the Operator Clearance Packet — visible right at the
+   action, unlike the top-of-page error bar */
+.packetError {
+  margin-top: var(--space-4);
+  border: 1px solid rgba(255, 90, 102, 0.45);
+  border-left-width: 2px;
+  background: rgba(255, 90, 102, 0.07);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.packetErrorTag {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--denied);
+}
+.packetErrorBody {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-quiet);
+  line-height: 1.5;
+}

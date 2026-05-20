@@ -81,6 +81,8 @@ app.get("/health", (_req, res) => {
    team DMing them a secret. Real operators use the non-custodial self-serve
    lane and never touch this key. */
 app.get("/demo/operator-token", (_req, res) => {
+  /* never cache — the key can rotate when RUNNER_API_KEY changes */
+  res.set("Cache-Control", "no-store, max-age=0");
   res.json({
     token: config.runnerApiKey ?? null,
     lane: "demo",

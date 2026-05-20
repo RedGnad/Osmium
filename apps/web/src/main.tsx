@@ -341,6 +341,34 @@ function tokenSymbolFor(address: string) {
   );
 }
 
+/* Turn a runner failure into a human-readable sentence.
+   The runner replies with JSON like {"error":"unauthorized"} or
+   {"errorMessage":"..."} — never surface the raw JSON to the operator. */
+function humanizeRunnerError(status: number, raw: string): string {
+  let message = raw.trim();
+  try {
+    const parsed = JSON.parse(raw) as {
+      error?: string;
+      errorMessage?: string;
+      invalidMessage?: string;
+    };
+    message =
+      parsed.errorMessage ?? parsed.invalidMessage ?? parsed.error ?? message;
+  } catch {
+    /* keep raw text */
+  }
+  if (status === 401 || message === "unauthorized") {
+    return "Operator key rejected by the runner (401 Unauthorized). The demo key may have rotated — reload the page to pull the current key, or paste a valid one.";
+  }
+  if (status === 503) {
+    return "The runner has no operator key configured (503). Set RUNNER_API_KEY on the runner.";
+  }
+  if (status === 0 || !message) {
+    return "Could not reach the Osmium runner. It may be asleep — retry in a few seconds.";
+  }
+  return message;
+}
+
 async function callRunner(path: string, body?: unknown, apiKey?: string) {
   const isGet =
     path === "/health" ||
@@ -353,8 +381,12 @@ async function callRunner(path: string, body?: unknown, apiKey?: string) {
     method: isGet ? "GET" : "POST",
     headers,
     body: body && !isGet ? JSON.stringify(body) : undefined,
+    /* never serve a stale token / audit from the HTTP cache */
+    cache: "no-store",
   });
-  if (!response.ok) throw new Error(await response.text());
+  if (!response.ok) {
+    throw new Error(humanizeRunnerError(response.status, await response.text()));
+  }
   return response.json();
 }
 
@@ -362,6 +394,7 @@ async function callRunnerRawGet(path: string) {
   const response = await fetch(`${config.runnerUrl}${path}`, {
     method: "GET",
     headers: { "content-type": "application/json" },
+    cache: "no-store",
   });
   const body = await response.json();
   return {
@@ -930,6 +963,7 @@ function App() {
             busy={busy}
             clearMode={clearMode}
             demoToken={demoToken}
+            error={error}
             flow={x402Flow}
             merchantAudit={merchantAudit}
             operatorKey={operatorKey}
@@ -1030,6 +1064,7 @@ function ClearView({
   busy,
   clearMode,
   demoToken,
+  error,
   flow,
   merchantAudit,
   operatorKey,
@@ -1053,6 +1088,7 @@ function ClearView({
   busy: string;
   clearMode: ClearMode;
   demoToken: string | null;
+  error: string;
   flow: X402FlowState;
   merchantAudit: MerchantAuditRecord[];
   operatorKey: string;
@@ -1424,6 +1460,7 @@ function ClearView({
           canSettle={canSettle}
           checks={policyChecks}
           clearMode={clearMode}
+          error={error}
           flow={flow}
           isDemoKey={operatorKey !== "" && operatorKey === demoToken}
           merchantImpact={merchantImpact}
@@ -1918,6 +1955,7 @@ function OperatorClearancePacket({
   canSettle,
   checks,
   clearMode,
+  error,
   flow,
   isDemoKey,
   merchantImpact,
@@ -1935,6 +1973,7 @@ function OperatorClearancePacket({
   canSettle: boolean;
   checks: Array<{ label: string; tone: "cleared" | "pending" }>;
   clearMode: ClearMode;
+  error: string;
   flow: X402FlowState;
   isDemoKey: boolean;
   merchantImpact: string;
@@ -1952,6 +1991,7 @@ function OperatorClearancePacket({
     ? "EIP-712 verified"
     : "EIP-712 required";
   const isSelfServe = clearMode === "self-serve";
+  const settling = busy === "x402-settle" || busy === "self-serve-settle";
   return (
     <section className="operatorPacket slide-in" aria-label="Operator clearance">
       <div className="packetSeal" aria-hidden="true">
@@ -2097,10 +2137,12 @@ function OperatorClearancePacket({
           onClick={isSelfServe ? onSelfServeSettle : onSettle}
           type="button"
         >
-          {isSelfServe
-            ? `Sign settleWithIntent · ${amountLabel}`
-            : `Clear and settle · ${amountLabel}`}{" "}
-          <ArrowRight size={14} />
+          {settling
+            ? "Settling…"
+            : isSelfServe
+              ? `Sign settleWithIntent · ${amountLabel}`
+              : `Clear and settle · ${amountLabel}`}{" "}
+          {settling ? null : <ArrowRight size={14} />}
         </button>
         <button
           className="btn danger"
@@ -2111,6 +2153,13 @@ function OperatorClearancePacket({
           <X size={14} /> Deny request
         </button>
       </div>
+
+      {error ? (
+        <div className="packetError" role="alert">
+          <span className="packetErrorTag">Clearance failed</span>
+          <span className="packetErrorBody">{error}</span>
+        </div>
+      ) : null}
     </section>
   );
 }

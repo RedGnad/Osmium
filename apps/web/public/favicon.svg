@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Osmium Clearing House mark: cream tile, high-contrast serif "O" ring.
+       Vector — perfectly centred by construction, crisp at any size. -->
+  <rect width="100" height="100" rx="10" fill="#D8D1C0"/>
+  <path fill="#06080B" fill-rule="evenodd"
+        d="M20 50a30 33 0 1 0 60 0a30 33 0 1 0-60 0ZM37.5 50a12.5 20 0 1 0 25 0a12.5 20 0 1 0-25 0Z"/>
+</svg>

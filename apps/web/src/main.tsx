@@ -426,6 +426,29 @@ function buildX402PaymentPayload(flow: X402FlowState) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+   Brand mark — vector "O" ring, identical artwork to /public/favicon.svg.
+   Perfectly centred by construction; no font dependency.
+   ──────────────────────────────────────────────────────────────────────── */
+
+function OsmiumMark() {
+  return (
+    <svg
+      className="brandMark"
+      viewBox="0 0 100 100"
+      role="img"
+      aria-label="Osmium"
+    >
+      <rect width="100" height="100" rx="10" fill="#D8D1C0" />
+      <path
+        fill="#06080B"
+        fillRule="evenodd"
+        d="M20 50a30 33 0 1 0 60 0a30 33 0 1 0-60 0ZM37.5 50a12.5 20 0 1 0 25 0a12.5 20 0 1 0-25 0Z"
+      />
+    </svg>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
    App
    ──────────────────────────────────────────────────────────────────────── */
 
@@ -883,7 +906,7 @@ function App() {
     <main className="appShell">
       <header className="topbar">
         <div className="brand">
-          <div className="brandMark">O</div>
+          <OsmiumMark />
           <div className="brandText">
             <strong>Osmium</strong>
             <span>Clearing House</span>

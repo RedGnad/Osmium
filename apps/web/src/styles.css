@@ -142,17 +142,8 @@ button, input { font: inherit; color: inherit; }
 .brandMark {
   width: 28px;
   height: 28px;
-  display: grid;
-  place-items: center;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 17px;
-  font-style: italic;
-  letter-spacing: -0.02em;
-  line-height: 1;
-  border-radius: 1px;
+  display: block;
+  flex-shrink: 0;
 }
 .brandText {
   display: flex;

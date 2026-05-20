@@ -345,7 +345,8 @@ async function callRunner(path: string, body?: unknown, apiKey?: string) {
   const isGet =
     path === "/health" ||
     path.startsWith("/merchant/quote") ||
-    path === "/merchant/audit";
+    path === "/merchant/audit" ||
+    path === "/demo/operator-token";
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (apiKey) headers["x-osmium-api-key"] = apiKey;
   const response = await fetch(`${config.runnerUrl}${path}`, {
@@ -414,6 +415,10 @@ function App() {
   const [merchantAudit, setMerchantAudit] = useState<MerchantAuditRecord[]>([]);
   const [spendEvents, setSpendEvents] = useState<SpendEvent[]>([]);
   const [operatorKey, setOperatorKey] = useState("");
+  /* The team demo key, fetched once from the public runner endpoint so a
+     judge/tester never has to be DMed a secret. null = not yet fetched or
+     unavailable. */
+  const [demoToken, setDemoToken] = useState<string | null>(null);
   const [view, setView] = useState<ConsoleView>(getInitialView);
   const [clearMode, setClearModeState] =
     useState<ClearMode>(getInitialClearMode);
@@ -794,6 +799,14 @@ function App() {
       } catch {
         /* audit optional */
       }
+      try {
+        const demo = (await callRunner("/demo/operator-token")) as {
+          token: string | null;
+        };
+        if (mounted && demo?.token) setDemoToken(demo.token);
+      } catch {
+        /* demo key optional — judge can still paste manually */
+      }
     }
     void hydrate();
     return () => {
@@ -808,6 +821,15 @@ function App() {
     window.addEventListener("hashchange", syncViewFromHash);
     return () => window.removeEventListener("hashchange", syncViewFromHash);
   }, []);
+
+  /* Auto-fill the operator key in Demo mode once the team demo token has
+     loaded. Only fills when the field is empty, so a user who pasted their
+     own key or cleared it is never overridden. */
+  useEffect(() => {
+    if (clearMode === "demo" && demoToken && operatorKey === "") {
+      setOperatorKey(demoToken);
+    }
+  }, [clearMode, demoToken, operatorKey]);
 
   const navItems: Array<{ id: ConsoleView; label: string }> = [
     { id: "clear", label: "Clear" },
@@ -907,6 +929,7 @@ function App() {
             activeAsset={activeAsset}
             busy={busy}
             clearMode={clearMode}
+            demoToken={demoToken}
             flow={x402Flow}
             merchantAudit={merchantAudit}
             operatorKey={operatorKey}
@@ -1006,6 +1029,7 @@ function ClearView({
   activeAsset,
   busy,
   clearMode,
+  demoToken,
   flow,
   merchantAudit,
   operatorKey,
@@ -1028,6 +1052,7 @@ function ClearView({
   activeAsset: AssetSymbol;
   busy: string;
   clearMode: ClearMode;
+  demoToken: string | null;
   flow: X402FlowState;
   merchantAudit: MerchantAuditRecord[];
   operatorKey: string;
@@ -1400,6 +1425,7 @@ function ClearView({
           checks={policyChecks}
           clearMode={clearMode}
           flow={flow}
+          isDemoKey={operatorKey !== "" && operatorKey === demoToken}
           merchantImpact={merchantImpact}
           operatorKey={operatorKey}
           vaultImpact={vaultImpact}
@@ -1893,6 +1919,7 @@ function OperatorClearancePacket({
   checks,
   clearMode,
   flow,
+  isDemoKey,
   merchantImpact,
   operatorKey,
   vaultImpact,
@@ -1909,6 +1936,7 @@ function OperatorClearancePacket({
   checks: Array<{ label: string; tone: "cleared" | "pending" }>;
   clearMode: ClearMode;
   flow: X402FlowState;
+  isDemoKey: boolean;
   merchantImpact: string;
   operatorKey: string;
   vaultImpact: string;
@@ -2030,11 +2058,17 @@ function OperatorClearancePacket({
           </div>
         </div>
       ) : (
-        <div className={`keyField ${filled ? "filled" : ""}`}>
-          <label htmlFor="operatorKey">Session-only operator key</label>
+        <div
+          className={`keyField ${filled ? "filled" : ""} ${isDemoKey ? "demoKey" : ""}`}
+        >
+          <label htmlFor="operatorKey">
+            {isDemoKey
+              ? "Team demo key · auto-loaded"
+              : "Session-only operator key"}
+          </label>
           <input
             id="operatorKey"
-            type="password"
+            type={isDemoKey ? "text" : "password"}
             autoComplete="off"
             spellCheck={false}
             value={operatorKey}
@@ -2042,9 +2076,11 @@ function OperatorClearancePacket({
             placeholder="paste the runner operator key…"
           />
           <div className="keyHint">
-            {filled
-              ? "Held in this session only · cleared on tab close · never sent to chain"
-              : "Never stored in frontend env · session-only · masked"}
+            {isDemoKey
+              ? "Public demo key — settles a team-funded TSLA testnet vault. Real operators use Self-serve and sign with their own wallet."
+              : filled
+                ? "Held in this session only · cleared on tab close · never sent to chain"
+                : "Never stored in frontend env · session-only · masked"}
           </div>
           {filled ? (
             <button className="keyClear" onClick={onClearKey} type="button">

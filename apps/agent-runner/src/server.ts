@@ -74,6 +74,20 @@ app.get("/health", (_req, res) => {
   });
 });
 
+/* Public demo operator token.
+   The Demo lane settles from a team-funded testnet vault — there is nothing
+   to protect here (MockERC20 is freely mintable, the chain is a testnet).
+   Exposing the operator key lets a judge or tester run the demo without the
+   team DMing them a secret. Real operators use the non-custodial self-serve
+   lane and never touch this key. */
+app.get("/demo/operator-token", (_req, res) => {
+  res.json({
+    token: config.runnerApiKey ?? null,
+    lane: "demo",
+    note: "Team demo key for the operator-key lane. Anyone can use it; it only moves a team-funded TSLA testnet vault. Self-serve operators sign with their own wallet instead."
+  });
+});
+
 app.post("/demo/preview", async (_req, res, next) => {
   try {
     res.json(await runDemo({ sendTransactions: false }));

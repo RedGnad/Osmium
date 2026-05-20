@@ -3024,3 +3024,18 @@ button, input { font: inherit; color: inherit; }
   .landingBandActions { justify-content: flex-start; }
 }
 
+
+/* demo-key variant of the operator key field */
+.keyField.demoKey {
+  border-color: var(--paper-deep);
+  background:
+    linear-gradient(90deg, rgba(216, 209, 192, 0.05), transparent 70%),
+    var(--ink);
+}
+.keyField.demoKey label { color: var(--paper-deep); }
+.keyField.demoKey::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D8D1C0' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9 12l2 2 4-4'/><circle cx='12' cy='12' r='9'/></svg>");
+  opacity: 0.9;
+}
+.keyField.demoKey input { color: var(--paper); letter-spacing: 0.02em; }
+.keyField.demoKey .keyHint { color: var(--paper-deep); }

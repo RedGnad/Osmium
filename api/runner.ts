@@ -108,13 +108,17 @@ export default async function handler(request: VercelRequestLike, response: Verc
   const path = runnerPathFrom(query);
 
   try {
-    if (path === "/" || path === "") {
+    if (path === "/" || path === "" || path === "/health") {
       response.status(200).json({
         name: "Osmium Runner API",
         status: "ok",
+        ok: true,
         chainId: config.chainId,
         policyEngine: config.engineAddress,
-        settlementRouter: config.settlementRouterAddress
+        engineAddress: config.engineAddress,
+        settlementRouter: config.settlementRouterAddress,
+        settlementRouterAddress: config.settlementRouterAddress,
+        auditStore: process.env.TURSO_DATABASE_URL ? "turso" : process.env.AUDIT_STORE_PATH ? "json" : "memory"
       });
       return;
     }

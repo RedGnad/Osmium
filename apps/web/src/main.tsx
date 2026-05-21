@@ -378,6 +378,7 @@ function humanizeRunnerError(status: number, raw: string): string {
 
 function runnerEndpoint(path: string) {
   if (config.runnerUrl.endsWith("/api/runner")) {
+    if (path === "/health") return "/api/health";
     const [runnerPath, query = ""] = path.replace(/^\//, "").split("?");
     const params = new URLSearchParams(query);
     params.set("runnerPath", runnerPath);

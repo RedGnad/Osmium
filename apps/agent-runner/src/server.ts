@@ -70,7 +70,7 @@ function requireApiKey(req: RequestLike, res: ResponseLike, next: NextLike) {
   next();
 }
 
-app.get("/", (_req, res) => {
+app.get("/", (_req: RequestLike, res: ResponseLike) => {
   res.json({
     name: "Osmium Runner API",
     status: "ok",
@@ -88,7 +88,7 @@ app.get("/", (_req, res) => {
   });
 });
 
-app.get("/health", (_req, res) => {
+app.get("/health", (_req: RequestLike, res: ResponseLike) => {
   res.json({
     ok: true,
     chainId: config.chainId,
@@ -103,7 +103,7 @@ app.get("/health", (_req, res) => {
    Exposing the operator key lets a judge or tester run the demo without the
    team DMing them a secret. Real operators use the non-custodial self-serve
    lane and never touch this key. */
-app.get("/demo/operator-token", (_req, res) => {
+app.get("/demo/operator-token", (_req: RequestLike, res: ResponseLike) => {
   /* never cache — the key can rotate when RUNNER_API_KEY changes */
   res.set("Cache-Control", "no-store, max-age=0");
   res.json({
@@ -113,7 +113,7 @@ app.get("/demo/operator-token", (_req, res) => {
   });
 });
 
-app.post("/demo/preview", async (_req, res, next) => {
+app.post("/demo/preview", async (_req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     res.json(await runDemo({ sendTransactions: false }));
   } catch (error) {
@@ -121,7 +121,7 @@ app.post("/demo/preview", async (_req, res, next) => {
   }
 });
 
-app.post("/demo/live-settlement/preview", async (_req, res, next) => {
+app.post("/demo/live-settlement/preview", async (_req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     res.json(await readLiveSettlementProof());
   } catch (error) {
@@ -129,7 +129,7 @@ app.post("/demo/live-settlement/preview", async (_req, res, next) => {
   }
 });
 
-app.post("/demo/live-settlement/run", requireApiKey, async (_req, res, next) => {
+app.post("/demo/live-settlement/run", requireApiKey, async (_req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     res.json(await runLiveSettlement());
   } catch (error) {
@@ -137,7 +137,7 @@ app.post("/demo/live-settlement/run", requireApiKey, async (_req, res, next) => 
   }
 });
 
-app.get("/merchant/quote", (req, res, next) => {
+app.get("/merchant/quote", (req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     res.json(marketDataQuote(config, req.query.asset));
   } catch (error) {
@@ -145,7 +145,7 @@ app.get("/merchant/quote", (req, res, next) => {
   }
 });
 
-app.post("/merchant/receipt", async (req, res, next) => {
+app.post("/merchant/receipt", async (req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     res.json(await unlockMarketData(config, req.body ?? {}));
   } catch (error) {
@@ -153,7 +153,7 @@ app.post("/merchant/receipt", async (req, res, next) => {
   }
 });
 
-app.get("/merchant/audit", async (_req, res, next) => {
+app.get("/merchant/audit", async (_req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     res.json(await merchantAuditLog());
   } catch (error) {
@@ -161,7 +161,7 @@ app.get("/merchant/audit", async (_req, res, next) => {
   }
 });
 
-app.get("/merchant/market-data", async (req, res, next) => {
+app.get("/merchant/market-data", async (req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     const paymentSignature = req.header("payment-signature") ?? req.header("x-payment");
     const query = { ...req.query };
@@ -211,11 +211,11 @@ app.get("/merchant/market-data", async (req, res, next) => {
   }
 });
 
-app.get("/x402/supported", (_req, res) => {
+app.get("/x402/supported", (_req: RequestLike, res: ResponseLike) => {
   res.json(supportedX402(config));
 });
 
-app.post("/x402/verify", async (req, res, next) => {
+app.post("/x402/verify", async (req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     res.json(await verifyX402Payment(config, req.body ?? {}));
   } catch (error) {
@@ -223,7 +223,7 @@ app.post("/x402/verify", async (req, res, next) => {
   }
 });
 
-app.post("/x402/settle", requireApiKey, async (req, res, next) => {
+app.post("/x402/settle", requireApiKey, async (req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     const body = (req.body ?? {}) as X402Body;
     if (!body.paymentPayload && body.paymentRequirements) {
@@ -249,7 +249,7 @@ app.post("/x402/settle", requireApiKey, async (req, res, next) => {
 
 /* Trustless audit ingestion for the self-serve lane. No API key required —
    we authenticate by reading the chain. */
-app.post("/x402/settle/observe", async (req, res, next) => {
+app.post("/x402/settle/observe", async (req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     const result = await observeSettlement(config, req.body ?? {});
     res.status(result.ok ? 200 : 422).json(result);

@@ -476,7 +476,6 @@ function App() {
     wallet.state.status === "connected"
       ? (wallet.state.account as string)
       : "not connected";
-  const nativeBalance = wallet.nativeBalance;
   const [runnerStatus, setRunnerStatus] = useState<
     "unknown" | "online" | "offline"
   >("unknown");
@@ -676,6 +675,56 @@ function App() {
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Settlement failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function unlockCurrentResource() {
+    setError("");
+    const paymentId = x402Flow.paymentId;
+    const receiptHash = x402Flow.receiptHash;
+    if (!paymentId || !receiptHash) {
+      setError("No filed payment is available yet. Clear and settle first.");
+      return;
+    }
+
+    try {
+      setBusy("x402-unlock");
+      const resource = await callRunnerRawGet(
+        `/merchant/market-data?asset=${activeAsset}&paymentId=${paymentId}&receiptHash=${receiptHash}`,
+      );
+      if (resource.status !== 200) {
+        setX402Flow((current) => ({
+          ...current,
+          unlockStatus: resource.status,
+          unlocked: false,
+        }));
+        setError(
+          "The merchant still reports this resource as locked. Retry in a few seconds; settlement indexing may still be catching up.",
+        );
+        return;
+      }
+
+      const unlocked = resource.body as MerchantUnlock;
+      setUnlock(unlocked);
+      await refreshMerchantAudit();
+      setX402Flow((current) => ({
+        ...current,
+        unlockStatus: resource.status,
+        merchantReceipt: unlocked.merchantReceipt ?? null,
+        paymentResponse: resource.paymentResponse ?? undefined,
+        unlocked: true,
+      }));
+      addSpendEvent({
+        status: "Filed",
+        detail: `${unlocked.title ?? "TSLA market data"} unlocked with filed receipt`,
+        tx: x402Flow.txHash,
+        receipt: receiptHash,
+        ok: true,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unlock failed.");
     } finally {
       setBusy("");
     }
@@ -996,7 +1045,6 @@ function App() {
 
       <TickerBar
         runnerStatus={runnerStatus}
-        nativeBalance={nativeBalance}
         merchantTitle={quote?.title}
       />
 
@@ -1025,6 +1073,7 @@ function App() {
             onRequest={() => requestMarketDataResource(activeAsset)}
             onSelfServeSettle={settleSelfServe}
             onSettle={settleX402Flow}
+            onUnlock={unlockCurrentResource}
             onSetOperatorKey={setOperatorKey}
             onVerify={verifyX402Flow}
             onPreviewBlocked={previewBlockedScenario}
@@ -1059,11 +1108,9 @@ function App() {
 
 function TickerBar({
   runnerStatus,
-  nativeBalance,
   merchantTitle,
 }: {
   runnerStatus: string;
-  nativeBalance: string;
   merchantTitle?: string;
 }) {
   return (
@@ -1091,10 +1138,6 @@ function TickerBar({
       <span className="tickerSpacer" />
       <span className="tickerCell right">
         <span className="pip" />
-        <span className="tickerLabel">Operator gas</span>
-        <strong>{nativeBalance}</strong>
-      </span>
-      <span className="tickerCell right">
         <span className="tickerLabel">Runner</span>
         <strong>{runnerStatus}</strong>
       </span>
@@ -1128,6 +1171,7 @@ function ClearView({
   onSelfServeSettle,
   onSetOperatorKey,
   onSettle,
+  onUnlock,
   onVerify,
   onPreviewBlocked,
   onReplay,
@@ -1153,6 +1197,7 @@ function ClearView({
   onSelfServeSettle: () => void;
   onSetOperatorKey: (v: string) => void;
   onSettle: () => void;
+  onUnlock: () => void;
   onVerify: () => void;
   onPreviewBlocked: (k: "unknown" | "missing" | "over") => void;
   onReplay: () => void;
@@ -1346,9 +1391,9 @@ function ClearView({
                 <button
                   className="btn primary"
                   disabled={busy !== ""}
-                  onClick={onRequest}
+                  onClick={onUnlock}
                 >
-                  Re-request resource <ArrowRight size={14} />
+                  Unlock data <ArrowRight size={14} />
                 </button>
               ),
             }
@@ -1429,8 +1474,6 @@ function ClearView({
         </div>
       </header>
 
-      <ClearModeToggle mode={clearMode} onChange={onClearMode} />
-
       {clearMode === "self-serve" ? (
         <SelfServePlaceholder />
       ) : null}
@@ -1478,7 +1521,7 @@ function ClearView({
               : !flow.txHash
                 ? "Operator review below"
                 : !flow.unlocked
-                  ? "Re-request resource"
+                  ? "Unlock filed resource"
                   : "Filed · check Prove"
         }
         spineLabel={spineLabel}
@@ -1618,7 +1661,7 @@ function ClearView({
         </div>
       </details>
 
-      {merchantAudit[0]?.unlocked && unlock?.payload ? (
+      {unlock?.payload ? (
         <details className="advanced">
           <summary>Latest unlocked payload</summary>
           <div className="advancedBody">
@@ -1685,53 +1728,6 @@ function LandingBand({
           Read the SDK
           <span className="landingBandHint">10-minute integration</span>
         </a>
-      </div>
-    </section>
-  );
-}
-
-function ClearModeToggle({
-  mode,
-  onChange,
-}: {
-  mode: ClearMode;
-  onChange: (mode: ClearMode) => void;
-}) {
-  return (
-    <section className="modeToggle" aria-label="Clearing mode">
-      <div className="modeToggleLeft">
-        <span className="modeEyebrow">Clearing mode</span>
-        <span className="modeHint">
-          {mode === "demo"
-            ? "Judge path · team-funded vault, operator-key paste, no wallet required"
-            : "Builder path · your wallet signs, your vault funds, your policy onchain"}
-        </span>
-      </div>
-      <div
-        className="modeOptions"
-        role="tablist"
-        aria-label="Demo or self-serve"
-      >
-        <button
-          role="tab"
-          aria-selected={mode === "demo"}
-          className={`modeOption ${mode === "demo" ? "active" : ""}`}
-          type="button"
-          onClick={() => onChange("demo")}
-        >
-          <span className="modeOptionLabel">Demo</span>
-          <span className="modeOptionMeta">operator-key</span>
-        </button>
-        <button
-          role="tab"
-          aria-selected={mode === "self-serve"}
-          className={`modeOption ${mode === "self-serve" ? "active" : ""}`}
-          type="button"
-          onClick={() => onChange("self-serve")}
-        >
-          <span className="modeOptionLabel">Self-serve</span>
-          <span className="modeOptionMeta">your wallet · alpha</span>
-        </button>
       </div>
     </section>
   );

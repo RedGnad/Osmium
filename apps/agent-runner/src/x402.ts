@@ -68,7 +68,7 @@ export type OsmiumPaymentRequired = {
   accepts: OsmiumPaymentDetails[];
 };
 
-type OsmiumPaymentPayload = {
+export type OsmiumPaymentPayload = {
   x402Version: typeof OSMIUM_X402_VERSION;
   accepted: OsmiumPaymentDetails;
   payload: {
@@ -84,7 +84,7 @@ type OsmiumPaymentPayload = {
   resource: X402Resource;
 };
 
-type X402Body = {
+export type X402Body = {
   x402Version?: number;
   paymentPayload?: OsmiumPaymentPayload;
   paymentRequirements?: OsmiumPaymentRequired | OsmiumPaymentDetails;

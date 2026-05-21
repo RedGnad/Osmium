@@ -1,9 +1,4 @@
-import express, {
-  type Express,
-  type NextFunction,
-  type Request,
-  type Response,
-} from "express";
+import express from "express";
 import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
 import { readLiveSettlementProof, runLiveSettlement } from "./liveSettlement.js";
@@ -14,9 +9,12 @@ import {
   buildPaymentPayload,
   decodeBase64Json,
   encodeBase64Json,
+  OSMIUM_X402_VERSION,
   settleX402Payment,
   supportedX402,
-  verifyX402Payment
+  verifyX402Payment,
+  type OsmiumPaymentRequired,
+  type X402Body
 } from "./x402.js";
 
 const config = loadConfig();
@@ -24,9 +22,29 @@ if (config.requireRunnerApiKey && !config.runnerApiKey) {
   throw new Error("RUNNER_API_KEY is required when RUNNER_REQUIRE_API_KEY=true or RENDER=true");
 }
 
-export const app: Express = express();
+type RequestLike = {
+  body?: unknown;
+  method?: string;
+  query: Record<string, unknown>;
+  header(name: string): string | undefined;
+};
 
-app.use((req: Request, res: Response, next: NextFunction) => {
+type ResponseLike = {
+  header(name: string, value: string | undefined): ResponseLike;
+  json(body: unknown): ResponseLike;
+  sendStatus(status: number): ResponseLike;
+  set(name: string, value: string): ResponseLike;
+  status(status: number): ResponseLike;
+};
+
+type NextLike = (error?: unknown) => void;
+type AppLike = ReturnType<typeof express> & {
+  (req: unknown, res: unknown): unknown;
+};
+
+export const app = express() as AppLike;
+
+app.use((req: RequestLike, res: ResponseLike, next: NextLike) => {
   const origin = req.header("origin");
   const allowedOrigins = new Set(config.allowedOrigin.split(",").map((item) => item.trim()).filter(Boolean));
   if (!origin || allowedOrigins.has(origin)) {
@@ -42,7 +60,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use(express.json());
 
-function requireApiKey(req: Request, res: Response, next: NextFunction) {
+function requireApiKey(req: RequestLike, res: ResponseLike, next: NextLike) {
   if (!config.runnerApiKey) {
     return res.status(503).json({ error: "runner api key is not configured" });
   }
@@ -207,9 +225,19 @@ app.post("/x402/verify", async (req, res, next) => {
 
 app.post("/x402/settle", requireApiKey, async (req, res, next) => {
   try {
-    const body = req.body ?? {};
+    const body = (req.body ?? {}) as X402Body;
     if (!body.paymentPayload && body.paymentRequirements) {
-      body.paymentPayload = buildPaymentPayload(body.paymentRequirements, config.agentAddress);
+      const paymentRequirements: OsmiumPaymentRequired =
+        "accepts" in body.paymentRequirements
+          ? body.paymentRequirements
+          : {
+              x402Version: OSMIUM_X402_VERSION,
+              error: "payment_required",
+              protocol: "x402-compatible-osmium",
+              accepts: [body.paymentRequirements]
+            };
+      body.paymentPayload = buildPaymentPayload(paymentRequirements, config.agentAddress);
+      body.paymentRequirements = paymentRequirements;
     }
     const result = await settleX402Payment(config, body);
     res.header("PAYMENT-RESPONSE", encodeBase64Json(result));
@@ -230,7 +258,7 @@ app.post("/x402/settle/observe", async (req, res, next) => {
   }
 });
 
-app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
+app.use((error: unknown, _req: RequestLike, res: ResponseLike, _next: NextLike) => {
   const message = error instanceof Error ? error.message : "unknown error";
   res.status(500).json({ error: message });
 });

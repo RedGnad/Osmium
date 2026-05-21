@@ -15,5 +15,5 @@ export default function handler(
 ) {
   const originalUrl = request.url ?? "/";
   request.url = originalUrl.replace(/^\/api(?=\/|$)/, "") || "/";
-  return app(request as never, response as never);
+  return app(request, response);
 }

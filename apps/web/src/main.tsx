@@ -348,11 +348,43 @@ function tokenSymbolFor(address: string) {
   );
 }
 
+/* Read a fetch Response body once, as text, then try to parse it as JSON.
+   The runner can return a non-JSON body (a crashed Vercel function emits a
+   plain-text "A server error has occurred" page, a proxy can return HTML),
+   so callers must never blindly call response.json() — that throws the
+   "Unexpected token … is not valid JSON" error the operator should never see. */
+async function readResponseBody(
+  response: Response,
+): Promise<{ json: unknown; text: string }> {
+  const text = await response.text();
+  try {
+    return { json: JSON.parse(text), text };
+  } catch {
+    return { json: null, text };
+  }
+}
+
+/* Turn a non-JSON runner body into a clean, human-readable sentence so the
+   raw Vercel error text or HTML never reaches the UI. */
+function formatRunnerError(status: number, text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("A server error")) {
+    return "The Osmium runner crashed before returning JSON. Check Vercel runtime logs for /api/runner.";
+  }
+  if (trimmed.includes("<!DOCTYPE") || trimmed.includes("<html")) {
+    return "The runner returned an HTML error page instead of JSON.";
+  }
+  return trimmed || `Runner returned HTTP ${status} without a JSON body.`;
+}
+
 /* Turn a runner failure into a human-readable sentence.
    The runner replies with JSON like {"error":"unauthorized"} or
-   {"errorMessage":"..."} — never surface the raw JSON to the operator. */
+   {"errorMessage":"..."} — never surface the raw JSON to the operator.
+   When the body is not JSON at all, fall back to formatRunnerError so the
+   operator never sees an "Unexpected token …" parse error. */
 function humanizeRunnerError(status: number, raw: string): string {
-  let message = raw.trim();
+  let message = "";
+  let parsedJson = false;
   try {
     const parsed = JSON.parse(raw) as {
       error?: string;
@@ -360,9 +392,10 @@ function humanizeRunnerError(status: number, raw: string): string {
       invalidMessage?: string;
     };
     message =
-      parsed.errorMessage ?? parsed.invalidMessage ?? parsed.error ?? message;
+      parsed.errorMessage ?? parsed.invalidMessage ?? parsed.error ?? "";
+    parsedJson = true;
   } catch {
-    /* keep raw text */
+    /* not JSON — handled by formatRunnerError below */
   }
   if (status === 401 || message === "unauthorized") {
     return "Operator key rejected by the runner (401 Unauthorized). The demo key may have rotated — reload the page to pull the current key, or paste a valid one.";
@@ -370,10 +403,11 @@ function humanizeRunnerError(status: number, raw: string): string {
   if (status === 503) {
     return "The runner has no operator key configured (503). Set RUNNER_API_KEY on the runner.";
   }
-  if (status === 0 || !message) {
+  if (status === 0) {
     return "Could not reach the Osmium runner. It may be asleep — retry in a few seconds.";
   }
-  return message;
+  if (parsedJson && message) return message;
+  return formatRunnerError(status, raw);
 }
 
 function runnerEndpoint(path: string) {
@@ -402,10 +436,15 @@ async function callRunner(path: string, body?: unknown, apiKey?: string) {
     /* never serve a stale token / audit from the HTTP cache */
     cache: "no-store",
   });
+  const { json, text } = await readResponseBody(response);
   if (!response.ok) {
-    throw new Error(humanizeRunnerError(response.status, await response.text()));
+    throw new Error(humanizeRunnerError(response.status, text));
   }
-  return response.json();
+  if (json === null) {
+    /* 2xx but the body was not JSON — never hand raw text to a JSON parser. */
+    throw new Error(formatRunnerError(response.status, text));
+  }
+  return json;
 }
 
 async function callRunnerRawGet(path: string) {
@@ -414,10 +453,15 @@ async function callRunnerRawGet(path: string) {
     headers: { "content-type": "application/json" },
     cache: "no-store",
   });
-  const body = await response.json();
+  const { json, text } = await readResponseBody(response);
+  if (json === null) {
+    /* A 402 challenge still carries a JSON body, so we only fail here when
+       the body is genuinely non-JSON (a crashed runner or an HTML error). */
+    throw new Error(humanizeRunnerError(response.status, text));
+  }
   return {
     status: response.status,
-    body,
+    body: json,
     paymentRequired: response.headers.get("PAYMENT-REQUIRED"),
     paymentResponse: response.headers.get("PAYMENT-RESPONSE"),
   };
@@ -496,7 +540,10 @@ function App() {
   const [clearMode, setClearModeState] =
     useState<ClearMode>(getInitialClearMode);
   const [busy, setBusy] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  /* Errors from the Request → Verify → Clear → Settle → File → Unlock flow.
+     These render inside the active Clearance panel, never as a global
+     page-level banner — a single failed step does not make the app unusable. */
+  const [clearanceError, setClearanceError] = useState<string>("");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   /* True once any blocked-clearance proof has been run, so the Clear screen
      can confirm "filed under Prove". */
@@ -534,7 +581,7 @@ function App() {
   }
 
   async function requestMarketDataResource(asset = activeAsset) {
-    setError("");
+    setClearanceError("");
     try {
       setBusy("x402-request");
       /* In self-serve mode with a provisioned workspace, tell the runner to
@@ -572,7 +619,7 @@ function App() {
         unlocked: false,
       });
     } catch (err) {
-      setError(
+      setClearanceError(
         err instanceof Error
           ? err.message
           : "Market-data resource request failed.",
@@ -583,7 +630,7 @@ function App() {
   }
 
   async function verifyX402Flow() {
-    setError("");
+    setClearanceError("");
     try {
       setBusy("x402-verify");
       const paymentPayload = buildX402PaymentPayload(x402Flow);
@@ -604,9 +651,9 @@ function App() {
         verifyValid: result.isValid,
       }));
       if (!result.isValid)
-        setError(result.invalidMessage ?? "x402 verification failed.");
+        setClearanceError(result.invalidMessage ?? "x402 verification failed.");
     } catch (err) {
-      setError(
+      setClearanceError(
         err instanceof Error ? err.message : "x402 verification failed.",
       );
     } finally {
@@ -615,15 +662,15 @@ function App() {
   }
 
   async function settleX402Flow() {
-    setError("");
+    setClearanceError("");
     if (activeAsset !== "TSLA") {
-      setError(
+      setClearanceError(
         "Live settlement is currently wired to TSLA. AMD and AMZN are quote-supported service examples.",
       );
       return;
     }
     if (!operatorKey.trim()) {
-      setError(
+      setClearanceError(
         "Paste the operator key to clear and settle this protected payment.",
       );
       return;
@@ -674,18 +721,18 @@ function App() {
         ok: resource.status === 200,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Settlement failed.");
+      setClearanceError(err instanceof Error ? err.message : "Settlement failed.");
     } finally {
       setBusy("");
     }
   }
 
   async function unlockCurrentResource() {
-    setError("");
+    setClearanceError("");
     const paymentId = x402Flow.paymentId;
     const receiptHash = x402Flow.receiptHash;
     if (!paymentId || !receiptHash) {
-      setError("No filed payment is available yet. Clear and settle first.");
+      setClearanceError("No filed payment is available yet. Clear and settle first.");
       return;
     }
 
@@ -700,7 +747,7 @@ function App() {
           unlockStatus: resource.status,
           unlocked: false,
         }));
-        setError(
+        setClearanceError(
           "The merchant still reports this resource as locked. Retry in a few seconds; settlement indexing may still be catching up.",
         );
         return;
@@ -724,14 +771,14 @@ function App() {
         ok: true,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unlock failed.");
+      setClearanceError(err instanceof Error ? err.message : "Unlock failed.");
     } finally {
       setBusy("");
     }
   }
 
   function denyRequest() {
-    setError("");
+    setClearanceError("");
     addSpendEvent({
       status: "Denied",
       detail: "Operator declined to clear request",
@@ -748,31 +795,31 @@ function App() {
      post the txHash to /x402/settle/observe so the runner records the
      audit row from on-chain truth. */
   async function settleSelfServe() {
-    setError("");
+    setClearanceError("");
     if (wallet.state.status !== "connected") {
-      setError("Connect your wallet to settle in self-serve mode.");
+      setClearanceError("Connect your wallet to settle in self-serve mode.");
       return;
     }
     if (wallet.state.onWrongChain) {
-      setError("Switch to Robinhood Chain Testnet to settle.");
+      setClearanceError("Switch to Robinhood Chain Testnet to settle.");
       return;
     }
     if (!workspace) {
-      setError("Provision your workspace first.");
+      setClearanceError("Provision your workspace first.");
       return;
     }
     if (!wallet.adapter.walletClient) {
-      setError("Wallet client not ready.");
+      setClearanceError("Wallet client not ready.");
       return;
     }
     const accepted = x402Flow.paymentRequired?.accepts[0];
     if (!accepted) {
-      setError("Request the resource first to receive a 402 challenge.");
+      setClearanceError("Request the resource first to receive a 402 challenge.");
       return;
     }
     /* Sanity: the 402 must have been issued against the user's policy. */
     if (accepted.extra.policyId !== workspace.policyId) {
-      setError(
+      setClearanceError(
         `The 402 challenge is bound to policy #${accepted.extra.policyId}, not your workspace policy #${workspace.policyId}. Re-request.`,
       );
       return;
@@ -830,7 +877,7 @@ function App() {
         ok: resource.status === 200,
       });
     } catch (err) {
-      setError(
+      setClearanceError(
         err instanceof Error ? err.message : "Self-serve settlement failed.",
       );
     } finally {
@@ -839,7 +886,7 @@ function App() {
   }
 
   async function previewBlockedScenario(kind: "unknown" | "missing" | "over") {
-    setError("");
+    setClearanceError("");
     try {
       setBusy(kind);
       const previews = (await callRunner("/demo/preview")) as DemoPreview[];
@@ -861,7 +908,7 @@ function App() {
       }
       setDeniedTestRan(true);
     } catch (err) {
-      setError(
+      setClearanceError(
         err instanceof Error
           ? err.message
           : "Blocked-clearance proof failed.",
@@ -872,7 +919,7 @@ function App() {
   }
 
   async function replayLastPayment() {
-    setError("");
+    setClearanceError("");
     try {
       setBusy("replay");
       const proof =
@@ -888,7 +935,7 @@ function App() {
       });
       setDeniedTestRan(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Replay check failed.");
+      setClearanceError(err instanceof Error ? err.message : "Replay check failed.");
     } finally {
       setBusy("");
     }
@@ -1049,8 +1096,6 @@ function App() {
       />
 
       <section className="workspace">
-        {error ? <div className="errorBar">{error}</div> : null}
-
         {view === "clear" ? (
           <ClearView
             activeAsset={activeAsset}
@@ -1058,7 +1103,7 @@ function App() {
             clearMode={clearMode}
             demoToken={demoToken}
             deniedTestRan={deniedTestRan}
-            error={error}
+            error={clearanceError}
             flow={x402Flow}
             merchantAudit={merchantAudit}
             operatorKey={operatorKey}
@@ -1545,6 +1590,13 @@ function ClearView({
         ) : null}
       </div>
 
+      {error ? (
+        <div className="packetError" role="alert">
+          <span className="packetErrorTag">Clearance failed</span>
+          <span className="packetErrorBody">{error}</span>
+        </div>
+      ) : null}
+
       {showPacket ? (
         <OperatorClearancePacket
           amountLabel={amountLabel}
@@ -1552,7 +1604,6 @@ function ClearView({
           canSettle={canSettle}
           checks={policyChecks}
           clearMode={clearMode}
-          error={error}
           flow={flow}
           isDemoKey={operatorKey !== "" && operatorKey === demoToken}
           merchantImpact={merchantImpact}
@@ -1998,7 +2049,6 @@ function OperatorClearancePacket({
   canSettle,
   checks,
   clearMode,
-  error,
   flow,
   isDemoKey,
   merchantImpact,
@@ -2016,7 +2066,6 @@ function OperatorClearancePacket({
   canSettle: boolean;
   checks: Array<{ label: string; tone: "cleared" | "pending" }>;
   clearMode: ClearMode;
-  error: string;
   flow: X402FlowState;
   isDemoKey: boolean;
   merchantImpact: string;
@@ -2196,13 +2245,6 @@ function OperatorClearancePacket({
           <X size={14} /> Deny request
         </button>
       </div>
-
-      {error ? (
-        <div className="packetError" role="alert">
-          <span className="packetErrorTag">Clearance failed</span>
-          <span className="packetErrorBody">{error}</span>
-        </div>
-      ) : null}
     </section>
   );
 }

@@ -72,26 +72,36 @@ function optionalHex(name: string): Hex | undefined {
   return value as Hex;
 }
 
-function optionalHexAny(names: string[]): Hex | undefined {
+/* A private key must be a 0x-prefixed 32-byte hex string. A malformed value
+   — a placeholder, an address pasted by mistake, stray whitespace — would
+   make viem's privateKeyToAccount throw deep inside a request handler (e.g.
+   the merchant-receipt signer crashing the /merchant/market-data unlock).
+   Treat any invalid value as "not set" so callers fall back cleanly (unsigned
+   demo receipt, or a clear "required" error) instead of crashing the runner. */
+function optionalPrivateKey(names: string[]): Hex | undefined {
   for (const name of names) {
-    const value = optionalHex(name);
-    if (value) return value;
+    const raw = process.env[name]?.trim();
+    if (!raw || raw === "0x") continue;
+    const candidate = raw.startsWith("0x") ? raw : `0x${raw}`;
+    if (/^0x[0-9a-fA-F]{64}$/.test(candidate)) return candidate as Hex;
   }
   return undefined;
 }
 
 export function loadConfig(): RunnerConfig {
-  const adminPrivateKey =
-    optionalHex("ADMIN_PRIVATE_KEY") ??
-    optionalHex("PRIVATE_KEY") ??
-    optionalHexAny(["AGENT_PRIVATE_KEY", "DEMO_AGENT_PRIVATE_KEY"]);
+  const adminPrivateKey = optionalPrivateKey([
+    "ADMIN_PRIVATE_KEY",
+    "PRIVATE_KEY",
+    "AGENT_PRIVATE_KEY",
+    "DEMO_AGENT_PRIVATE_KEY",
+  ]);
 
   return {
     rpcUrl: envAny(["RH_RPC_URL", "ROBINHOOD_RPC_URL"], "https://rpc.testnet.chain.robinhood.com"),
     chainId: Number(env("CHAIN_ID", "46630")),
     engineAddress: envAny(["OSMIUM_POLICY_ENGINE_ADDRESS", "POLICY_ENGINE_ADDRESS"]) as Address,
     adminPrivateKey,
-    agentPrivateKey: optionalHexAny(["AGENT_PRIVATE_KEY", "DEMO_AGENT_PRIVATE_KEY"]),
+    agentPrivateKey: optionalPrivateKey(["AGENT_PRIVATE_KEY", "DEMO_AGENT_PRIVATE_KEY"]),
     agentAddress: process.env.AGENT_ADDRESS as Address | undefined,
     policyId: BigInt(env("POLICY_ID", "1")),
     demoIntentHash:
@@ -111,7 +121,7 @@ export function loadConfig(): RunnerConfig {
     latestSettlementTx: optionalHex("LATEST_SETTLEMENT_TX"),
     latestSettlementPaymentId: optionalHex("LATEST_SETTLEMENT_PAYMENT_ID"),
     latestSettlementReceiptHash: optionalHex("LATEST_SETTLEMENT_RECEIPT_HASH"),
-    merchantReceiptSignerPrivateKey: optionalHex("MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY"),
+    merchantReceiptSignerPrivateKey: optionalPrivateKey(["MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY"]),
     merchantAddress: env("MERCHANT_ADDRESS") as Address,
     unknownMerchantAddress: env("UNKNOWN_MERCHANT_ADDRESS", env("MERCHANT_ADDRESS")) as Address,
     maxPerTxWei: BigInt(env("MAX_PER_TX_WEI", "1000000000000000000")),

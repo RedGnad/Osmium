@@ -97,17 +97,21 @@ function requireApiKey(request: VercelRequestLike, response: VercelResponseLike,
 }
 
 export default async function handler(request: VercelRequestLike, response: VercelResponseLike) {
-  const config = loadConfig();
-  setCors(response, requestHeader(request, "origin"), config.allowedOrigin);
-  if (request.method === "OPTIONS") {
-    response.status(204).end();
-    return;
-  }
-
-  const query = readQuery(request);
-  const path = runnerPathFrom(query);
-
   try {
+    /* Everything that can throw — config loading, CORS, query parsing,
+       routing, body parsing, endpoint logic — runs inside this try so the
+       handler can never leak a raw Vercel "A server error has occurred"
+       page to the frontend. Handled failures always return JSON below. */
+    const config = loadConfig();
+    setCors(response, requestHeader(request, "origin"), config.allowedOrigin);
+    if (request.method === "OPTIONS") {
+      response.status(204).end();
+      return;
+    }
+
+    const query = readQuery(request);
+    const path = runnerPathFrom(query);
+
     if (path === "/" || path === "" || path === "/health") {
       response.status(200).json({
         name: "Osmium Runner API",
@@ -245,8 +249,25 @@ export default async function handler(request: VercelRequestLike, response: Verc
 
     response.status(404).json({ error: "runner endpoint not found", path });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown runner error";
+    /* A missing/malformed env var surfaces here as a config error so the
+       frontend can tell "the runner is misconfigured" apart from a genuine
+       runtime fault. Env var *names* are safe to surface; no secret values
+       are ever included in the message. */
+    const isConfigError = /missing required env var/i.test(message);
+
+    /* loadConfig() may have thrown before setCors() ran, so set a minimal
+       CORS header here too — otherwise a cross-origin frontend cannot even
+       read this JSON error body. */
+    const origin = requestHeader(request, "origin");
+    if (origin) response.setHeader("Access-Control-Allow-Origin", origin);
+    response.setHeader("Vary", "Origin");
+    response.setHeader("content-type", "application/json");
+
     response.status(500).json({
-      error: error instanceof Error ? error.message : "unknown runner error"
+      ok: false,
+      error: isConfigError ? "runner_config_error" : "runner_error",
+      message
     });
   }
 }

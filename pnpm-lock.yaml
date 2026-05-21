@@ -6,7 +6,17 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    dependencies:
+      '@libsql/client':
+        specifier: ^0.17.3
+        version: 0.17.3
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      viem:
+        specifier: ^2.48.11
+        version: 2.48.11(typescript@5.9.3)(zod@3.25.76)
 
   apps/agent-runner:
     dependencies:

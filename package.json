@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "description": "Onchain SpendOps for AI finance agents on Arbitrum and Robinhood Chain.",
+  "dependencies": {
+    "@libsql/client": "^0.17.3",
+    "dotenv": "^16.4.7",
+    "viem": "^2.48.11"
+  },
   "scripts": {
     "agent:dev": "pnpm --filter @osmium/agent-runner run dev",
     "agent:demo": "pnpm --filter @osmium/agent-runner run demo",

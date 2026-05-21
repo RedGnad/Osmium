@@ -197,6 +197,10 @@ type SpendEvent = {
    Config + assets — unchanged
    ──────────────────────────────────────────────────────────────────────── */
 
+const configuredRunnerUrl =
+  import.meta.env.VITE_AGENT_RUNNER_URL ??
+  (import.meta.env.PROD ? "/api" : "http://127.0.0.1:10000");
+
 const config = {
   chainId: Number(import.meta.env.VITE_CHAIN_ID ?? "46630"),
   rpcUrl:
@@ -207,8 +211,9 @@ const config = {
   routerAddress: (import.meta.env.VITE_OSMIUM_SETTLEMENT_ROUTER_ADDRESS ??
     "0x1CD04cbD3348D5fa28B30776902464752e878ac7") as Address,
   runnerUrl:
-    import.meta.env.VITE_AGENT_RUNNER_URL ??
-    (import.meta.env.PROD ? "/api" : "http://127.0.0.1:10000"),
+    import.meta.env.PROD && configuredRunnerUrl === "/api"
+      ? "/api/runner"
+      : configuredRunnerUrl,
   explorerUrl: "https://explorer.testnet.chain.robinhood.com",
 };
 
@@ -371,6 +376,16 @@ function humanizeRunnerError(status: number, raw: string): string {
   return message;
 }
 
+function runnerEndpoint(path: string) {
+  if (config.runnerUrl.endsWith("/api/runner")) {
+    const [runnerPath, query = ""] = path.replace(/^\//, "").split("?");
+    const params = new URLSearchParams(query);
+    params.set("runnerPath", runnerPath);
+    return `${config.runnerUrl}?${params.toString()}`;
+  }
+  return `${config.runnerUrl}${path}`;
+}
+
 async function callRunner(path: string, body?: unknown, apiKey?: string) {
   const isGet =
     path === "/health" ||
@@ -379,7 +394,7 @@ async function callRunner(path: string, body?: unknown, apiKey?: string) {
     path === "/demo/operator-token";
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (apiKey) headers["x-osmium-api-key"] = apiKey;
-  const response = await fetch(`${config.runnerUrl}${path}`, {
+  const response = await fetch(runnerEndpoint(path), {
     method: isGet ? "GET" : "POST",
     headers,
     body: body && !isGet ? JSON.stringify(body) : undefined,
@@ -393,7 +408,7 @@ async function callRunner(path: string, body?: unknown, apiKey?: string) {
 }
 
 async function callRunnerRawGet(path: string) {
-  const response = await fetch(`${config.runnerUrl}${path}`, {
+  const response = await fetch(runnerEndpoint(path), {
     method: "GET",
     headers: { "content-type": "application/json" },
     cache: "no-store",

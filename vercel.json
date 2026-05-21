@@ -6,9 +6,6 @@
   "functions": {
     "api/runner.ts": {
       "maxDuration": 60
-    },
-    "api/[...path].ts": {
-      "maxDuration": 60
     }
   },
   "rewrites": [

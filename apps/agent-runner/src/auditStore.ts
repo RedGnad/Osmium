@@ -79,11 +79,13 @@ async function ensureTursoSchema(client: TursoClient) {
 }
 
 async function loadStore() {
-  if (loaded) return;
-  loaded = true;
-
   const client = getTursoClient();
   if (client) {
+    /* Vercel serves requests from many short-lived, independently-reused
+       function instances. Caching "loaded" across requests means a reused
+       instance never sees rows another instance wrote — a freshly-settled
+       payment then reads back as "still locked" on the unlock step. Always
+       re-read from Turso so every instance has the authoritative ledger. */
     await ensureTursoSchema(client);
     const result = await client.execute(
       "SELECT raw_json FROM audit_events ORDER BY created_at DESC",
@@ -96,6 +98,10 @@ async function loadStore() {
     }
     return;
   }
+
+  /* File-backed store (local dev) is single-process, so caching is safe. */
+  if (loaded) return;
+  loaded = true;
 
   if (!existsSync(storePath)) return;
   const raw = readFileSync(storePath, "utf8");

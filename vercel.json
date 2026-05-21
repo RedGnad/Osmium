@@ -4,8 +4,25 @@
   "buildCommand": "pnpm web:build",
   "outputDirectory": "apps/web/dist",
   "functions": {
+    "api/runner.ts": {
+      "maxDuration": 60
+    },
     "api/[...path].ts": {
       "maxDuration": 60
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/merchant/:path*",
+      "destination": "/api/runner?runnerPath=merchant/:path*"
+    },
+    {
+      "source": "/api/x402/:path*",
+      "destination": "/api/runner?runnerPath=x402/:path*"
+    },
+    {
+      "source": "/api/demo/:path*",
+      "destination": "/api/runner?runnerPath=demo/:path*"
+    }
+  ]
 }

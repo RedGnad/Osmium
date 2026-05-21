@@ -1,4 +1,9 @@
-import express from "express";
+import express, {
+  type Express,
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
 import { readLiveSettlementProof, runLiveSettlement } from "./liveSettlement.js";
@@ -19,9 +24,9 @@ if (config.requireRunnerApiKey && !config.runnerApiKey) {
   throw new Error("RUNNER_API_KEY is required when RUNNER_REQUIRE_API_KEY=true or RENDER=true");
 }
 
-export const app = express();
+export const app: Express = express();
 
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const origin = req.header("origin");
   const allowedOrigins = new Set(config.allowedOrigin.split(",").map((item) => item.trim()).filter(Boolean));
   if (!origin || allowedOrigins.has(origin)) {
@@ -37,7 +42,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-function requireApiKey(req: express.Request, res: express.Response, next: express.NextFunction) {
+function requireApiKey(req: Request, res: Response, next: NextFunction) {
   if (!config.runnerApiKey) {
     return res.status(503).json({ error: "runner api key is not configured" });
   }
@@ -225,7 +230,7 @@ app.post("/x402/settle/observe", async (req, res, next) => {
   }
 });
 
-app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   const message = error instanceof Error ? error.message : "unknown error";
   res.status(500).json({ error: message });
 });

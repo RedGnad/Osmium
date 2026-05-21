@@ -36,6 +36,18 @@ type ObserveResult =
     }
   | { ok: false; reason: string };
 
+type PaymentSettledArgs = {
+  policyId: bigint;
+  agent: Address;
+  merchant: Address;
+  owner: Address;
+  token: Address;
+  amount: bigint;
+  paymentId: Hex;
+  intentHash: Hex;
+  receiptHash: Hex;
+};
+
 function isHex32(value: string | undefined): value is Hex {
   return Boolean(value && /^0x[a-fA-F0-9]{64}$/.test(value));
 }
@@ -99,7 +111,7 @@ export async function observeSettlement(
     return { ok: false, reason: "no_settlement_event" };
   }
 
-  const args = events[0].args;
+  const args = events[0].args as PaymentSettledArgs;
   const assetSymbol = knownAssetSymbol(args.token);
   if (!assetSymbol) {
     return { ok: false, reason: "unknown_token" };

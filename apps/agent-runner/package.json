@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.3",
     "dotenv": "^16.4.7",
     "express": "^4.19.2",
     "viem": "^2.22.23"

@@ -56,6 +56,15 @@ function env(name: string, fallback?: string): string {
   return value;
 }
 
+function envAny(names: string[], fallback?: string): string {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  if (fallback) return fallback;
+  throw new Error(`Missing required env var ${names.join(" or ")}`);
+}
+
 function optionalHex(name: string): Hex | undefined {
   const value = process.env[name];
   if (!value || value === "0x") return undefined;
@@ -63,29 +72,42 @@ function optionalHex(name: string): Hex | undefined {
   return value as Hex;
 }
 
+function optionalHexAny(names: string[]): Hex | undefined {
+  for (const name of names) {
+    const value = optionalHex(name);
+    if (value) return value;
+  }
+  return undefined;
+}
+
 export function loadConfig(): RunnerConfig {
-  const adminPrivateKey = optionalHex("ADMIN_PRIVATE_KEY") ?? optionalHex("PRIVATE_KEY") ?? optionalHex("AGENT_PRIVATE_KEY");
+  const adminPrivateKey =
+    optionalHex("ADMIN_PRIVATE_KEY") ??
+    optionalHex("PRIVATE_KEY") ??
+    optionalHexAny(["AGENT_PRIVATE_KEY", "DEMO_AGENT_PRIVATE_KEY"]);
 
   return {
-    rpcUrl: env("RH_RPC_URL", "https://rpc.testnet.chain.robinhood.com"),
+    rpcUrl: envAny(["RH_RPC_URL", "ROBINHOOD_RPC_URL"], "https://rpc.testnet.chain.robinhood.com"),
     chainId: Number(env("CHAIN_ID", "46630")),
-    engineAddress: env("OSMIUM_POLICY_ENGINE_ADDRESS") as Address,
+    engineAddress: envAny(["OSMIUM_POLICY_ENGINE_ADDRESS", "POLICY_ENGINE_ADDRESS"]) as Address,
     adminPrivateKey,
-    agentPrivateKey: optionalHex("AGENT_PRIVATE_KEY"),
+    agentPrivateKey: optionalHexAny(["AGENT_PRIVATE_KEY", "DEMO_AGENT_PRIVATE_KEY"]),
     agentAddress: process.env.AGENT_ADDRESS as Address | undefined,
     policyId: BigInt(env("POLICY_ID", "1")),
     demoIntentHash:
       (process.env.DEMO_INTENT_HASH && process.env.DEMO_INTENT_HASH !== "0x0000000000000000000000000000000000000000000000000000000000000000"
         ? process.env.DEMO_INTENT_HASH
         : keccak256(toBytes("osmium-demo-intent"))) as Hex,
-    tokenAddress: env("TOKEN_ADDRESS") as Address,
+    tokenAddress: envAny(["TOKEN_ADDRESS", "TSLA_TOKEN_ADDRESS"]) as Address,
     settlementRouterAddress:
-      process.env.OSMIUM_SETTLEMENT_ROUTER_ADDRESS &&
-      process.env.OSMIUM_SETTLEMENT_ROUTER_ADDRESS !== "0x0000000000000000000000000000000000000000"
-        ? (process.env.OSMIUM_SETTLEMENT_ROUTER_ADDRESS as Address)
+      envAny(["OSMIUM_SETTLEMENT_ROUTER_ADDRESS", "SETTLEMENT_ROUTER_ADDRESS"], "0x0000000000000000000000000000000000000000") !==
+      "0x0000000000000000000000000000000000000000"
+        ? (envAny(["OSMIUM_SETTLEMENT_ROUTER_ADDRESS", "SETTLEMENT_ROUTER_ADDRESS"]) as Address)
         : undefined,
     settlementDemoPolicyId: BigInt(env("SETTLEMENT_DEMO_POLICY_ID", env("POLICY_ID", "1"))),
-    settlementDemoTokenAddress: env("SETTLEMENT_DEMO_TOKEN_ADDRESS", env("TOKEN_ADDRESS")) as Address,
+    settlementDemoTokenAddress: envAny(
+      ["SETTLEMENT_DEMO_TOKEN_ADDRESS", "TOKEN_ADDRESS", "TSLA_TOKEN_ADDRESS"],
+    ) as Address,
     latestSettlementTx: optionalHex("LATEST_SETTLEMENT_TX"),
     latestSettlementPaymentId: optionalHex("LATEST_SETTLEMENT_PAYMENT_ID"),
     latestSettlementReceiptHash: optionalHex("LATEST_SETTLEMENT_RECEIPT_HASH"),

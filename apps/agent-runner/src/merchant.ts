@@ -75,14 +75,14 @@ export async function unlockMarketData(config: RunnerConfig, body: { asset?: unk
 
   const paymentId = body.paymentId ?? proof.paymentId;
   const receiptHash = body.receiptHash ?? proof.receiptHash;
-  const stored = getSettlementRecord(paymentId);
+  const stored = await getSettlementRecord(paymentId);
   const matchesStored =
     stored?.asset === quote.asset && stored.receiptHash === receiptHash && stored.token.toLowerCase() === quote.token.toLowerCase();
   const matchesLatestProof =
     proof.token.toLowerCase() === quote.token.toLowerCase() && paymentId === proof.paymentId && receiptHash === proof.receiptHash;
   const unlocked = Boolean(matchesStored || matchesLatestProof);
   if (unlocked && !stored) {
-    recordSettlement({
+    await recordSettlement({
       paymentId,
       asset: quote.asset,
       token: quote.token,
@@ -107,8 +107,8 @@ export async function unlockMarketData(config: RunnerConfig, body: { asset?: unk
       })
     : null;
   if (unlocked) {
-    recordUnlock(paymentId);
-    if (merchantReceipt) recordMerchantReceipt(paymentId, merchantReceipt);
+    await recordUnlock(paymentId);
+    if (merchantReceipt) await recordMerchantReceipt(paymentId, merchantReceipt);
   }
 
   return {
@@ -169,7 +169,7 @@ export async function marketDataResource(config: RunnerConfig, query: { asset?: 
   };
 }
 
-export function merchantAuditLog() {
+export async function merchantAuditLog() {
   return listSettlementRecords();
 }
 

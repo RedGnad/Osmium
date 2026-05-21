@@ -19,7 +19,7 @@ if (config.requireRunnerApiKey && !config.runnerApiKey) {
   throw new Error("RUNNER_API_KEY is required when RUNNER_REQUIRE_API_KEY=true or RENDER=true");
 }
 
-const app = express();
+export const app = express();
 
 app.use((req, res, next) => {
   const origin = req.header("origin");
@@ -130,8 +130,12 @@ app.post("/merchant/receipt", async (req, res, next) => {
   }
 });
 
-app.get("/merchant/audit", (_req, res) => {
-  res.json(merchantAuditLog());
+app.get("/merchant/audit", async (_req, res, next) => {
+  try {
+    res.json(await merchantAuditLog());
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/merchant/market-data", async (req, res, next) => {
@@ -226,6 +230,8 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
   res.status(500).json({ error: message });
 });
 
-app.listen(config.port, "0.0.0.0", () => {
-  console.log(`Osmium agent runner listening on 0.0.0.0:${config.port}`);
-});
+if (process.env.VERCEL !== "1") {
+  app.listen(config.port, "0.0.0.0", () => {
+    console.log(`Osmium agent runner listening on 0.0.0.0:${config.port}`);
+  });
+}

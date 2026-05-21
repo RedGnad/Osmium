@@ -111,7 +111,7 @@ export async function observeSettlement(
     /* don't fail the audit row — Osmium may extend pricing later — but tag */
   }
 
-  recordSettlement({
+  await recordSettlement({
     paymentId: args.paymentId,
     asset: assetSymbol,
     token: args.token,
@@ -122,7 +122,7 @@ export async function observeSettlement(
     payer: args.agent,
     policyId: args.policyId.toString(),
     lane: body.lane === "demo" ? "demo" : "self-serve",
-  } as Parameters<typeof recordSettlement>[0]);
+  });
 
   return {
     ok: true,

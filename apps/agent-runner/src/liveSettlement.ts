@@ -245,7 +245,7 @@ export async function runLiveSettlement(options: LiveSettlementOptions = {}) {
   process.env.LATEST_SETTLEMENT_TX = settleTx;
   process.env.LATEST_SETTLEMENT_PAYMENT_ID = paymentId;
   process.env.LATEST_SETTLEMENT_RECEIPT_HASH = receiptHash;
-  recordSettlement({
+  await recordSettlement({
     paymentId,
     asset: "TSLA",
     token,

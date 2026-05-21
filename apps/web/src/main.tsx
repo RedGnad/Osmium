@@ -206,7 +206,9 @@ const config = {
     "0x5e30622c7639aa5edc43313830c9a01341585728") as Address,
   routerAddress: (import.meta.env.VITE_OSMIUM_SETTLEMENT_ROUTER_ADDRESS ??
     "0x1CD04cbD3348D5fa28B30776902464752e878ac7") as Address,
-  runnerUrl: import.meta.env.VITE_AGENT_RUNNER_URL ?? "http://127.0.0.1:10000",
+  runnerUrl:
+    import.meta.env.VITE_AGENT_RUNNER_URL ??
+    (import.meta.env.PROD ? "/api" : "http://127.0.0.1:10000"),
   explorerUrl: "https://explorer.testnet.chain.robinhood.com",
 };
 

@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { createClient, type Client } from "@libsql/client";
 import type { Address, Hex } from "viem";
 import type { MerchantReceiptAttestation } from "./merchantReceipt.js";
 
@@ -17,8 +18,8 @@ export type SettlementAuditRecord = {
   merchantReceipt?: MerchantReceiptAttestation;
   unlocked: boolean;
   timestamp: number;
-  /* Address that signed settleWithIntent. Demo lane → config.agentAddress.
-     Self-serve lane → the connected wallet that called the contract. */
+  /* Address that signed settleWithIntent. Demo lane -> config.agentAddress.
+     Self-serve lane -> the connected wallet that called the contract. */
   payer?: Address;
   /* Onchain policy that authorised the payment. Helps filter "my workspace". */
   policyId?: string;
@@ -27,12 +28,73 @@ export type SettlementAuditRecord = {
 };
 
 const records = new Map<Hex, SettlementAuditRecord>();
-const storePath = resolve(process.env.AUDIT_STORE_PATH ?? ".osmium/audit-store.json");
+const defaultStorePath =
+  process.env.VERCEL === "1"
+    ? "/tmp/osmium-audit-store.json"
+    : ".osmium/audit-store.json";
+const storePath = resolve(process.env.AUDIT_STORE_PATH ?? defaultStorePath);
 let loaded = false;
+let schemaReady = false;
+let tursoClient: Client | null | undefined;
 
-function loadStore() {
+function getTursoClient() {
+  if (tursoClient !== undefined) return tursoClient;
+  const url = process.env.TURSO_DATABASE_URL;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+  tursoClient =
+    url && authToken
+      ? createClient({
+          url,
+          authToken,
+        })
+      : null;
+  return tursoClient;
+}
+
+async function ensureTursoSchema(client: Client) {
+  if (schemaReady) return;
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS audit_events (
+      id TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      lane TEXT NOT NULL,
+      event TEXT NOT NULL,
+      decision TEXT,
+      asset TEXT,
+      amount TEXT,
+      payer TEXT,
+      agent TEXT,
+      merchant TEXT,
+      policy_id TEXT,
+      payment_id TEXT,
+      receipt_hash TEXT,
+      tx_hash TEXT,
+      reason TEXT,
+      raw_json TEXT
+    )
+  `);
+  schemaReady = true;
+}
+
+async function loadStore() {
   if (loaded) return;
   loaded = true;
+
+  const client = getTursoClient();
+  if (client) {
+    await ensureTursoSchema(client);
+    const result = await client.execute(
+      "SELECT raw_json FROM audit_events ORDER BY created_at DESC",
+    );
+    for (const row of result.rows) {
+      const raw = row.raw_json;
+      if (typeof raw !== "string" || !raw.trim()) continue;
+      const record = JSON.parse(raw) as SettlementAuditRecord;
+      records.set(record.paymentId, record);
+    }
+    return;
+  }
+
   if (!existsSync(storePath)) return;
   const raw = readFileSync(storePath, "utf8");
   if (!raw.trim()) return;
@@ -40,48 +102,109 @@ function loadStore() {
   for (const record of stored) records.set(record.paymentId, record);
 }
 
-function persistStore() {
-  mkdirSync(dirname(storePath), { recursive: true });
-  writeFileSync(storePath, `${JSON.stringify(listSettlementRecords(), null, 2)}\n`);
+function sortedRecords() {
+  return [...records.values()].sort(
+    (left, right) => right.timestamp - left.timestamp,
+  );
 }
 
-export function recordSettlement(record: Omit<SettlementAuditRecord, "unlocked" | "timestamp">) {
-  loadStore();
+async function persistStore() {
+  const client = getTursoClient();
+  if (client) {
+    await ensureTursoSchema(client);
+    for (const record of sortedRecords()) {
+      await client.execute({
+        sql: `
+          INSERT INTO audit_events (
+            id, created_at, lane, event, decision, asset, amount, payer, agent,
+            merchant, policy_id, payment_id, receipt_hash, tx_hash, reason, raw_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            created_at = excluded.created_at,
+            lane = excluded.lane,
+            event = excluded.event,
+            decision = excluded.decision,
+            asset = excluded.asset,
+            amount = excluded.amount,
+            payer = excluded.payer,
+            agent = excluded.agent,
+            merchant = excluded.merchant,
+            policy_id = excluded.policy_id,
+            payment_id = excluded.payment_id,
+            receipt_hash = excluded.receipt_hash,
+            tx_hash = excluded.tx_hash,
+            reason = excluded.reason,
+            raw_json = excluded.raw_json
+        `,
+        args: [
+          record.paymentId,
+          new Date(record.timestamp).toISOString(),
+          record.lane ?? "demo",
+          record.unlocked ? "DATA_UNLOCKED" : "SETTLEMENT_EXECUTED",
+          record.unlocked ? "unlocked" : "settled",
+          record.asset,
+          record.amount,
+          record.payer ?? null,
+          record.payer ?? null,
+          record.merchant,
+          record.policyId ?? null,
+          record.paymentId,
+          record.receiptHash,
+          record.txHash,
+          null,
+          JSON.stringify(record),
+        ],
+      });
+    }
+    return;
+  }
+
+  mkdirSync(dirname(storePath), { recursive: true });
+  writeFileSync(storePath, `${JSON.stringify(sortedRecords(), null, 2)}\n`);
+}
+
+export async function recordSettlement(
+  record: Omit<SettlementAuditRecord, "unlocked" | "timestamp">,
+) {
+  await loadStore();
   const existing = records.get(record.paymentId);
   records.set(record.paymentId, {
     ...record,
     unlocked: existing?.unlocked ?? false,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
-  persistStore();
+  await persistStore();
 }
 
-export function recordUnlock(paymentId: Hex) {
-  loadStore();
+export async function recordUnlock(paymentId: Hex) {
+  await loadStore();
   const record = records.get(paymentId);
   if (!record) return undefined;
   const unlocked = { ...record, unlocked: true, timestamp: Date.now() };
   records.set(paymentId, unlocked);
-  persistStore();
+  await persistStore();
   return unlocked;
 }
 
-export function recordMerchantReceipt(paymentId: Hex, merchantReceipt: MerchantReceiptAttestation) {
-  loadStore();
+export async function recordMerchantReceipt(
+  paymentId: Hex,
+  merchantReceipt: MerchantReceiptAttestation,
+) {
+  await loadStore();
   const record = records.get(paymentId);
   if (!record) return undefined;
   const signed = { ...record, merchantReceipt, timestamp: Date.now() };
   records.set(paymentId, signed);
-  persistStore();
+  await persistStore();
   return signed;
 }
 
-export function getSettlementRecord(paymentId: Hex) {
-  loadStore();
+export async function getSettlementRecord(paymentId: Hex) {
+  await loadStore();
   return records.get(paymentId);
 }
 
-export function listSettlementRecords() {
-  loadStore();
-  return [...records.values()].sort((left, right) => right.timestamp - left.timestamp);
+export async function listSettlementRecords() {
+  await loadStore();
+  return sortedRecords();
 }

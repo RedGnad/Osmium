@@ -40,9 +40,13 @@ type HashLookup = {
   policyIdHint?: string;
 };
 
+/* Mirror main.tsx's runner-base resolution: in production the runner is the
+   Vercel /api functions (VITE_AGENT_RUNNER_URL is intentionally omitted), so
+   fall back to "/api" — not localhost — or the wizard fetches the intent
+   hashes from 127.0.0.1 and step 02 stalls on "fetching…". */
 const RUNNER_URL =
   (import.meta.env.VITE_AGENT_RUNNER_URL as string | undefined) ??
-  "http://127.0.0.1:10000";
+  (import.meta.env.PROD ? "/api" : "http://127.0.0.1:10000");
 
 /* Fetch the runner's canonical intent/context hashes via a one-off 402.
    We don't pay — we just want the challenge body. */

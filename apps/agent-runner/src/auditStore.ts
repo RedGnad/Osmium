@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { createClient, type Client } from "@libsql/client";
+import { createClient } from "@libsql/client";
 import type { Address, Hex } from "viem";
 import type { MerchantReceiptAttestation } from "./merchantReceipt.js";
 
@@ -35,7 +35,9 @@ const defaultStorePath =
 const storePath = resolve(process.env.AUDIT_STORE_PATH ?? defaultStorePath);
 let loaded = false;
 let schemaReady = false;
-let tursoClient: Client | null | undefined;
+type TursoClient = ReturnType<typeof createClient>;
+
+let tursoClient: TursoClient | null | undefined;
 
 function getTursoClient() {
   if (tursoClient !== undefined) return tursoClient;
@@ -51,7 +53,7 @@ function getTursoClient() {
   return tursoClient;
 }
 
-async function ensureTursoSchema(client: Client) {
+async function ensureTursoSchema(client: TursoClient) {
   if (schemaReady) return;
   await client.execute(`
     CREATE TABLE IF NOT EXISTS audit_events (

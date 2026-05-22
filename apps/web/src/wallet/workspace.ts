@@ -16,6 +16,7 @@ import {
 import {
   DEFAULTS,
   POLICY_ENGINE_ADDRESS,
+  RH_CHAIN_ID,
   SETTLEMENT_ROUTER_ADDRESS,
   TSLA_ADDRESS,
   erc20Abi,
@@ -23,9 +24,22 @@ import {
   settlementRouterAbi,
 } from "./contracts";
 
+/* Schema version of a stored workspace. Bump this whenever a protocol change
+   makes previously-provisioned workspaces unusable, so readWorkspace can
+   invalidate them instead of letting stale state break clearance.
+   v1 -> v2: self-serve switched from the shared demo intentHash to a
+   per-policy selfServeIntentHash(policyId); any v1 workspace approved the
+   old shared hash and must be re-provisioned. */
+export const WORKSPACE_VERSION = 2;
+
 export type Workspace = {
   /* version of the workspace schema — bumped if we change layout */
-  version: 1;
+  version: typeof WORKSPACE_VERSION;
+  /* chain + contract addresses this workspace was provisioned against —
+     used to invalidate a workspace if any of them no longer match */
+  chainId: number;
+  policyEngine: Address;
+  settlementRouter: Address;
   /* the user wallet that owns the policy */
   owner: Address;
   /* agent address registered for this policy. Defaults to owner; only the
@@ -51,15 +65,55 @@ function key(owner: Address) {
   return `${STORAGE_PREFIX}${owner.toLowerCase()}`;
 }
 
+/* Onchain is the source of truth — localStorage is only a convenience for
+   resuming the wizard. A stored workspace is trusted only if its schema
+   version, chain and contract addresses still match the running build, and
+   it actually belongs to `owner`. Anything else is stale and ignored. */
+function isValidWorkspace(parsed: unknown, owner: Address): parsed is Workspace {
+  if (!parsed || typeof parsed !== "object") return false;
+  const ws = parsed as Record<string, unknown>;
+  return (
+    ws.version === WORKSPACE_VERSION &&
+    ws.chainId === RH_CHAIN_ID &&
+    typeof ws.owner === "string" &&
+    ws.owner.toLowerCase() === owner.toLowerCase() &&
+    typeof ws.policyEngine === "string" &&
+    ws.policyEngine.toLowerCase() === POLICY_ENGINE_ADDRESS.toLowerCase() &&
+    typeof ws.settlementRouter === "string" &&
+    ws.settlementRouter.toLowerCase() === SETTLEMENT_ROUTER_ADDRESS.toLowerCase() &&
+    typeof ws.policyId === "string" &&
+    ws.policyId.length > 0 &&
+    typeof ws.intentHash === "string" &&
+    /^0x[0-9a-fA-F]{64}$/.test(ws.intentHash)
+  );
+}
+
 export function readWorkspace(owner: Address): Workspace | null {
   try {
     const raw = localStorage.getItem(key(owner));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Workspace;
-    if (parsed?.version !== 1) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isValidWorkspace(parsed, owner)) return null;
     return parsed;
   } catch {
     return null;
+  }
+}
+
+/* Tells the UI whether a stored workspace exists and is still usable, so it
+   can show a "needs reprovisioning" recovery card instead of silently
+   dropping a stale workspace. */
+export function peekWorkspaceStatus(
+  owner: Address,
+): "valid" | "stale" | "none" {
+  try {
+    const raw = localStorage.getItem(key(owner));
+    if (!raw) return "none";
+    return isValidWorkspace(JSON.parse(raw) as unknown, owner)
+      ? "valid"
+      : "stale";
+  } catch {
+    return "none";
   }
 }
 

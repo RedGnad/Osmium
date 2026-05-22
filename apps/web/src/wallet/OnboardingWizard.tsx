@@ -21,12 +21,14 @@ import {
   readTokenAllowance,
   readTokenBalance,
   readWorkspace,
+  WORKSPACE_VERSION,
   type Workspace,
   writeWorkspace,
 } from "./workspace";
 import {
   DEFAULTS,
   POLICY_ENGINE_ADDRESS,
+  RH_CHAIN_ID,
   ROBINHOOD_FAUCET_URL,
   SETTLEMENT_ROUTER_ADDRESS,
   TSLA_ADDRESS,
@@ -199,7 +201,10 @@ export function OnboardingWizard({
       );
       setPartial((p) => ({
         ...p,
-        version: 1,
+        version: WORKSPACE_VERSION,
+        chainId: RH_CHAIN_ID,
+        policyEngine: POLICY_ENGINE_ADDRESS,
+        settlementRouter: SETTLEMENT_ROUTER_ADDRESS,
         owner: connected.account,
         agent: connected.account,
         policyId,
@@ -332,7 +337,10 @@ export function OnboardingWizard({
         amount,
       );
       const finalPartial: Workspace = {
-        version: 1,
+        version: WORKSPACE_VERSION,
+        chainId: RH_CHAIN_ID,
+        policyEngine: POLICY_ENGINE_ADDRESS,
+        settlementRouter: SETTLEMENT_ROUTER_ADDRESS,
         owner: connected.account,
         agent: connected.account,
         policyId: partial.policyId!,

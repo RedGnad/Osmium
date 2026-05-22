@@ -24,6 +24,7 @@ import { YourVaultPanel } from "./wallet/YourVaultPanel";
 import {
   readWorkspace,
   clearWorkspace,
+  peekWorkspaceStatus,
   settleWithIntentDirect,
   type Workspace,
 } from "./wallet/workspace";
@@ -561,6 +562,15 @@ function App() {
   }, [wallet.state]);
 
   function setClearMode(next: ClearMode) {
+    if (next === clearMode) return;
+    /* Lane state is isolated. Switching lanes drops the other lane's
+       clearance flow entirely — payment challenge, verification result,
+       settlement, unlock and error — so e.g. a self-serve InvalidIntent can
+       never linger into the demo lane. Each lane re-starts at Request. */
+    setX402Flow({});
+    setUnlock(null);
+    setClearanceError("");
+    setBusy("");
     setClearModeState(next);
     persistClearMode(next);
   }
@@ -650,8 +660,25 @@ function App() {
           : result.invalidReason ?? "invalid",
         verifyValid: result.isValid,
       }));
-      if (!result.isValid)
-        setClearanceError(result.invalidMessage ?? "x402 verification failed.");
+      if (!result.isValid) {
+        /* A self-serve InvalidIntent means the workspace's on-chain intent no
+           longer matches — almost always a workspace provisioned before
+           per-policy intent hashes. Point the operator at the reset path
+           rather than a generic failure. The demo lane keeps the raw
+           message (it never has a reprovisioning path). */
+        if (
+          clearMode === "self-serve" &&
+          result.invalidReason === "policy_InvalidIntent"
+        ) {
+          setClearanceError(
+            "This self-serve workspace needs reprovisioning — its on-chain intent no longer matches. Reset the workspace in the panel above, then provision a fresh policy.",
+          );
+        } else {
+          setClearanceError(
+            result.invalidMessage ?? "x402 verification failed.",
+          );
+        }
+      }
     } catch (err) {
       setClearanceError(
         err instanceof Error ? err.message : "x402 verification failed.",
@@ -1112,6 +1139,7 @@ function App() {
             quote={quote}
             runnerStatus={runnerStatus}
             workspace={workspace}
+            onWorkspaceChange={setWorkspace}
             onClearKey={() => setOperatorKey("")}
             onClearMode={setClearMode}
             onDeny={denyRequest}
@@ -1220,6 +1248,7 @@ function ClearView({
   quote,
   runnerStatus,
   workspace,
+  onWorkspaceChange,
   onClearKey,
   onClearMode,
   onDeny,
@@ -1246,6 +1275,7 @@ function ClearView({
   quote: MerchantQuote | null;
   runnerStatus: string;
   workspace: Workspace | null;
+  onWorkspaceChange: (ws: Workspace | null) => void;
   onClearKey: () => void;
   onClearMode: (mode: ClearMode) => void;
   onDeny: () => void;
@@ -1531,7 +1561,10 @@ function ClearView({
       </header>
 
       {clearMode === "self-serve" ? (
-        <SelfServePlaceholder />
+        <SelfServePlaceholder
+          workspace={workspace}
+          onWorkspaceChange={onWorkspaceChange}
+        />
       ) : null}
 
       <section className="statusStrip" aria-label="Clearing house readiness">
@@ -1795,20 +1828,34 @@ function LandingBand({
   );
 }
 
-function SelfServePlaceholder() {
+function SelfServePlaceholder({
+  workspace,
+  onWorkspaceChange,
+}: {
+  workspace: Workspace | null;
+  onWorkspaceChange: (ws: Workspace | null) => void;
+}) {
   const wallet = useWallet();
   const connected = wallet.state.status === "connected" ? wallet.state : null;
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  /* "stale" means a workspace is stored but no longer usable (e.g. it was
+     provisioned before per-policy intents). We surface a reset card instead
+     of silently dropping it. */
+  const [storedStatus, setStoredStatus] = useState<
+    "valid" | "stale" | "none"
+  >("none");
 
-  /* Re-read the persisted workspace whenever the connected account changes
-     or the wizard reports completion. */
+  /* Re-read the persisted workspace whenever the connected account changes.
+     onWorkspaceChange lifts it to the app so the clearance flow (verify /
+     settle) and this panel never diverge. */
   useEffect(() => {
     if (!connected) {
-      setWorkspace(null);
+      onWorkspaceChange(null);
+      setStoredStatus("none");
       return;
     }
-    setWorkspace(readWorkspace(connected.account));
-  }, [connected?.account, connected]);
+    onWorkspaceChange(readWorkspace(connected.account));
+    setStoredStatus(peekWorkspaceStatus(connected.account));
+  }, [connected?.account, connected, onWorkspaceChange]);
 
   if (!connected) {
     return (
@@ -1864,11 +1911,52 @@ function SelfServePlaceholder() {
     );
   }
 
+  /* A stored-but-stale workspace: show an actionable recovery card rather
+     than dropping it silently or letting it drive a doomed verify. */
+  if (!workspace && storedStatus === "stale") {
+    return (
+      <section
+        className="selfServeIntro"
+        aria-label="Workspace needs reprovisioning"
+      >
+        <div className="selfServeIntroHead">
+          <span className="selfServeEyebrow">Workspace outdated</span>
+          <h2>
+            This self-serve workspace <em>needs reprovisioning.</em>
+          </h2>
+          <p>
+            It was created before per-policy intent hashes. Onchain is the
+            source of truth — reset this browser's stored workspace, then
+            provision a fresh policy with its own intent.
+          </p>
+        </div>
+        <div className="selfServeIntroActions">
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() => {
+              clearWorkspace(connected.account);
+              onWorkspaceChange(null);
+              setStoredStatus("none");
+            }}
+          >
+            Reset workspace and re-provision <ArrowRight size={14} />
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   if (!workspace) {
     return (
       <>
         <PolicyTemplatePicker />
-        <OnboardingWizard onComplete={(ws) => setWorkspace(ws)} />
+        <OnboardingWizard
+          onComplete={(ws) => {
+            onWorkspaceChange(ws);
+            setStoredStatus("valid");
+          }}
+        />
       </>
     );
   }
@@ -1916,7 +2004,8 @@ function SelfServePlaceholder() {
               type="button"
               onClick={() => {
                 clearWorkspace(workspace.owner);
-                setWorkspace(null);
+                onWorkspaceChange(null);
+                setStoredStatus("none");
               }}
             >
               Reset workspace (re-provision)

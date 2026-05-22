@@ -48,11 +48,24 @@ const RUNNER_URL =
   (import.meta.env.VITE_AGENT_RUNNER_URL as string | undefined) ??
   (import.meta.env.PROD ? "/api" : "http://127.0.0.1:10000");
 
-/* Fetch the runner's canonical intent/context hashes via a one-off 402.
-   We don't pay — we just want the challenge body. */
-async function fetchOsmiumIntentHashes(): Promise<HashLookup | null> {
+/* Fetch the runner's intent/context hashes via a one-off 402. We don't pay —
+   we just want the challenge body. When a policyId is supplied the runner
+   returns the self-serve lane challenge, whose intentHash is unique to that
+   policy (the PolicyEngine `intents` mapping is global, so each policy needs
+   its own slot — see selfServeIntentHash in the runner). */
+async function fetchOsmiumIntentHashes(
+  selfServe?: { policyId: string; agent: Address },
+): Promise<HashLookup | null> {
   try {
-    const res = await fetch(`${RUNNER_URL}/merchant/market-data?asset=TSLA`);
+    const params = new URLSearchParams({ asset: "TSLA" });
+    if (selfServe) {
+      params.set("policyId", selfServe.policyId);
+      params.set("agent", selfServe.agent);
+      params.set("lane", "self-serve");
+    }
+    const res = await fetch(
+      `${RUNNER_URL}/merchant/market-data?${params.toString()}`,
+    );
     if (res.status !== 402) return null;
     const body = (await res.json()) as {
       accepts?: Array<{
@@ -118,9 +131,18 @@ export function OnboardingWizard({
     }
   }, [connected, onComplete]);
 
+  /* Once the policy exists, re-fetch the challenge for that policy so the
+     step-02 card shows its real (per-policy) intent hash. Before then we show
+     the demo challenge as a preview. */
   useEffect(() => {
-    void fetchOsmiumIntentHashes().then((h) => setHashes(h));
-  }, []);
+    const selfServe =
+      partial.policyId && connected
+        ? { policyId: partial.policyId, agent: connected.account }
+        : undefined;
+    void fetchOsmiumIntentHashes(selfServe).then((h) => {
+      if (h) setHashes(h);
+    });
+  }, [partial.policyId, connected]);
 
   const refreshBalances = useCallback(async () => {
     if (!connected) return;
@@ -199,15 +221,30 @@ export function OnboardingWizard({
   /* Step 02 — approveIntent on the user's own policy */
   async function runStep2() {
     if (!connected || !adapter.walletClient) return;
-    if (!partial.policyId || !hashes) {
+    if (!partial.policyId) {
       setStep(2, {
         status: "error",
-        error: "Runner intent hashes are not loaded yet — retry in a second.",
+        error: "Create your policy first (step 01).",
       });
       return;
     }
     setStep(2, { status: "running" });
     try {
+      /* Fetch the self-serve challenge for THIS policy — its intentHash is
+         unique to the policy, so approving it can't collide with the demo or
+         with other operators. */
+      const policyHashes = await fetchOsmiumIntentHashes({
+        policyId: partial.policyId,
+        agent: connected.account,
+      });
+      if (!policyHashes) {
+        setStep(2, {
+          status: "error",
+          error:
+            "Could not load the runner intent challenge — retry in a second.",
+        });
+        return;
+      }
       const intentValidUntil =
         Math.min(
           Math.floor(Date.now() / 1000) + DEFAULTS.intentValidDays * 86_400,
@@ -219,16 +256,17 @@ export function OnboardingWizard({
         {
           owner: connected.account,
           policyId: partial.policyId,
-          intentHash: hashes.intentHash,
-          contextHash: hashes.contextHash,
+          intentHash: policyHashes.intentHash,
+          contextHash: policyHashes.contextHash,
           maxAmount: DEFAULTS.maxPerTxWei,
           validUntil: intentValidUntil,
         },
       );
+      setHashes(policyHashes);
       setPartial((p) => ({
         ...p,
-        intentHash: hashes.intentHash,
-        contextHash: hashes.contextHash,
+        intentHash: policyHashes.intentHash,
+        contextHash: policyHashes.contextHash,
         intentValidUntil,
         approveIntentTx: txHash,
       }));

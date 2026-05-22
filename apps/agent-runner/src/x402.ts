@@ -129,6 +129,15 @@ function marketDataHash(label: string) {
   return keccak256(toBytes(label));
 }
 
+/* The PolicyEngine's `intents` mapping is keyed by intentHash alone — it is
+   global, not per-policy. If every self-serve operator reused the demo
+   intentHash, their approveIntent calls would overwrite each other (and the
+   demo's), leaving all but the last writer with InvalidIntent. Derive a
+   deterministic per-policy hash so each policy owns its own intent slot. */
+export function selfServeIntentHash(policyId: string): Hex {
+  return keccak256(toBytes(`osmium-self-serve-intent:${policyId}`));
+}
+
 export function buildPaymentRequired(
   config: RunnerConfig,
   rawAsset: unknown,
@@ -174,7 +183,7 @@ export function buildPaymentRequired(
       policyId,
       agent,
       lane,
-      intentHash: config.demoIntentHash,
+      intentHash: lane === "self-serve" ? selfServeIntentHash(policyId) : config.demoIntentHash,
       contextHash: LIVE_SETTLEMENT_CONTEXT_HASH,
       settlement: OSMIUM_X402_SETTLEMENT,
       compatibility: {

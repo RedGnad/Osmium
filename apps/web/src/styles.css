@@ -280,8 +280,6 @@ button, input { font: inherit; color: inherit; }
 
 /* ---------- ticker strip ---------- */
 .ticker {
-  display: flex;
-  align-items: stretch;
   border-bottom: 1px solid var(--line);
   background: var(--ink);
   font-family: var(--font-mono);
@@ -292,10 +290,31 @@ button, input { font: inherit; color: inherit; }
   min-height: 32px;
   overflow: hidden;
 }
+/* Infinite horizontal marquee: the track holds two identical runs of cells
+   and slides left by exactly one run, so the loop never shows a seam. */
+.tickerTrack {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 42s linear infinite;
+}
+.ticker:hover .tickerTrack {
+  animation-play-state: paused;
+}
+.tickerGroup {
+  display: flex;
+}
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tickerTrack { animation: none; }
+}
 .tickerCell {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 32px;
   padding: 0 var(--space-4);
   border-right: 1px solid var(--line);
   color: var(--muted);
@@ -307,12 +326,6 @@ button, input { font: inherit; color: inherit; }
 }
 .tickerCell .tickerLabel {
   color: var(--faint);
-}
-.tickerSpacer { flex: 1; border-right: none; }
-.tickerCell.right {
-  border-right: none;
-  border-left: 1px solid var(--line);
-  margin-left: auto;
 }
 .tickerCell .pip {
   display: inline-block;
@@ -1789,8 +1802,6 @@ button, input { font: inherit; color: inherit; }
    ========================================================================= */
 
 @media (max-width: 1080px) {
-  .ticker { overflow-x: auto; }
-  .ticker .tickerCell { flex-shrink: 0; }
   .ticketFacts,
   .packetFacts {
     grid-template-columns: 1fr;

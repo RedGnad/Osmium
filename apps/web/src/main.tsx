@@ -1158,8 +1158,10 @@ function TickerBar({
   runnerStatus: string;
   merchantTitle?: string;
 }) {
-  return (
-    <div className="ticker" aria-label="Network and facilitator ticker">
+  /* One run of ticker cells. The track renders it twice and scrolls left by
+     exactly one run width, so the loop is seamless and there is no gap. */
+  const cells = (
+    <>
       <span className="tickerCell">
         <span className="tickerLabel">Network</span>
         <strong>eip155:46630</strong>
@@ -1180,12 +1182,21 @@ function TickerBar({
         <span className="tickerLabel">Merchant</span>
         <strong>{merchantTitle ?? "Verified Market Data API"}</strong>
       </span>
-      <span className="tickerSpacer" />
-      <span className="tickerCell right">
+      <span className="tickerCell">
         <span className="pip" />
         <span className="tickerLabel">Runner</span>
         <strong>{runnerStatus}</strong>
       </span>
+    </>
+  );
+  return (
+    <div className="ticker" aria-label="Network and facilitator ticker">
+      <div className="tickerTrack">
+        <span className="tickerGroup">{cells}</span>
+        <span className="tickerGroup" aria-hidden="true">
+          {cells}
+        </span>
+      </div>
     </div>
   );
 }

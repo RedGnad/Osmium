@@ -22,3 +22,19 @@ const protectedTslaData = withOsmium402({
 
 Run this as a reference when adapting an API, paid dataset, MCP server or
 financial tool endpoint.
+
+## Curl proof
+
+```bash
+# No Osmium clearance yet: the merchant returns an x402-compatible challenge.
+curl -i http://localhost:3012/market-data/TSLA
+
+# After Osmium clears + settles, paymentId and receiptHash unlock the resource.
+curl -i "http://localhost:3012/market-data/TSLA?paymentId=0x...&receiptHash=0x..."
+
+# Wrong-context attempts are denied before settlement by the PolicyEngine.
+pnpm agent:attacks
+```
+
+The denial is intentionally labelled as a pre-settlement denial. No merchant
+data unlocks and no funds move.

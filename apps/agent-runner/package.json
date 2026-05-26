@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "agent-attacks": "tsx src/agentAttackSmoke.ts",
+    "agent-proofs": "tsx src/agentProofs.ts",
     "demo": "tsx src/demo.ts",
     "live-settlement": "tsx src/liveSettlement.ts",
     "setup": "tsx src/setup.ts",

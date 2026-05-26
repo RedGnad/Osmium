@@ -1,5 +1,5 @@
 import express from "express";
-import { buildDefaultMandate, runAgentLoop, runAttackMode } from "./agentLoop.js";
+import { buildAgentProofArtifact, buildDefaultMandate, runAgentLoop, runAttackMode } from "./agentLoop.js";
 import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
 import { readLiveSettlementProof, runLiveSettlement } from "./liveSettlement.js";
@@ -231,6 +231,25 @@ app.post("/agent/run", requireApiKey, async (req: RequestLike, res: ResponseLike
 app.post("/agent/attacks", async (_req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     res.json(await runAttackMode(config));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/agent/proofs", async (req: RequestLike, res: ResponseLike, next: NextLike) => {
+  try {
+    const body = (req.body ?? {}) as { settle?: boolean };
+    if (body.settle === true) {
+      return requireApiKey(req, res, async (error?: unknown) => {
+        if (error) return next(error);
+        try {
+          res.json(await buildAgentProofArtifact(config, { settle: true, runner: "deployed-runner" }));
+        } catch (innerError) {
+          next(innerError);
+        }
+      });
+    }
+    res.json(await buildAgentProofArtifact(config, { settle: false, runner: "deployed-runner" }));
   } catch (error) {
     next(error);
   }

@@ -1,0 +1,282 @@
+{
+  "generatedAt": "2026-05-26T21:57:31.447Z",
+  "chainId": 46630,
+  "runner": "local-runner-logic",
+  "summary": {
+    "claim": "The agent tried to spend. Osmium cleared only the mandate-matching payment and denied unsafe attempts before funds moved.",
+    "cleared": 1,
+    "denied": 5,
+    "fundsMovedRows": 1
+  },
+  "mandate": {
+    "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
+    "asset": "TSLA",
+    "resource": "market_data",
+    "merchant": "0x000000000000000000000000000000000000beef",
+    "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+    "maxAmount": "0.25",
+    "periodLimit": "3.00",
+    "validUntil": "2026-05-26T22:12:26.029Z",
+    "purpose": "Buy verified TSLA market data only",
+    "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
+    "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
+  },
+  "rows": [
+    {
+      "id": "A",
+      "caseName": "Valid TSLA mandate",
+      "mandateSummary": "TSLA market_data · max 0.25 0xC9f9...Bd4E",
+      "agentAction": "Request TSLA market_data from the verified merchant",
+      "x402Step": "402 -> verify -> settle",
+      "osmiumVerdict": "Cleared",
+      "denialReason": "None",
+      "fundsMoved": true,
+      "proofType": "on-chain tx",
+      "txHash": "0x020a2061542597ade543643e9d4c41da9cf3a3b18614703bae97933bd4d187d1",
+      "auditId": "0x020a2061542597ade543643e9d4c41da9cf3a3b18614703bae97933bd4d187d1",
+      "explorerUrl": "https://explorer.testnet.chain.robinhood.com/tx/0x020a2061542597ade543643e9d4c41da9cf3a3b18614703bae97933bd4d187d1",
+      "rawJson": {
+        "mandate": {
+          "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
+          "asset": "TSLA",
+          "resource": "market_data",
+          "merchant": "0x000000000000000000000000000000000000beef",
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "maxAmount": "0.25",
+          "periodLimit": "3.00",
+          "validUntil": "2026-05-26T22:12:26.029Z",
+          "purpose": "Buy verified TSLA market data only",
+          "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
+          "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
+        },
+        "thought": "The mandate allows only a TSLA paid-data purchase, so the agent selects the verified market-data resource and requests clearance before funds move.",
+        "action": "Request TSLA market_data from the verified merchant",
+        "x402": {
+          "status": 402,
+          "protocol": "x402-compatible-osmium",
+          "paymentId": "0x3ad21a809c64674a38970c9e57fd53ab451245240e84042c6381236f9a31f562",
+          "receiptHash": "0x011a47e9bf91f8e8a62ee684f84450016bc4c327c1080473e0c9100cea3f91e1",
+          "amount": "250000000000000000"
+        },
+        "clearance": {
+          "valid": true,
+          "reasonName": "None",
+          "message": "PolicyEngine preview cleared the payment intent."
+        },
+        "settlement": {
+          "attempted": true,
+          "fundsMoved": true,
+          "txHash": "0x020a2061542597ade543643e9d4c41da9cf3a3b18614703bae97933bd4d187d1",
+          "paymentId": "0x3ad21a809c64674a38970c9e57fd53ab451245240e84042c6381236f9a31f562",
+          "receiptHash": "0x011a47e9bf91f8e8a62ee684f84450016bc4c327c1080473e0c9100cea3f91e1"
+        },
+        "unlock": {
+          "unlocked": true,
+          "dataHash": "0xa8a3cd367592c9119ed12f0fa08d0987807381a8852b580fa9e083cb64bec279"
+        },
+        "explanation": "The agent requested a paid resource, Osmium verified merchant/token/amount/receipt/context, then settlement was allowed."
+      }
+    },
+    {
+      "id": "B",
+      "caseName": "Replay same paymentId",
+      "mandateSummary": "TSLA market_data · max 0.25 0xC9f9...Bd4E",
+      "agentAction": "Replay same paymentId from a previous clearance",
+      "x402Step": "reuse paymentId -> PolicyEngine replay check",
+      "osmiumVerdict": "Denied",
+      "denialReason": "Replay",
+      "fundsMoved": false,
+      "proofType": "pre-settlement denial",
+      "txHash": null,
+      "auditId": "latestSettlementPaymentId:0x3ad21a809c64674a38970c9e57fd53ab451245240e84042c6381236f9a31f562",
+      "explorerUrl": null,
+      "rawJson": {
+        "id": "B",
+        "agentAction": "Replay same paymentId from a previous clearance",
+        "mandate": {
+          "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
+          "asset": "TSLA",
+          "resource": "market_data",
+          "merchant": "0x000000000000000000000000000000000000beef",
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "maxAmount": "0.25",
+          "periodLimit": "3.00",
+          "validUntil": "2026-05-26T22:12:31.016Z",
+          "purpose": "Buy verified TSLA market data only",
+          "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
+          "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
+        },
+        "x402Step": "reuse paymentId -> PolicyEngine replay check",
+        "policyVerdict": "Denied",
+        "reasonName": "Replay",
+        "proof": "latestSettlementPaymentId:0x3ad21a809c64674a38970c9e57fd53ab451245240e84042c6381236f9a31f562",
+        "txHash": null,
+        "fundsMoved": false,
+        "finalStatus": "Denied",
+        "explanation": "The agent tried to reuse a filed paymentId. Osmium denied replay; no funds moved."
+      }
+    },
+    {
+      "id": "C",
+      "caseName": "Unknown merchant",
+      "mandateSummary": "TSLA market_data · max 0.25 0xC9f9...Bd4E",
+      "agentAction": "Unknown merchant tries to invoice the agent",
+      "x402Step": "402 received -> payment intent built -> PolicyEngine preview",
+      "osmiumVerdict": "Denied",
+      "denialReason": "UnknownMerchant",
+      "fundsMoved": false,
+      "proofType": "pre-settlement denial",
+      "txHash": null,
+      "auditId": "previewAuthorizationWithIntent:UnknownMerchant",
+      "explorerUrl": null,
+      "rawJson": {
+        "id": "C",
+        "agentAction": "Unknown merchant tries to invoice the agent",
+        "mandate": {
+          "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
+          "asset": "TSLA",
+          "resource": "market_data",
+          "merchant": "0x000000000000000000000000000000000000beef",
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "maxAmount": "0.25",
+          "periodLimit": "3.00",
+          "validUntil": "2026-05-26T22:12:31.016Z",
+          "purpose": "Buy verified TSLA market data only",
+          "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
+          "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
+        },
+        "x402Step": "402 received -> payment intent built -> PolicyEngine preview",
+        "policyVerdict": "Denied",
+        "reasonName": "UnknownMerchant",
+        "proof": "previewAuthorizationWithIntent:UnknownMerchant",
+        "txHash": null,
+        "fundsMoved": false,
+        "finalStatus": "Denied",
+        "explanation": "The attempted spend violates the mandate. Osmium denied it onchain with UnknownMerchant; no funds moved."
+      }
+    },
+    {
+      "id": "D",
+      "caseName": "Missing receiptHash",
+      "mandateSummary": "TSLA market_data · max 0.25 0xC9f9...Bd4E",
+      "agentAction": "Merchant omits receiptHash",
+      "x402Step": "402 received -> payment intent built -> PolicyEngine preview",
+      "osmiumVerdict": "Denied",
+      "denialReason": "MissingReceipt",
+      "fundsMoved": false,
+      "proofType": "pre-settlement denial",
+      "txHash": null,
+      "auditId": "previewAuthorizationWithIntent:MissingReceipt",
+      "explorerUrl": null,
+      "rawJson": {
+        "id": "D",
+        "agentAction": "Merchant omits receiptHash",
+        "mandate": {
+          "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
+          "asset": "TSLA",
+          "resource": "market_data",
+          "merchant": "0x000000000000000000000000000000000000beef",
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "maxAmount": "0.25",
+          "periodLimit": "3.00",
+          "validUntil": "2026-05-26T22:12:31.016Z",
+          "purpose": "Buy verified TSLA market data only",
+          "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
+          "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
+        },
+        "x402Step": "402 received -> payment intent built -> PolicyEngine preview",
+        "policyVerdict": "Denied",
+        "reasonName": "MissingReceipt",
+        "proof": "previewAuthorizationWithIntent:MissingReceipt",
+        "txHash": null,
+        "fundsMoved": false,
+        "finalStatus": "Denied",
+        "explanation": "The attempted spend violates the mandate. Osmium denied it onchain with MissingReceipt; no funds moved."
+      }
+    },
+    {
+      "id": "E",
+      "caseName": "Wrong context",
+      "mandateSummary": "TSLA market_data · max 0.25 0xC9f9...Bd4E",
+      "agentAction": "AMZN-style request under TSLA context mandate",
+      "x402Step": "402 received -> payment intent built -> PolicyEngine preview",
+      "osmiumVerdict": "Denied",
+      "denialReason": "ContextMismatch",
+      "fundsMoved": false,
+      "proofType": "pre-settlement denial",
+      "txHash": null,
+      "auditId": "previewAuthorizationWithIntent:ContextMismatch",
+      "explorerUrl": null,
+      "rawJson": {
+        "id": "E",
+        "agentAction": "AMZN-style request under TSLA context mandate",
+        "mandate": {
+          "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
+          "asset": "TSLA",
+          "resource": "market_data",
+          "merchant": "0x000000000000000000000000000000000000beef",
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "maxAmount": "0.25",
+          "periodLimit": "3.00",
+          "validUntil": "2026-05-26T22:12:31.016Z",
+          "purpose": "Buy verified TSLA market data only",
+          "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
+          "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
+        },
+        "x402Step": "402 received -> payment intent built -> PolicyEngine preview",
+        "policyVerdict": "Denied",
+        "reasonName": "ContextMismatch",
+        "proof": "previewAuthorizationWithIntent:ContextMismatch",
+        "txHash": null,
+        "fundsMoved": false,
+        "finalStatus": "Denied",
+        "explanation": "The attempted spend violates the mandate. Osmium denied it onchain with ContextMismatch; no funds moved."
+      }
+    },
+    {
+      "id": "F",
+      "caseName": "Over max amount",
+      "mandateSummary": "TSLA market_data · max 0.25 0xC9f9...Bd4E",
+      "agentAction": "Over max amount attempt",
+      "x402Step": "402 received -> payment intent built -> PolicyEngine preview",
+      "osmiumVerdict": "Denied",
+      "denialReason": "OverMaxTx",
+      "fundsMoved": false,
+      "proofType": "pre-settlement denial",
+      "txHash": null,
+      "auditId": "previewAuthorizationWithIntent:OverMaxTx",
+      "explorerUrl": null,
+      "rawJson": {
+        "id": "F",
+        "agentAction": "Over max amount attempt",
+        "mandate": {
+          "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
+          "asset": "TSLA",
+          "resource": "market_data",
+          "merchant": "0x000000000000000000000000000000000000beef",
+          "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+          "maxAmount": "0.25",
+          "periodLimit": "3.00",
+          "validUntil": "2026-05-26T22:12:31.016Z",
+          "purpose": "Buy verified TSLA market data only",
+          "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
+          "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
+        },
+        "x402Step": "402 received -> payment intent built -> PolicyEngine preview",
+        "policyVerdict": "Denied",
+        "reasonName": "OverMaxTx",
+        "proof": "previewAuthorizationWithIntent:OverMaxTx",
+        "txHash": null,
+        "fundsMoved": false,
+        "finalStatus": "Denied",
+        "explanation": "The attempted spend violates the mandate. Osmium denied it onchain with OverMaxTx; no funds moved."
+      }
+    }
+  ],
+  "limitations": [
+    "Denial rows are pre-settlement PolicyEngine previews, not on-chain revert transactions.",
+    "The valid row is an on-chain transaction only when settle=true and the runner has an operator key.",
+    "This is an AP2-inspired mandate model, not an AP2 compliance claim.",
+    "The x402 facilitator is Osmium-compatible and custom for Robinhood Chain, not the Coinbase CDP facilitator."
+  ]
+}

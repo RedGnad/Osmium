@@ -20,6 +20,14 @@
     {
       "source": "/api/demo/:path*",
       "destination": "/api/runner?runnerPath=demo/:path*"
+    },
+    {
+      "source": "/api/agent/:path*",
+      "destination": "/api/runner?runnerPath=agent/:path*"
+    },
+    {
+      "source": "/proofs",
+      "destination": "/"
     }
   ]
 }

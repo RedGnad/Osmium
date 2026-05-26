@@ -94,6 +94,7 @@ The runner exposes an agent loop for the demo path:
 GET  /agent/mandate   -> AP2-inspired mandate JSON
 POST /agent/run       -> request paid TSLA data, verify, settle, unlock, explain
 POST /agent/attacks   -> run valid + unsafe mandate attempts
+POST /agent/proofs    -> compact judge proof matrix
 ```
 
 The loop is deliberately narrow. The first resource is TSLA market data. The
@@ -155,6 +156,22 @@ Both lanes share the same x402 envelope, the same `PolicyEngine`, and the same
 the `osmium-exact` scheme.
 
 ## Live proof
+
+The public app includes a **Proofs** tab (`/proofs`) that shows the latest
+judge-facing matrix:
+
+| Case | Expected result | Honest proof type |
+| --- | --- | --- |
+| Valid TSLA mandate | Cleared | on-chain tx when live capture runs |
+| Replay same `paymentId` | Denied / Replay | pre-settlement denial |
+| Unknown merchant | Denied / UnknownMerchant | pre-settlement denial |
+| Missing `receiptHash` | Denied / MissingReceipt | pre-settlement denial |
+| Wrong context | Denied / ContextMismatch | pre-settlement denial |
+| Over max amount | Denied / OverMaxTx | pre-settlement denial |
+
+Latest generated artifact:
+
+- [`proofs/latest-agent-clearance.json`](proofs/latest-agent-clearance.json)
 
 Most recent validated clearance case:
 
@@ -225,6 +242,35 @@ withOsmium402({
 `examples/merchant-tsla-data/` shows a protected TSLA endpoint returning
 `402 Payment Required` until the agent presents `paymentId + receiptHash`.
 
+Protect an API with Osmium in 20 lines:
+
+```ts
+const protectedTslaData = withOsmium402({
+  resource: "market-data/TSLA",
+  asset: "TSLA",
+  price: "0.25",
+  token: TSLA_ADDRESS,
+  merchant: MERCHANT_ADDRESS,
+  policyContext: "robinhood-market-data-v1"
+});
+```
+
+Curl shape:
+
+```bash
+# 1. No clearance -> 402 Payment Required
+curl -i http://localhost:3012/market-data/TSLA
+
+# 2. Valid Osmium clearance -> 200 + data
+curl -i "http://localhost:3012/market-data/TSLA?paymentId=0x...&receiptHash=0x..."
+
+# 3. Invalid context -> denied before settlement
+pnpm agent:attacks
+```
+
+The invalid-context case is intentionally not a merchant 500 and not a vague
+LLM refusal. It is a PolicyEngine verdict: `ContextMismatch`, no funds moved.
+
 ## What is on-chain / off-chain / simulated
 
 | Layer | Status |
@@ -251,6 +297,23 @@ withOsmium402({
 - Merchant receipts include EIP-712 typed data and can be service-signed; they
   do not independently verify offchain service quality.
 
+## Judge checklist
+
+- Deployed on Robinhood Chain Testnet (`eip155:46630`).
+- Stylus `PolicyEngine` live.
+- Solidity `SettlementRouter` live.
+- Agent loop live: mandate -> TSLA paid-data request -> x402 -> Osmium clearance.
+- Valid settlement proof available in the Proofs tab and JSON artifact.
+- Six attack cases visible: valid, replay, unknown merchant, missing receipt,
+  wrong context, over max.
+- Merchant kit included with a protected TSLA endpoint example.
+- On-chain: policy checks, settlement, receipts/replay in contracts.
+- Off-chain: merchant resource, EIP-712 service receipt, audit display.
+- Simulated/demo-grade: AP2-inspired mandate, custom x402-compatible
+  facilitator, testnet operator lane, JSON/Turso audit store.
+- Known limitations are shown; Osmium does not claim full AP2 compliance or
+  Coinbase CDP facilitator support on Robinhood Chain.
+
 ## Commands
 
 ```bash
@@ -261,6 +324,7 @@ pnpm web:build
 pnpm sdk:typecheck
 pnpm agent:live-settlement   # full onchain settlement proof
 pnpm agent:attacks           # valid mandate + blocked attempt smoke test
+pnpm agent:proofs            # write proofs/latest-agent-clearance.json
 ```
 
 ## More

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { Address } from "viem";
 import "./styles.css";
+import latestProofArtifact from "../../../proofs/latest-agent-clearance.json";
 import { WalletProvider, useWallet } from "./wallet/WalletProvider";
 import { ConnectModal } from "./wallet/ConnectModal";
 import { OnboardingWizard } from "./wallet/OnboardingWizard";
@@ -226,6 +227,37 @@ type AgentAttackReport = {
   attempts: AgentAttemptReport[];
 };
 
+type AgentProofRow = {
+  id: string;
+  caseName: string;
+  mandateSummary: string;
+  agentAction: string;
+  x402Step: string;
+  osmiumVerdict: "Cleared" | "Denied";
+  denialReason: string;
+  fundsMoved: boolean;
+  proofType: "on-chain tx" | "pre-settlement denial" | "ledger row";
+  txHash: string | null;
+  auditId: string;
+  explorerUrl: string | null;
+  rawJson: unknown;
+};
+
+type AgentProofArtifact = {
+  generatedAt: string;
+  chainId: number;
+  runner: "local-runner-logic" | "deployed-runner";
+  summary: {
+    claim: string;
+    cleared: number;
+    denied: number;
+    fundsMovedRows: number;
+  };
+  mandate: AgentMandate;
+  rows: AgentProofRow[];
+  limitations: string[];
+};
+
 type MerchantAuditRecord = {
   paymentId: string;
   asset: AssetSymbol;
@@ -300,7 +332,7 @@ const assets = [
 
 type AssetSymbol = (typeof assets)[number]["symbol"];
 
-type ConsoleView = "clear" | "prove" | "build";
+type ConsoleView = "clear" | "proofs" | "prove" | "build";
 
 /* The Clear screen runs in one of two modes.
    Demo is the judge path with no wallet connect required (operator key paste,
@@ -339,12 +371,14 @@ function persistClearMode(mode: ClearMode) {
 
 const hashFor: Record<ConsoleView, string> = {
   clear: "clear",
+  proofs: "proofs",
   prove: "prove",
   build: "build",
 };
 
 const legacyHashAlias: Record<string, ConsoleView> = {
   command: "clear",
+  proofs: "proofs",
   audit: "prove",
   developer: "build",
   policy: "clear",
@@ -353,9 +387,10 @@ const legacyHashAlias: Record<string, ConsoleView> = {
 };
 
 function getInitialView(): ConsoleView {
+  if (typeof window !== "undefined" && window.location.pathname === "/proofs") return "proofs";
   if (typeof window === "undefined") return "clear";
   const raw = window.location.hash.replace("#", "");
-  if (raw === "clear" || raw === "prove" || raw === "build") return raw;
+  if (raw === "clear" || raw === "proofs" || raw === "prove" || raw === "build") return raw;
   if (raw in legacyHashAlias) return legacyHashAlias[raw];
   return "clear";
 }
@@ -593,6 +628,9 @@ function App() {
   const [agentMandate, setAgentMandate] = useState<AgentMandate | null>(null);
   const [agentRun, setAgentRun] = useState<AgentLoopReport | null>(null);
   const [agentAttacks, setAgentAttacks] = useState<AgentAttackReport | null>(null);
+  const [agentProofs, setAgentProofs] = useState<AgentProofArtifact | null>(
+    latestProofArtifact as AgentProofArtifact,
+  );
   const [merchantAudit, setMerchantAudit] = useState<MerchantAuditRecord[]>([]);
   const [spendEvents, setSpendEvents] = useState<SpendEvent[]>([]);
   const [operatorKey, setOperatorKey] = useState("");
@@ -676,6 +714,29 @@ function App() {
       setAgentAttacks(report);
     } catch (err) {
       setClearanceError(err instanceof Error ? err.message : "Attack mode failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function refreshAgentProofs(settle = false) {
+    setClearanceError("");
+    if (settle && !operatorKey.trim()) {
+      setClearanceError("Load or paste the demo operator key before capturing a live settlement proof.");
+      return;
+    }
+    try {
+      setBusy(settle ? "agent-proof-live" : "agent-proof-preview");
+      const proof = (await callRunner(
+        "/agent/proofs",
+        { settle },
+        settle ? operatorKey.trim() : undefined,
+      )) as AgentProofArtifact;
+      setAgentProofs(proof);
+      setAgentMandate(proof.mandate);
+      await refreshMerchantAudit();
+    } catch (err) {
+      setClearanceError(err instanceof Error ? err.message : "Proof capture failed.");
     } finally {
       setBusy("");
     }
@@ -1084,6 +1145,12 @@ function App() {
         /* agent mandate optional */
       }
       try {
+        const proofs = (await callRunner("/agent/proofs", { settle: false })) as AgentProofArtifact;
+        if (mounted) setAgentProofs(proofs);
+      } catch {
+        /* proof endpoint optional until latest runner deploy is live */
+      }
+      try {
         const nextQuote = (await callRunner(
           "/merchant/quote?asset=TSLA",
         )) as MerchantQuote;
@@ -1141,6 +1208,7 @@ function App() {
 
   const navItems: Array<{ id: ConsoleView; label: string }> = [
     { id: "clear", label: "Clear" },
+    { id: "proofs", label: "Proofs" },
     { id: "prove", label: "Prove" },
     { id: "build", label: "Build" },
   ];
@@ -1277,6 +1345,16 @@ function App() {
             settlement={settlement}
             spendEvents={spendEvents}
             unlock={unlock}
+          />
+        ) : null}
+
+        {view === "proofs" ? (
+          <ProofsView
+            busy={busy}
+            operatorKey={operatorKey}
+            proofs={agentProofs}
+            onCaptureLive={() => refreshAgentProofs(true)}
+            onRefresh={() => refreshAgentProofs(false)}
           />
         ) : null}
 
@@ -2725,6 +2803,165 @@ function DenialChip({
       <span style={{ letterSpacing: "0.08em" }}>{label}</span>
       <ArrowRight size={13} />
     </button>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   ProofsView — judge-facing proof matrix
+   ──────────────────────────────────────────────────────────────────────── */
+
+function ProofsView({
+  busy,
+  operatorKey,
+  proofs,
+  onCaptureLive,
+  onRefresh,
+}: {
+  busy: string;
+  operatorKey: string;
+  proofs: AgentProofArtifact | null;
+  onCaptureLive: () => void;
+  onRefresh: () => void;
+}) {
+  const rows = proofs?.rows ?? [];
+  return (
+    <>
+      <header className="pageHead">
+        <div>
+          <div className="eyebrow">Public Proofs</div>
+          <h1>
+            The agent tried to spend. <em>Osmium filtered it.</em>
+          </h1>
+        </div>
+        <div className="pageSub">
+          <div>
+            <strong>{proofs?.summary.cleared ?? 0}</strong> cleared ·{" "}
+            <strong>{proofs?.summary.denied ?? 0}</strong> denied
+          </div>
+          <div>
+            Runner <strong>{proofs?.runner ?? "pending"}</strong>
+          </div>
+        </div>
+      </header>
+
+      <section className="proofClaim" aria-label="60 second proof">
+        <div>
+          <span className="agentPanelLabel">60 second claim</span>
+          <p>
+            {proofs?.summary.claim ??
+              "Capture the proof matrix to show that Osmium clears only the mandate-matching TSLA payment and denies unsafe attempts before funds move."}
+          </p>
+        </div>
+        <div className="proofActions">
+          <button
+            className="btn primary"
+            disabled={busy !== ""}
+            onClick={onRefresh}
+            type="button"
+          >
+            Refresh proofs <ArrowRight size={14} />
+          </button>
+          <button
+            className="btn ghost"
+            disabled={busy !== "" || !operatorKey.trim()}
+            onClick={onCaptureLive}
+            title={
+              operatorKey.trim()
+                ? "Runs the valid case with settlement, then refreshes denials."
+                : "Load the demo operator key first."
+            }
+            type="button"
+          >
+            Capture live tx proof
+          </button>
+        </div>
+      </section>
+
+      <section className="proofMatrix" aria-label="Agent clearance proof matrix">
+        {rows.length === 0 ? (
+          <div className="ledgerEmpty">
+            <div className="emptyTitle">
+              No proof matrix loaded. <em>Refresh proofs.</em>
+            </div>
+            <div className="emptyBody">
+              This reads the runner proof endpoint and renders the six judge
+              claims with raw JSON disclosures.
+            </div>
+          </div>
+        ) : (
+          rows.map((row) => (
+            <article className="proofRowCard" key={`${row.id}-${row.auditId}`}>
+              <div className="proofRowTop">
+                <div>
+                  <span className="proofCase">Case {row.id}</span>
+                  <h2>{row.caseName}</h2>
+                </div>
+                <div className="proofChipGroup">
+                  <span className={`statusChip ${row.osmiumVerdict === "Cleared" ? "cleared" : "denied"}`}>
+                    {row.osmiumVerdict}
+                  </span>
+                  <span className={`statusChip reason ${row.denialReason === "None" ? "cleared" : "denied"}`}>
+                    {row.denialReason}
+                  </span>
+                </div>
+              </div>
+
+              <div className="proofAnswerGrid">
+                <ProofAnswer label="Who tried to pay?" value={short(proofs?.mandate.agent ?? "agent")} />
+                <ProofAnswer label="What did it try to buy?" value={row.agentAction} />
+                <ProofAnswer label="What mandate applied?" value={row.mandateSummary} />
+                <ProofAnswer label="Did funds move?" value={row.fundsMoved ? "yes" : "no"} />
+                <ProofAnswer
+                  label="Where is the proof?"
+                  value={
+                    row.explorerUrl && row.txHash
+                      ? `${short(row.txHash)} · ${row.proofType}`
+                      : `${row.auditId} · ${row.proofType}`
+                  }
+                />
+              </div>
+
+              <div className="proofMetaLine">
+                <span>x402: {row.x402Step}</span>
+                <span>Proof type: {row.proofType}</span>
+                {row.explorerUrl ? (
+                  <a href={row.explorerUrl} target="_blank" rel="noreferrer">
+                    <ExternalLink size={12} /> explorer
+                  </a>
+                ) : null}
+              </div>
+
+              <details className="proofRaw">
+                <summary>Raw JSON</summary>
+                <pre>{JSON.stringify(row.rawJson, null, 2)}</pre>
+              </details>
+            </article>
+          ))
+        )}
+      </section>
+
+      {proofs?.limitations.length ? (
+        <details className="advanced">
+          <summary>Known proof boundaries</summary>
+          <div className="advancedBody">
+            <ul className="proofLimitList">
+              {proofs.limitations.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </details>
+      ) : null}
+    </>
+  );
+}
+
+function ProofAnswer({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="proofAnswer">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 

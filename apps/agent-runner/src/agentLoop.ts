@@ -44,6 +44,37 @@ export type AgentAttemptReport = {
   explanation: string;
 };
 
+export type AgentProofRow = {
+  id: string;
+  caseName: string;
+  mandateSummary: string;
+  agentAction: string;
+  x402Step: string;
+  osmiumVerdict: AgentVerdict;
+  denialReason: string;
+  fundsMoved: boolean;
+  proofType: "on-chain tx" | "pre-settlement denial" | "ledger row";
+  txHash: string | null;
+  auditId: string;
+  explorerUrl: string | null;
+  rawJson: unknown;
+};
+
+export type AgentProofArtifact = {
+  generatedAt: string;
+  chainId: number;
+  runner: "local-runner-logic" | "deployed-runner";
+  summary: {
+    claim: string;
+    cleared: number;
+    denied: number;
+    fundsMovedRows: number;
+  };
+  mandate: AgentMandate;
+  rows: AgentProofRow[];
+  limitations: string[];
+};
+
 export type AgentLoopReport = {
   mandate: AgentMandate;
   thought: string;
@@ -83,6 +114,16 @@ function formatWeiDecimal(value: bigint, decimals = 18) {
   const whole = value / scale;
   const cents = ((value % scale) / (scale / 100n)).toString().padStart(2, "0");
   return `${whole}.${cents}`;
+}
+
+function txUrl(txHash: string | null) {
+  return txHash && /^0x[a-fA-F0-9]{64}$/.test(txHash)
+    ? `https://explorer.testnet.chain.robinhood.com/tx/${txHash}`
+    : null;
+}
+
+function mandateSummary(mandate: AgentMandate) {
+  return `${mandate.asset} ${mandate.resource} · max ${mandate.maxAmount} ${mandate.token.slice(0, 6)}...${mandate.token.slice(-4)}`;
 }
 
 export function buildDefaultMandate(config: RunnerConfig, asset: MerchantAsset = "TSLA"): AgentMandate {
@@ -351,4 +392,76 @@ export async function runAttackMode(config: RunnerConfig): Promise<{ mandate: Ag
   }));
 
   return { mandate, attempts };
+}
+
+export async function buildAgentProofArtifact(
+  config: RunnerConfig,
+  options: { settle?: boolean; runner?: AgentProofArtifact["runner"] } = {}
+): Promise<AgentProofArtifact> {
+  const valid = await runAgentLoop(config, { settle: options.settle ?? false });
+  const attacks = await runAttackMode(config);
+  const attackRows = attacks.attempts.filter((attempt) => attempt.id !== "A");
+  const validTx = valid.settlement.txHash;
+
+  const rows: AgentProofRow[] = [
+    {
+      id: "A",
+      caseName: "Valid TSLA mandate",
+      mandateSummary: mandateSummary(valid.mandate),
+      agentAction: valid.action,
+      x402Step: `${valid.x402.status} -> verify -> ${valid.settlement.attempted ? "settle" : "clearance preview"}`,
+      osmiumVerdict: valid.clearance.valid ? "Cleared" : "Denied",
+      denialReason: valid.clearance.reasonName,
+      fundsMoved: valid.settlement.fundsMoved,
+      proofType: valid.settlement.fundsMoved ? "on-chain tx" : "ledger row",
+      txHash: validTx,
+      auditId: validTx ?? valid.settlement.paymentId,
+      explorerUrl: txUrl(validTx),
+      rawJson: valid
+    },
+    ...attackRows.map((attempt) => ({
+      id: attempt.id,
+      caseName:
+        attempt.id === "B"
+          ? "Replay same paymentId"
+          : attempt.id === "C"
+            ? "Unknown merchant"
+            : attempt.id === "D"
+              ? "Missing receiptHash"
+              : attempt.id === "E"
+                ? "Wrong context"
+                : "Over max amount",
+      mandateSummary: mandateSummary(attempt.mandate),
+      agentAction: attempt.agentAction,
+      x402Step: attempt.x402Step,
+      osmiumVerdict: attempt.finalStatus,
+      denialReason: attempt.reasonName,
+      fundsMoved: attempt.fundsMoved,
+      proofType: "pre-settlement denial" as const,
+      txHash: attempt.txHash,
+      auditId: attempt.proof,
+      explorerUrl: txUrl(attempt.txHash),
+      rawJson: attempt
+    }))
+  ];
+
+  return {
+    generatedAt: new Date().toISOString(),
+    chainId: config.chainId,
+    runner: options.runner ?? "local-runner-logic",
+    summary: {
+      claim: "The agent tried to spend. Osmium cleared only the mandate-matching payment and denied unsafe attempts before funds moved.",
+      cleared: rows.filter((row) => row.osmiumVerdict === "Cleared").length,
+      denied: rows.filter((row) => row.osmiumVerdict === "Denied").length,
+      fundsMovedRows: rows.filter((row) => row.fundsMoved).length
+    },
+    mandate: valid.mandate,
+    rows,
+    limitations: [
+      "Denial rows are pre-settlement PolicyEngine previews, not on-chain revert transactions.",
+      "The valid row is an on-chain transaction only when settle=true and the runner has an operator key.",
+      "This is an AP2-inspired mandate model, not an AP2 compliance claim.",
+      "The x402 facilitator is Osmium-compatible and custom for Robinhood Chain, not the Coinbase CDP facilitator."
+    ]
+  };
 }

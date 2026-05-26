@@ -13,6 +13,7 @@
     "agent:dev": "pnpm --filter @osmium/agent-runner run dev",
     "agent:demo": "pnpm --filter @osmium/agent-runner run demo",
     "agent:attacks": "pnpm --filter @osmium/agent-runner run agent-attacks",
+    "agent:proofs": "pnpm --filter @osmium/agent-runner run agent-proofs",
     "agent:live-settlement": "pnpm --filter @osmium/agent-runner run live-settlement",
     "agent:setup": "pnpm --filter @osmium/agent-runner run setup",
     "agent:typecheck": "pnpm --filter @osmium/agent-runner run typecheck",

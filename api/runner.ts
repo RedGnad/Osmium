@@ -1,5 +1,5 @@
 import { loadConfig } from "../apps/agent-runner/src/config.js";
-import { buildDefaultMandate, runAgentLoop, runAttackMode } from "../apps/agent-runner/src/agentLoop.js";
+import { buildAgentProofArtifact, buildDefaultMandate, runAgentLoop, runAttackMode } from "../apps/agent-runner/src/agentLoop.js";
 import { runDemo } from "../apps/agent-runner/src/demo.js";
 import { readLiveSettlementProof, runLiveSettlement } from "../apps/agent-runner/src/liveSettlement.js";
 import { marketDataQuote, marketDataResource, merchantAuditLog, unlockMarketData } from "../apps/agent-runner/src/merchant.js";
@@ -147,6 +147,16 @@ export default async function handler(request: VercelRequestLike, response: Verc
 
     if (path === "/agent/attacks") {
       response.status(200).json(await runAttackMode(config));
+      return;
+    }
+
+    if (path === "/agent/proofs") {
+      const body = readBody(request) as { settle?: boolean };
+      if (body.settle === true && !requireApiKey(request, response, config.runnerApiKey)) return;
+      response.status(200).json(await buildAgentProofArtifact(config, {
+        settle: body.settle === true,
+        runner: "deployed-runner"
+      }));
       return;
     }
 

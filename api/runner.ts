@@ -1,4 +1,5 @@
 import { loadConfig } from "../apps/agent-runner/src/config.js";
+import { buildDefaultMandate, runAgentLoop, runAttackMode } from "../apps/agent-runner/src/agentLoop.js";
 import { runDemo } from "../apps/agent-runner/src/demo.js";
 import { readLiveSettlementProof, runLiveSettlement } from "../apps/agent-runner/src/liveSettlement.js";
 import { marketDataQuote, marketDataResource, merchantAuditLog, unlockMarketData } from "../apps/agent-runner/src/merchant.js";
@@ -129,6 +130,23 @@ export default async function handler(request: VercelRequestLike, response: Verc
 
     if (path === "/merchant/quote") {
       response.status(200).json(marketDataQuote(config, query.asset));
+      return;
+    }
+
+    if (path === "/agent/mandate") {
+      response.status(200).json(buildDefaultMandate(config));
+      return;
+    }
+
+    if (path === "/agent/run") {
+      const body = readBody(request) as { settle?: boolean };
+      if (body.settle !== false && !requireApiKey(request, response, config.runnerApiKey)) return;
+      response.status(200).json(await runAgentLoop(config, body));
+      return;
+    }
+
+    if (path === "/agent/attacks") {
+      response.status(200).json(await runAttackMode(config));
       return;
     }
 

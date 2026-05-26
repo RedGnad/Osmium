@@ -7,11 +7,12 @@
   "dependencies": {
     "@libsql/client": "^0.17.3",
     "dotenv": "^16.4.7",
-    "viem": "^2.48.11"
+    "viem": "2.22.23"
   },
   "scripts": {
     "agent:dev": "pnpm --filter @osmium/agent-runner run dev",
     "agent:demo": "pnpm --filter @osmium/agent-runner run demo",
+    "agent:attacks": "pnpm --filter @osmium/agent-runner run agent-attacks",
     "agent:live-settlement": "pnpm --filter @osmium/agent-runner run live-settlement",
     "agent:setup": "pnpm --filter @osmium/agent-runner run setup",
     "agent:typecheck": "pnpm --filter @osmium/agent-runner run typecheck",

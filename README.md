@@ -1,6 +1,7 @@
 # Osmium
 
-> A self-serve, x402-compatible **clearing layer for AI finance agents** on Robinhood Chain.
+> Osmium is the policy clearance layer for autonomous finance payments on Robinhood Chain.
+> x402 lets agents pay. Osmium proves they were allowed to.
 
 **Agents request. Osmium clears. The router settles. The ledger proves.**
 
@@ -35,16 +36,48 @@ AMD, AMZN, PLTR, NFLX.
 
 **Give agents clearance, not keys.**
 
+## What Osmium proves
+
+Osmium proves that an autonomous finance payment matched a bounded mandate
+before funds moved:
+
+- the agent was authorised by the policy;
+- the merchant was verified;
+- the token and amount were allowed;
+- the payment intent was bound to the expected context;
+- a receipt was required and filed;
+- the same `paymentId` could not settle twice.
+
+The LLM can choose and explain. It is never the security boundary. The
+`PolicyEngine` and `SettlementRouter` decide whether value can move.
+
+## Threats blocked
+
+| Threat | Expected result |
+| --- | --- |
+| Valid TSLA mandate | cleared |
+| Replay same `paymentId` | denied |
+| Unknown merchant | denied |
+| Missing `receiptHash` | denied |
+| Wrong context, e.g. AMZN with TSLA mandate | denied |
+| Over max amount / budget | denied |
+
 ## Live demo
 
 - App: **https://osmium-agent-runner.vercel.app**
-- Runner API: https://osmium.onrender.com
+- Runner API: same-origin Vercel API (`/api/runner`, `/api/health`)
 - Chain: Robinhood Chain Testnet (`eip155:46630`)
 
-The Clear screen runs the full loop:
+The Clear screen runs the clearance loop:
 
 ```text
 Request -> 402 -> Verify -> Clear -> Settle -> File -> Unlock   (replay denied)
+```
+
+The Agent Console adds the agentic proof:
+
+```text
+mandate JSON -> agent chooses TSLA data -> 402 -> Osmium verify -> settle if cleared -> ledger row -> explanation
 ```
 
 A judge needs no wallet: open the app, stay in **Demo mode**, click through
@@ -52,6 +85,40 @@ Request → Verify → Clear and settle. The operator key is auto-loaded from th
 runner. An optional "Blocked clearance proofs" section runs the denial cases
 (unknown merchant, missing receipt, over-limit, replay) and files each in the
 Settlement Ledger.
+
+## Agent loop
+
+The runner exposes an agent loop for the demo path:
+
+```text
+GET  /agent/mandate   -> AP2-inspired mandate JSON
+POST /agent/run       -> request paid TSLA data, verify, settle, unlock, explain
+POST /agent/attacks   -> run valid + unsafe mandate attempts
+```
+
+The loop is deliberately narrow. The first resource is TSLA market data. The
+agent can describe why it asks for the resource, but only Osmium can clear the
+payment.
+
+## Mandate schema
+
+```json
+{
+  "agent": "0x...",
+  "asset": "TSLA",
+  "resource": "market-data",
+  "merchant": "0x...",
+  "token": "0x...",
+  "maxAmount": "0.25",
+  "periodLimit": "3.00",
+  "validUntil": "2026-05-26T12:00:00.000Z",
+  "purpose": "Buy verified TSLA market data only",
+  "contextHash": "0x...",
+  "intentHash": "0x..."
+}
+```
+
+This is an **AP2-inspired mandate model**, not an AP2 compliance claim.
 
 ## Self-Serve Alpha
 
@@ -140,6 +207,36 @@ x402-compatible facilitator for `eip155:46630`: same HTTP envelope, same
 The `PaymentRequirements.extra.compatibility` field declares this divergence
 explicitly so x402-aware clients can opt in or fall through.
 
+## Merchant kit
+
+`merchant-kit/` contains the smallest reusable merchant helper:
+
+```ts
+withOsmium402({
+  resource: "market-data/TSLA",
+  asset: "TSLA",
+  price: "0.25",
+  token: TSLA_ADDRESS,
+  merchant: MERCHANT_ADDRESS,
+  policyContext: "robinhood-market-data-v1"
+});
+```
+
+`examples/merchant-tsla-data/` shows a protected TSLA endpoint returning
+`402 Payment Required` until the agent presents `paymentId + receiptHash`.
+
+## What is on-chain / off-chain / simulated
+
+| Layer | Status |
+| --- | --- |
+| Stylus `PolicyEngine` | on-chain, Robinhood Chain Testnet |
+| Solidity `SettlementRouter` | on-chain, Robinhood Chain Testnet |
+| TSLA settlement | live testnet token movement |
+| x402 facilitator | custom Osmium-compatible runner |
+| Merchant receipts | EIP-712 typed data, service-signed when signer env exists |
+| Audit ledger | Vercel runner + Turso/JSON fallback, onchain tx is source of truth |
+| AP2 mandate | inspired model for demo clarity, not AP2 compliance |
+
 ## Limitations
 
 - Testnet alpha — a hackathon prototype, not audited production infrastructure.
@@ -163,6 +260,7 @@ pnpm agent:typecheck
 pnpm web:build
 pnpm sdk:typecheck
 pnpm agent:live-settlement   # full onchain settlement proof
+pnpm agent:attacks           # valid mandate + blocked attempt smoke test
 ```
 
 ## More

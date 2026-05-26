@@ -1,4 +1,5 @@
 import express from "express";
+import { buildDefaultMandate, runAgentLoop, runAttackMode } from "./agentLoop.js";
 import { loadConfig } from "./config.js";
 import { runDemo } from "./demo.js";
 import { readLiveSettlementProof, runLiveSettlement } from "./liveSettlement.js";
@@ -213,6 +214,26 @@ app.get("/merchant/market-data", async (req: RequestLike, res: ResponseLike, nex
 
 app.get("/x402/supported", (_req: RequestLike, res: ResponseLike) => {
   res.json(supportedX402(config));
+});
+
+app.get("/agent/mandate", (_req: RequestLike, res: ResponseLike) => {
+  res.json(buildDefaultMandate(config));
+});
+
+app.post("/agent/run", requireApiKey, async (req: RequestLike, res: ResponseLike, next: NextLike) => {
+  try {
+    res.json(await runAgentLoop(config, req.body as { settle?: boolean }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/agent/attacks", async (_req: RequestLike, res: ResponseLike, next: NextLike) => {
+  try {
+    res.json(await runAttackMode(config));
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.post("/x402/verify", async (req: RequestLike, res: ResponseLike, next: NextLike) => {

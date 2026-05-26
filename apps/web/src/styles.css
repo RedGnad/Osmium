@@ -3107,3 +3107,312 @@ button, input { font: inherit; color: inherit; }
   letter-spacing: 0.06em;
   color: var(--cleared);
 }
+
+/* =========================================================================
+   22. AGENT CONSOLE — mandate-bound autonomous loop
+   ========================================================================= */
+
+.agentConsole {
+  margin: var(--space-5) 0 var(--space-6);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(216, 209, 192, 0.045), transparent 32%),
+    var(--surface);
+  box-shadow: var(--shadow-deep);
+  overflow: hidden;
+}
+
+.agentConsoleHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  align-items: end;
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.agentConsoleEyebrow,
+.agentPanelLabel {
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-deep);
+}
+
+.agentConsoleHead h2 {
+  margin: 8px 0 10px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(30px, 4vw, 58px);
+  line-height: 0.98;
+  letter-spacing: -0.025em;
+}
+
+.agentConsoleHead h2 em {
+  font-style: italic;
+  color: var(--paper);
+}
+
+.agentConsoleHead p {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.agentConsoleActions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.agentConsoleGrid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr 0.95fr;
+  border-bottom: 1px solid var(--line);
+}
+
+.agentPanel {
+  min-width: 0;
+  padding: var(--space-5);
+  border-right: 1px solid var(--line);
+}
+
+.agentPanel:last-child { border-right: none; }
+
+.agentPanel > strong {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.agentPanel dl {
+  display: grid;
+  gap: 10px;
+  margin: var(--space-4) 0 0;
+}
+
+.agentPanel dl div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+}
+
+.agentPanel dt {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.agentPanel dd {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-quiet);
+  word-break: break-word;
+}
+
+.agentPanel dd a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--paper);
+}
+
+.agentDetails {
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-3);
+}
+
+.agentDetails summary {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.agentDetails pre {
+  margin: var(--space-3) 0 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  background: var(--ink);
+  color: var(--text-quiet);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.agentThought,
+.agentExplanation,
+.attackPlaceholder {
+  margin: var(--space-4) 0;
+  color: var(--text-quiet);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.agentActionLine {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.agentActionLine span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.agentActionLine strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.verdictStamp {
+  display: inline-flex;
+  margin-top: var(--space-4);
+  border: 1.5px solid currentColor;
+  padding: 8px 14px 7px;
+  transform: rotate(-1deg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.verdictStamp.cleared { color: var(--cleared); }
+.verdictStamp.denied { color: var(--denied); }
+.verdictStamp.pending { color: var(--pending); }
+
+.attackMode {
+  padding: var(--space-5) var(--space-6) var(--space-6);
+}
+
+.attackModeHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.attackModeHead strong {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.attackModeSummary {
+  max-width: 520px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.attackTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  background: var(--ink);
+}
+
+.attackTable {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.attackTable th,
+.attackTable td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.attackTable th {
+  color: var(--faint);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  background: var(--surface);
+}
+
+.attackTable td {
+  color: var(--text-quiet);
+}
+
+.attackTable tbody tr:last-child td { border-bottom: none; }
+
+.clearedText,
+.deniedText {
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.clearedText { color: var(--cleared); }
+.deniedText { color: var(--denied); }
+
+@media (max-width: 1180px) {
+  .agentConsoleHead,
+  .agentConsoleGrid {
+    grid-template-columns: 1fr;
+  }
+  .agentConsoleActions { justify-content: flex-start; }
+  .agentPanel {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .agentPanel:last-child { border-bottom: none; }
+  .attackModeHead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .attackModeSummary { text-align: left; }
+}
+
+@media (max-width: 640px) {
+  .agentConsoleHead,
+  .agentPanel,
+  .attackMode {
+    padding: var(--space-4);
+  }
+  .agentPanel dl div,
+  .agentActionLine {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

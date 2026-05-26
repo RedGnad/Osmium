@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/server.ts",
+    "agent-attacks": "tsx src/agentAttackSmoke.ts",
     "demo": "tsx src/demo.ts",
     "live-settlement": "tsx src/liveSettlement.ts",
     "setup": "tsx src/setup.ts",
@@ -14,7 +15,7 @@
     "@libsql/client": "^0.17.3",
     "dotenv": "^16.4.7",
     "express": "^4.19.2",
-    "viem": "^2.22.23"
+    "viem": "2.22.23"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

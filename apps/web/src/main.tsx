@@ -167,6 +167,65 @@ type X402FlowState = {
   unlocked?: boolean;
 };
 
+type AgentMandate = {
+  agent: string;
+  asset: AssetSymbol;
+  resource: string;
+  merchant: string;
+  token: string;
+  maxAmount: string;
+  periodLimit: string;
+  validUntil: string;
+  purpose: string;
+  contextHash: string;
+  intentHash: string;
+};
+
+type AgentAttemptReport = {
+  id: string;
+  agentAction: string;
+  x402Step: string;
+  policyVerdict: "Cleared" | "Denied";
+  reasonName: string;
+  proof: string;
+  txHash: string | null;
+  fundsMoved: boolean;
+  finalStatus: "Cleared" | "Denied";
+  explanation: string;
+};
+
+type AgentLoopReport = {
+  mandate: AgentMandate;
+  thought: string;
+  action: string;
+  x402: {
+    status: number;
+    protocol: string;
+    paymentId: string;
+    receiptHash: string;
+    amount: string;
+  };
+  clearance: {
+    valid: boolean;
+    reasonName: string;
+    message: string;
+  };
+  settlement: {
+    attempted: boolean;
+    fundsMoved: boolean;
+    txHash: string | null;
+    paymentId: string;
+    receiptHash: string;
+  };
+  unlock: { unlocked: boolean; dataHash: string | null };
+  explanation: string;
+};
+
+type AgentAttackReport = {
+  mandate: AgentMandate;
+  attempts: AgentAttemptReport[];
+};
+
 type MerchantAuditRecord = {
   paymentId: string;
   asset: AssetSymbol;
@@ -425,6 +484,7 @@ function runnerEndpoint(path: string) {
 async function callRunner(path: string, body?: unknown, apiKey?: string) {
   const isGet =
     path === "/health" ||
+    path === "/agent/mandate" ||
     path.startsWith("/merchant/quote") ||
     path === "/merchant/audit" ||
     path === "/demo/operator-token";
@@ -530,6 +590,9 @@ function App() {
   const [quote, setQuote] = useState<MerchantQuote | null>(null);
   const [unlock, setUnlock] = useState<MerchantUnlock | null>(null);
   const [x402Flow, setX402Flow] = useState<X402FlowState>({});
+  const [agentMandate, setAgentMandate] = useState<AgentMandate | null>(null);
+  const [agentRun, setAgentRun] = useState<AgentLoopReport | null>(null);
+  const [agentAttacks, setAgentAttacks] = useState<AgentAttackReport | null>(null);
   const [merchantAudit, setMerchantAudit] = useState<MerchantAuditRecord[]>([]);
   const [spendEvents, setSpendEvents] = useState<SpendEvent[]>([]);
   const [operatorKey, setOperatorKey] = useState("");
@@ -579,6 +642,43 @@ function App() {
     setMerchantAudit(
       (await callRunner("/merchant/audit")) as MerchantAuditRecord[],
     );
+  }
+
+  async function runAgentConsoleLoop() {
+    setClearanceError("");
+    if (!operatorKey.trim()) {
+      setClearanceError("Paste or load the demo operator key before running the autonomous agent loop.");
+      return;
+    }
+    try {
+      setBusy("agent-loop");
+      const report = (await callRunner(
+        "/agent/run",
+        { mandate: agentMandate ?? undefined, settle: true },
+        operatorKey.trim(),
+      )) as AgentLoopReport;
+      setAgentMandate(report.mandate);
+      setAgentRun(report);
+      await refreshMerchantAudit();
+    } catch (err) {
+      setClearanceError(err instanceof Error ? err.message : "Agent loop failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function runAgentAttackMode() {
+    setClearanceError("");
+    try {
+      setBusy("agent-attacks");
+      const report = (await callRunner("/agent/attacks", {})) as AgentAttackReport;
+      setAgentMandate(report.mandate);
+      setAgentAttacks(report);
+    } catch (err) {
+      setClearanceError(err instanceof Error ? err.message : "Attack mode failed.");
+    } finally {
+      setBusy("");
+    }
   }
 
   function addSpendEvent(event: SpendEvent) {
@@ -978,6 +1078,12 @@ function App() {
         if (mounted) setRunnerStatus("offline");
       }
       try {
+        const mandate = (await callRunner("/agent/mandate")) as AgentMandate;
+        if (mounted) setAgentMandate(mandate);
+      } catch {
+        /* agent mandate optional */
+      }
+      try {
         const nextQuote = (await callRunner(
           "/merchant/quote?asset=TSLA",
         )) as MerchantQuote;
@@ -1132,6 +1238,9 @@ function App() {
             deniedTestRan={deniedTestRan}
             error={clearanceError}
             flow={x402Flow}
+            agentMandate={agentMandate}
+            agentRun={agentRun}
+            agentAttacks={agentAttacks}
             merchantAudit={merchantAudit}
             operatorKey={operatorKey}
             settlement={settlement}
@@ -1151,6 +1260,8 @@ function App() {
             onVerify={verifyX402Flow}
             onPreviewBlocked={previewBlockedScenario}
             onReplay={replayLastPayment}
+            onRunAgentLoop={runAgentConsoleLoop}
+            onRunAttackMode={runAgentAttackMode}
           />
         ) : null}
 
@@ -1235,6 +1346,9 @@ function TickerBar({
 
 function ClearView({
   activeAsset,
+  agentAttacks,
+  agentMandate,
+  agentRun,
   busy,
   clearMode,
   demoToken,
@@ -1260,8 +1374,13 @@ function ClearView({
   onVerify,
   onPreviewBlocked,
   onReplay,
+  onRunAgentLoop,
+  onRunAttackMode,
 }: {
   activeAsset: AssetSymbol;
+  agentAttacks: AgentAttackReport | null;
+  agentMandate: AgentMandate | null;
+  agentRun: AgentLoopReport | null;
   busy: string;
   clearMode: ClearMode;
   demoToken: string | null;
@@ -1287,6 +1406,8 @@ function ClearView({
   onVerify: () => void;
   onPreviewBlocked: (k: "unknown" | "missing" | "over") => void;
   onReplay: () => void;
+  onRunAgentLoop: () => void;
+  onRunAttackMode: () => void;
 }) {
   const hasOperatorKey = operatorKey.trim().length > 0;
   /* Demo lane: needs the operator key. Self-serve: needs a provisioned
@@ -1598,6 +1719,15 @@ function ClearView({
         />
       </section>
 
+      <AgentConsole
+        attacks={agentAttacks}
+        busy={busy}
+        mandate={agentMandate}
+        report={agentRun}
+        onRunAgentLoop={onRunAgentLoop}
+        onRunAttackMode={onRunAttackMode}
+      />
+
       <ClearanceTicket
         amountLabel={amountLabel}
         casePaymentSeg={casePaymentSeg}
@@ -1823,6 +1953,228 @@ function LandingBand({
           Read the SDK
           <span className="landingBandHint">10-minute integration</span>
         </a>
+      </div>
+    </section>
+  );
+}
+
+function AgentConsole({
+  attacks,
+  busy,
+  mandate,
+  report,
+  onRunAgentLoop,
+  onRunAttackMode,
+}: {
+  attacks: AgentAttackReport | null;
+  busy: string;
+  mandate: AgentMandate | null;
+  report: AgentLoopReport | null;
+  onRunAgentLoop: () => void;
+  onRunAttackMode: () => void;
+}) {
+  const clearedCount =
+    attacks?.attempts.filter((attempt) => attempt.finalStatus === "Cleared")
+      .length ?? 0;
+  const deniedCount =
+    attacks?.attempts.filter((attempt) => attempt.finalStatus === "Denied")
+      .length ?? 0;
+  const verdict = report?.clearance.valid
+    ? "Cleared"
+    : report
+      ? "Denied"
+      : "Awaiting run";
+
+  return (
+    <section className="agentConsole" aria-label="Agent loop console">
+      <div className="agentConsoleHead">
+        <div>
+          <span className="agentConsoleEyebrow">Agent loop</span>
+          <h2>
+            The agent tries to pay. <em>Osmium decides.</em>
+          </h2>
+          <p>
+            A mandate-bound finance agent requests paid TSLA data, receives an
+            x402 payment challenge, asks Osmium for clearance, then settles
+            only if the onchain policy allows it.
+          </p>
+        </div>
+        <div className="agentConsoleActions">
+          <button
+            className="btn primary"
+            disabled={busy !== ""}
+            onClick={onRunAgentLoop}
+            type="button"
+          >
+            Run agent loop <ArrowRight size={14} />
+          </button>
+          <button
+            className="btn ghost"
+            disabled={busy !== ""}
+            onClick={onRunAttackMode}
+            type="button"
+          >
+            Run attack mode
+          </button>
+        </div>
+      </div>
+
+      <div className="agentConsoleGrid">
+        <div className="agentPanel mandatePanel">
+          <span className="agentPanelLabel">Current mandate</span>
+          <strong>{mandate?.purpose ?? "Buy verified TSLA market data only"}</strong>
+          <dl>
+            <div>
+              <dt>Agent</dt>
+              <dd>{mandate ? short(mandate.agent) : "loading"}</dd>
+            </div>
+            <div>
+              <dt>Asset</dt>
+              <dd>{mandate?.asset ?? "TSLA"}</dd>
+            </div>
+            <div>
+              <dt>Max spend</dt>
+              <dd>{mandate?.maxAmount ?? "0.25"} TSLA</dd>
+            </div>
+            <div>
+              <dt>Merchant</dt>
+              <dd>{mandate ? short(mandate.merchant) : "verified merchant"}</dd>
+            </div>
+          </dl>
+          {mandate ? (
+            <details className="agentDetails">
+              <summary>Mandate JSON</summary>
+              <pre>{JSON.stringify(mandate, null, 2)}</pre>
+            </details>
+          ) : null}
+        </div>
+
+        <div className="agentPanel actionPanel">
+          <span className="agentPanelLabel">Agent thought / action</span>
+          <p className="agentThought">
+            {report?.thought ??
+              "I have a narrow mandate: buy TSLA market data only. I must request clearance before funds can move."}
+          </p>
+          <div className="agentActionLine">
+            <span>Action</span>
+            <strong>
+              {report?.action ?? "Request TSLA market data from verified merchant"}
+            </strong>
+          </div>
+          <div className="agentActionLine">
+            <span>x402 request</span>
+            <strong>
+              {report
+                ? `${report.x402.status} · ${report.x402.protocol}`
+                : "402 challenge pending"}
+            </strong>
+          </div>
+        </div>
+
+        <div className="agentPanel verdictPanel">
+          <span className="agentPanelLabel">Osmium clearance verdict</span>
+          <div
+            className={`verdictStamp ${
+              verdict === "Cleared"
+                ? "cleared"
+                : verdict === "Denied"
+                  ? "denied"
+                  : "pending"
+            }`}
+          >
+            {verdict}
+          </div>
+          <dl>
+            <div>
+              <dt>Reason</dt>
+              <dd>{report?.clearance.reasonName ?? "Waiting for policy check"}</dd>
+            </div>
+            <div>
+              <dt>Funds moved</dt>
+              <dd>{report?.settlement.fundsMoved ? "yes" : "no"}</dd>
+            </div>
+            <div>
+              <dt>Tx</dt>
+              <dd>
+                {report?.settlement.txHash ? (
+                  <a
+                    href={`${config.explorerUrl}/tx/${report.settlement.txHash}`}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {short(report.settlement.txHash)} <ExternalLink size={11} />
+                  </a>
+                ) : (
+                  "local proof"
+                )}
+              </dd>
+            </div>
+          </dl>
+          <p className="agentExplanation">
+            {report?.explanation ??
+              "Run the loop to prove the LLM can choose and explain, while Osmium remains the security boundary."}
+          </p>
+        </div>
+      </div>
+
+      <div className="attackMode">
+        <div className="attackModeHead">
+          <div>
+            <span className="agentPanelLabel">Blocked attempts</span>
+            <strong>
+              {attacks
+                ? `${clearedCount} cleared · ${deniedCount} denied`
+                : "Run attack mode to prove the boundaries"}
+            </strong>
+          </div>
+          <span className="attackModeSummary">
+            valid · replay · unknown merchant · missing receipt · wrong context · over max
+          </span>
+        </div>
+
+        {attacks ? (
+          <div className="attackTableWrap">
+            <table className="attackTable">
+              <thead>
+                <tr>
+                  <th>Case</th>
+                  <th>Agent action</th>
+                  <th>Policy verdict</th>
+                  <th>Reason</th>
+                  <th>Funds</th>
+                  <th>Proof</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attacks.attempts.map((attempt) => (
+                  <tr key={attempt.id}>
+                    <td>{attempt.id}</td>
+                    <td>{attempt.agentAction}</td>
+                    <td>
+                      <span
+                        className={
+                          attempt.finalStatus === "Cleared"
+                            ? "clearedText"
+                            : "deniedText"
+                        }
+                      >
+                        {attempt.finalStatus}
+                      </span>
+                    </td>
+                    <td>{attempt.reasonName}</td>
+                    <td>{attempt.fundsMoved ? "moved" : "none"}</td>
+                    <td>{attempt.txHash ? short(attempt.txHash) : attempt.proof}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="attackPlaceholder">
+            Attack mode runs six mandate tests and shows who tried to pay, for
+            what, why Osmium cleared or denied, and whether funds moved.
+          </p>
+        )}
       </div>
     </section>
   );

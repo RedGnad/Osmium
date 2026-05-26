@@ -165,7 +165,9 @@ export async function runLiveSettlement(options: LiveSettlementOptions = {}) {
       address: token,
       abi: erc20Abi,
       functionName: "approve",
-      args: [config.settlementRouterAddress, vaultTopUp]
+      args: [config.settlementRouterAddress, vaultTopUp],
+      account,
+      chain: undefined
     });
     await client.waitForTransactionReceipt({ hash: approveTx });
 
@@ -173,7 +175,9 @@ export async function runLiveSettlement(options: LiveSettlementOptions = {}) {
       address: config.settlementRouterAddress,
       abi: settlementRouterAbi,
       functionName: "deposit",
-      args: [token, vaultTopUp]
+      args: [token, vaultTopUp],
+      account,
+      chain: undefined
     });
     await client.waitForTransactionReceipt({ hash: depositTx });
   }
@@ -193,7 +197,9 @@ export async function runLiveSettlement(options: LiveSettlementOptions = {}) {
     address: config.settlementRouterAddress,
     abi: settlementRouterAbi,
     functionName: "settleWithIntent",
-    args: settlementArgs
+    args: settlementArgs,
+    account,
+    chain: undefined
   });
   const settleReceipt = await client.waitForTransactionReceipt({ hash: settleTx });
 

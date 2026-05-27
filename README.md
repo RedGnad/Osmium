@@ -179,7 +179,7 @@ Most recent validated clearance case:
 | --- | --- |
 | Case | Valid TSLA mandate |
 | Policy | `#2` · TSLA on Robinhood Chain Testnet |
-| Settlement tx | `0x74fc…dac6` |
+| Settlement tx | `0xd5e4…cdd5` |
 | Result | Cleared · Filed · **Replay denied** · Data unlocked |
 
 Earlier full-hash live TSLA settlement run:

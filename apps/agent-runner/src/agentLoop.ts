@@ -216,7 +216,9 @@ export async function runAgentLoop(
     clearance: {
       valid: isValid,
       reasonName,
-      message: isValid ? "PolicyEngine preview cleared the payment intent." : "PolicyEngine denied the payment intent."
+      message: isValid
+        ? "PolicyEngine preview cleared the payment intent."
+        : "PolicyEngine preview denied the attempt before settlement; no funds moved."
     },
     settlement: {
       attempted: body.settle !== false && isValid,
@@ -231,7 +233,7 @@ export async function runAgentLoop(
     },
     explanation: isValid
       ? "The agent requested a paid resource, Osmium verified merchant/token/amount/receipt/context, then settlement was allowed."
-      : `The agent request did not match the mandate. Osmium denied it with ${reasonName}; no funds moved.`
+      : `PolicyEngine preview denied the attempt before settlement; no funds moved. Reason: ${reasonName}.`
   };
 }
 
@@ -283,7 +285,7 @@ async function previewAttempt(
     finalStatus: verdict,
     explanation: allowed
       ? "The attempted spend matched the mandate. It is cleared for settlement; this attack run does not move funds."
-      : `The attempted spend violates the mandate. Osmium denied it onchain with ${reasonName}; no funds moved.`
+      : `PolicyEngine preview denied the attempt before settlement; no funds moved. Reason: ${reasonName}.`
   };
 }
 
@@ -327,7 +329,7 @@ export async function runAttackMode(config: RunnerConfig): Promise<{ mandate: Ag
       fundsMoved: false,
       finalStatus: replayProof.replay?.blocked ? "Denied" : "Cleared",
       explanation: replayProof.replay?.blocked
-        ? "The agent tried to reuse a filed paymentId. Osmium denied replay; no funds moved."
+        ? "PolicyEngine preview denied the attempt before settlement; no funds moved. Reason: Replay."
         : "Replay proof needs a previously filed paymentId. Run one live settlement first."
     });
   } else {

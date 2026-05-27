@@ -5,7 +5,7 @@ export type Osmium402MerchantConfig = {
   token: `0x${string}`;
   merchant: `0x${string}`;
   policyContext: string;
-  runnerUrl?: string;
+  runnerUrl: string;
 };
 
 export type Osmium402Challenge = {
@@ -38,12 +38,27 @@ export type Osmium402Challenge = {
   };
 };
 
+export type Osmium402UnlockResult =
+  | { unlocked: true; dataHash?: string }
+  | { unlocked: false; reason: "MissingReceipt" | "ContextMismatch" | "RunnerDenied" };
+
 function encodePaymentRequired(body: Osmium402Challenge["body"]) {
   return Buffer.from(JSON.stringify(body), "utf8").toString("base64url");
 }
 
+function runnerEndpoint(runnerUrl: string, path: string) {
+  const base = runnerUrl.replace(/\/$/, "");
+  if (base.endsWith("/api/runner")) {
+    const [runnerPath, query = ""] = path.replace(/^\//, "").split("?");
+    const params = new URLSearchParams(query);
+    params.set("runnerPath", runnerPath);
+    return `${base}?${params.toString()}`;
+  }
+  return `${base}${path}`;
+}
+
 export function withOsmium402(config: Osmium402MerchantConfig) {
-  const runnerUrl = config.runnerUrl ?? "/api/runner";
+  const runnerUrl = config.runnerUrl;
 
   function paymentRequired(requestUrl = `/${config.resource}`): Osmium402Challenge {
     const body: Osmium402Challenge["body"] = {
@@ -79,11 +94,17 @@ export function withOsmium402(config: Osmium402MerchantConfig) {
     };
   }
 
-  async function verifyUnlock(input: { paymentId?: string; receiptHash?: string }) {
-    if (!input.paymentId || !input.receiptHash) return { unlocked: false as const };
+  async function verifyUnlock(input: {
+    paymentId?: string;
+    receiptHash?: string;
+    policyContext?: string;
+  }): Promise<Osmium402UnlockResult> {
+    if (!input.paymentId || !input.receiptHash) return { unlocked: false, reason: "MissingReceipt" };
+    if (input.policyContext && input.policyContext !== config.policyContext) {
+      return { unlocked: false, reason: "ContextMismatch" };
+    }
 
-    const url = new URL(`${runnerUrl}/merchant/receipt`, "https://osmium.local");
-    const response = await fetch(url, {
+    const response = await fetch(runnerEndpoint(runnerUrl, "/merchant/receipt"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -93,8 +114,10 @@ export function withOsmium402(config: Osmium402MerchantConfig) {
       })
     });
 
-    if (!response.ok) return { unlocked: false as const };
-    return response.json() as Promise<{ unlocked: boolean; dataHash?: string }>;
+    if (!response.ok) return { unlocked: false, reason: "RunnerDenied" };
+    const json = (await response.json()) as { unlocked?: boolean; dataHash?: string };
+    if (!json.unlocked) return { unlocked: false, reason: "RunnerDenied" };
+    return { unlocked: true, dataHash: json.dataHash };
   }
 
   return { paymentRequired, verifyUnlock };

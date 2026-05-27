@@ -177,9 +177,9 @@ Most recent validated clearance case:
 
 | Field | Value |
 | --- | --- |
-| Case | `OS-TSLA-402#5403F2` |
+| Case | Valid TSLA mandate |
 | Policy | `#2` · TSLA on Robinhood Chain Testnet |
-| Settlement tx | `0x241d…3cab` |
+| Settlement tx | `0x74fc…dac6` |
 | Result | Cleared · Filed · **Replay denied** · Data unlocked |
 
 Earlier full-hash live TSLA settlement run:
@@ -235,12 +235,19 @@ withOsmium402({
   price: "0.25",
   token: TSLA_ADDRESS,
   merchant: MERCHANT_ADDRESS,
-  policyContext: "robinhood-market-data-v1"
+  policyContext: "robinhood-market-data-v1",
+  runnerUrl: process.env.OSMIUM_RUNNER_URL
 });
 ```
 
-`examples/merchant-tsla-data/` shows a protected TSLA endpoint returning
-`402 Payment Required` until the agent presents `paymentId + receiptHash`.
+`merchant-kit/` is a hackathon reference kit, not a published npm package yet.
+It demonstrates how third-party API, data, tool and MCP providers can protect
+paid endpoints with Osmium clearance.
+
+`examples/merchant-tsla-data/` is a standalone merchant app. It returns
+`402 Payment Required` until the agent presents a valid Osmium
+`paymentId + receiptHash`, and wrong context or missing receipt never unlocks
+the protected data.
 
 Protect an API with Osmium in 20 lines:
 
@@ -251,8 +258,18 @@ const protectedTslaData = withOsmium402({
   price: "0.25",
   token: TSLA_ADDRESS,
   merchant: MERCHANT_ADDRESS,
-  policyContext: "robinhood-market-data-v1"
+  policyContext: "robinhood-market-data-v1",
+  runnerUrl: process.env.OSMIUM_RUNNER_URL
 });
+```
+
+Required env for external apps:
+
+```bash
+OSMIUM_RUNNER_URL=https://osmium-agent-runner.vercel.app/api/runner
+MERCHANT_ADDRESS=0x000000000000000000000000000000000000beef
+TSLA_ADDRESS=0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E
+PORT=3012
 ```
 
 Curl shape:
@@ -264,12 +281,23 @@ curl -i http://localhost:3012/market-data/TSLA
 # 2. Valid Osmium clearance -> 200 + data
 curl -i "http://localhost:3012/market-data/TSLA?paymentId=0x...&receiptHash=0x..."
 
-# 3. Invalid context -> denied before settlement
-pnpm agent:attacks
+# 3. Invalid context -> denied / no unlock
+curl -i "http://localhost:3012/market-data/TSLA?paymentId=0x...&receiptHash=0x...&policyContext=amzn-corporate-action-v1"
 ```
 
-The invalid-context case is intentionally not a merchant 500 and not a vague
-LLM refusal. It is a PolicyEngine verdict: `ContextMismatch`, no funds moved.
+Standalone proof:
+
+```bash
+pnpm merchant:demo
+pnpm merchant:test
+```
+
+Production roadmap: publish the merchant kit, add merchant API keys,
+self-serve merchant registry, and richer discovery metadata.
+
+The policy attack-mode invalid-context case is intentionally not a merchant 500
+and not a vague LLM refusal. It is a PolicyEngine verdict: `ContextMismatch`,
+no funds moved.
 
 ## What is on-chain / off-chain / simulated
 
@@ -306,7 +334,11 @@ LLM refusal. It is a PolicyEngine verdict: `ContextMismatch`, no funds moved.
 - Valid settlement proof available in the Proofs tab and JSON artifact.
 - Six attack cases visible: valid, replay, unknown merchant, missing receipt,
   wrong context, over max.
-- Merchant kit included with a protected TSLA endpoint example.
+- Merchant kit included with a standalone protected TSLA endpoint example.
+- Merchant kit clearly labelled as a hackathon reference kit, not a published
+  npm package.
+- Third-party provider path demonstrated: no clearance -> 402, valid clearance
+  -> 200 + data, missing receipt / wrong context -> no unlock.
 - On-chain: policy checks, settlement, receipts/replay in contracts.
 - Off-chain: merchant resource, EIP-712 service receipt, audit display.
 - Simulated/demo-grade: AP2-inspired mandate, custom x402-compatible

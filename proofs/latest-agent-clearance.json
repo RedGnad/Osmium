@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-26T21:57:31.447Z",
+  "generatedAt": "2026-05-27T19:48:51.102Z",
   "chainId": 46630,
-  "runner": "local-runner-logic",
+  "runner": "deployed-runner",
   "summary": {
     "claim": "The agent tried to spend. Osmium cleared only the mandate-matching payment and denied unsafe attempts before funds moved.",
     "cleared": 1,
@@ -16,7 +16,7 @@
     "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
     "maxAmount": "0.25",
     "periodLimit": "3.00",
-    "validUntil": "2026-05-26T22:12:26.029Z",
+    "validUntil": "2026-05-27T20:03:42.165Z",
     "purpose": "Buy verified TSLA market data only",
     "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
     "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -32,9 +32,9 @@
       "denialReason": "None",
       "fundsMoved": true,
       "proofType": "on-chain tx",
-      "txHash": "0x020a2061542597ade543643e9d4c41da9cf3a3b18614703bae97933bd4d187d1",
-      "auditId": "0x020a2061542597ade543643e9d4c41da9cf3a3b18614703bae97933bd4d187d1",
-      "explorerUrl": "https://explorer.testnet.chain.robinhood.com/tx/0x020a2061542597ade543643e9d4c41da9cf3a3b18614703bae97933bd4d187d1",
+      "txHash": "0x74fc391d395b71bb1c0f11cc6fb6f7793a6c130c993bb53f7510b7bd31dadac6",
+      "auditId": "0x74fc391d395b71bb1c0f11cc6fb6f7793a6c130c993bb53f7510b7bd31dadac6",
+      "explorerUrl": "https://explorer.testnet.chain.robinhood.com/tx/0x74fc391d395b71bb1c0f11cc6fb6f7793a6c130c993bb53f7510b7bd31dadac6",
       "rawJson": {
         "mandate": {
           "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
@@ -44,7 +44,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-26T22:12:26.029Z",
+          "validUntil": "2026-05-27T20:03:42.165Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -54,8 +54,8 @@
         "x402": {
           "status": 402,
           "protocol": "x402-compatible-osmium",
-          "paymentId": "0x3ad21a809c64674a38970c9e57fd53ab451245240e84042c6381236f9a31f562",
-          "receiptHash": "0x011a47e9bf91f8e8a62ee684f84450016bc4c327c1080473e0c9100cea3f91e1",
+          "paymentId": "0x13d16b59fd859753c14732d219a4693373d78841f7ee4b2d4fd41f8e3b3985d3",
+          "receiptHash": "0x3242d980830d9f32f0ce4641a910c43dca5e9cd2589b9686d5589fc9f82244e3",
           "amount": "250000000000000000"
         },
         "clearance": {
@@ -66,9 +66,9 @@
         "settlement": {
           "attempted": true,
           "fundsMoved": true,
-          "txHash": "0x020a2061542597ade543643e9d4c41da9cf3a3b18614703bae97933bd4d187d1",
-          "paymentId": "0x3ad21a809c64674a38970c9e57fd53ab451245240e84042c6381236f9a31f562",
-          "receiptHash": "0x011a47e9bf91f8e8a62ee684f84450016bc4c327c1080473e0c9100cea3f91e1"
+          "txHash": "0x74fc391d395b71bb1c0f11cc6fb6f7793a6c130c993bb53f7510b7bd31dadac6",
+          "paymentId": "0x13d16b59fd859753c14732d219a4693373d78841f7ee4b2d4fd41f8e3b3985d3",
+          "receiptHash": "0x3242d980830d9f32f0ce4641a910c43dca5e9cd2589b9686d5589fc9f82244e3"
         },
         "unlock": {
           "unlocked": true,
@@ -88,7 +88,7 @@
       "fundsMoved": false,
       "proofType": "pre-settlement denial",
       "txHash": null,
-      "auditId": "latestSettlementPaymentId:0x3ad21a809c64674a38970c9e57fd53ab451245240e84042c6381236f9a31f562",
+      "auditId": "latestSettlementPaymentId:0x13d16b59fd859753c14732d219a4693373d78841f7ee4b2d4fd41f8e3b3985d3",
       "explorerUrl": null,
       "rawJson": {
         "id": "B",
@@ -101,7 +101,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-26T22:12:31.016Z",
+          "validUntil": "2026-05-27T20:03:50.747Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -109,11 +109,11 @@
         "x402Step": "reuse paymentId -> PolicyEngine replay check",
         "policyVerdict": "Denied",
         "reasonName": "Replay",
-        "proof": "latestSettlementPaymentId:0x3ad21a809c64674a38970c9e57fd53ab451245240e84042c6381236f9a31f562",
+        "proof": "latestSettlementPaymentId:0x13d16b59fd859753c14732d219a4693373d78841f7ee4b2d4fd41f8e3b3985d3",
         "txHash": null,
         "fundsMoved": false,
         "finalStatus": "Denied",
-        "explanation": "The agent tried to reuse a filed paymentId. Osmium denied replay; no funds moved."
+        "explanation": "PolicyEngine preview denied the attempt before settlement; no funds moved. Reason: Replay."
       }
     },
     {
@@ -140,7 +140,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-26T22:12:31.016Z",
+          "validUntil": "2026-05-27T20:03:50.747Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -152,7 +152,7 @@
         "txHash": null,
         "fundsMoved": false,
         "finalStatus": "Denied",
-        "explanation": "The attempted spend violates the mandate. Osmium denied it onchain with UnknownMerchant; no funds moved."
+        "explanation": "PolicyEngine preview denied the attempt before settlement; no funds moved. Reason: UnknownMerchant."
       }
     },
     {
@@ -179,7 +179,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-26T22:12:31.016Z",
+          "validUntil": "2026-05-27T20:03:50.747Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -191,7 +191,7 @@
         "txHash": null,
         "fundsMoved": false,
         "finalStatus": "Denied",
-        "explanation": "The attempted spend violates the mandate. Osmium denied it onchain with MissingReceipt; no funds moved."
+        "explanation": "PolicyEngine preview denied the attempt before settlement; no funds moved. Reason: MissingReceipt."
       }
     },
     {
@@ -218,7 +218,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-26T22:12:31.016Z",
+          "validUntil": "2026-05-27T20:03:50.747Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -230,7 +230,7 @@
         "txHash": null,
         "fundsMoved": false,
         "finalStatus": "Denied",
-        "explanation": "The attempted spend violates the mandate. Osmium denied it onchain with ContextMismatch; no funds moved."
+        "explanation": "PolicyEngine preview denied the attempt before settlement; no funds moved. Reason: ContextMismatch."
       }
     },
     {
@@ -257,7 +257,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-26T22:12:31.016Z",
+          "validUntil": "2026-05-27T20:03:50.747Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -269,7 +269,7 @@
         "txHash": null,
         "fundsMoved": false,
         "finalStatus": "Denied",
-        "explanation": "The attempted spend violates the mandate. Osmium denied it onchain with OverMaxTx; no funds moved."
+        "explanation": "PolicyEngine preview denied the attempt before settlement; no funds moved. Reason: OverMaxTx."
       }
     }
   ],

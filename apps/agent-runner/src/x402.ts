@@ -303,7 +303,11 @@ export async function verifyX402Payment(config: RunnerConfig, body: X402Body) {
 
   if (!allowed) {
     const reasonName = blockReasons[reason] ?? `Unknown(${reason})`;
-    return invalid(`policy_${reasonName}`, `PolicyEngine preview denied settlement: ${reasonName}.`, agent);
+    return invalid(
+      `policy_${reasonName}`,
+      `PolicyEngine preview denied the attempt before settlement; no funds moved. Reason: ${reasonName}.`,
+      agent
+    );
   }
 
   return {

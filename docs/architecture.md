@@ -11,7 +11,8 @@ reference for the contracts, the runner surface, and the proof matrix.
    rolling budget, receipt hash, intent/context binding, replay protection.
 2. **Solidity `OsmiumSettlementRouter`** (`contracts/solidity/src/OsmiumSettlementRouter.sol`)
    — ERC20 custody. `deposit` / `withdraw` per owner; `settleWithIntent` calls
-   the engine, transfers on allow, emits `PaymentSettled` / `PaymentDenied`.
+   the engine and transfers on allow, emitting `PaymentSettled` for cleared
+   settlements.
 3. **`MockERC20`** (`contracts/solidity/src/MockERC20.sol`) — local-test token.
    Note: the live demo uses Robinhood Chain's role-gated TSLA token, not this.
 4. **Agent runner** (`apps/agent-runner`) — Express service: merchant resource,
@@ -23,9 +24,10 @@ reference for the contracts, the runner surface, and the proof matrix.
 - Stylus `PolicyEngine`: `0x5e30622c7639aa5edc43313830c9a01341585728`
 - Solidity `SettlementRouter`: `0x1CD04cbD3348D5fa28B30776902464752e878ac7`
 - TSLA token: `0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E`
-- USDG token: `0x7E955252E15c84f5768B83c41a71F9eba181802F`
 - Active TSLA demo policy id: `2`
-- USDG policy id: `1`
+
+The judge-facing path uses TSLA. Older non-TSLA/local mock assets are retained
+only for historical/local testing and are not part of the current public demo.
 
 Provisioning transaction history:
 
@@ -66,8 +68,10 @@ AI agent -> OsmiumSettlementRouter -> Stylus PolicyEngine
 ```
 
 If the engine returns `true`, the router transfers the token to the merchant
-and emits `PaymentSettled`. If it returns `false`, no funds move and the router
-emits `PaymentDenied`. Policy logic in Rust/Stylus, settlement in Solidity.
+and emits `PaymentSettled`. In the judge proof matrix, unsafe attempts are shown
+as `previewAuthorizationWithIntent` denials before settlement, so no denial row
+claims a mined revert or mined denial transaction. Policy logic lives in
+Rust/Stylus; settlement lives in Solidity.
 
 The direct state-changing `authorizePaymentWithIntent` path is disabled and
 returns `USE_SETTLEMENT_ROUTER`. `previewAuthorizationWithIntent` remains for

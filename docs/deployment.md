@@ -1,18 +1,21 @@
 # Deployment
 
-Osmium uses two deployments:
+Osmium's current judge/demo deployment uses Vercel for both the public frontend
+and the serverless runner API.
 
-1. Public frontend on Vercel.
-2. Protected agent runner on Render or another Node host.
+Render Free is no longer the primary runner. If a stale
+`VITE_AGENT_RUNNER_URL=https://...onrender.com` value is present, the app falls
+back to the same-origin Vercel API because the Render service can be suspended.
 
 ## Vercel Frontend
 
 Deploy from the repo root. `vercel.json` builds `apps/web` and outputs `apps/web/dist`.
 
-Use only public frontend variables on Vercel:
+Use only public frontend variables on Vercel. For the current Vercel runner,
+omit `VITE_AGENT_RUNNER_URL`; the app will call `/api/runner` and `/api/health`
+on the same domain.
 
 ```bash
-VITE_AGENT_RUNNER_URL=https://your-runner.example
 VITE_CHAIN_ID=46630
 VITE_RH_RPC_URL=https://rpc.testnet.chain.robinhood.com
 VITE_OSMIUM_POLICY_ENGINE_ADDRESS=0x5e30622c7639aa5edc43313830c9a01341585728
@@ -21,7 +24,45 @@ VITE_OSMIUM_SETTLEMENT_ROUTER_ADDRESS=0x1CD04cbD3348D5fa28B30776902464752e878ac7
 
 Do not put private keys or `RUNNER_API_KEY` in Vercel `VITE_*` variables. Anything prefixed with `VITE_` is bundled into the browser.
 
-## Runner
+## Vercel Runner API
+
+The same Vercel project exposes:
+
+```text
+GET /api/health
+GET /api/runner
+GET /api/runner?runnerPath=x402/supported
+POST /api/runner?runnerPath=x402/verify
+POST /api/runner?runnerPath=x402/settle
+```
+
+Use private environment variables in Vercel server env, never as `VITE_*`:
+
+```bash
+RH_RPC_URL=https://rpc.testnet.chain.robinhood.com
+CHAIN_ID=46630
+OSMIUM_POLICY_ENGINE_ADDRESS=0x5e30622c7639aa5edc43313830c9a01341585728
+OSMIUM_SETTLEMENT_ROUTER_ADDRESS=0x1CD04cbD3348D5fa28B30776902464752e878ac7
+AGENT_PRIVATE_KEY=...
+AGENT_ADDRESS=0xc256f4721DB25616147CEFffc751f93E40Eb37e3
+MERCHANT_RECEIPT_SIGNER_PRIVATE_KEY=...
+RUNNER_API_KEY=...
+RUNNER_REQUIRE_API_KEY=true
+RUNNER_ALLOWED_ORIGIN=https://osmium-agent-runner.vercel.app
+POLICY_ID=2
+SETTLEMENT_DEMO_POLICY_ID=2
+TOKEN_ADDRESS=0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E
+SETTLEMENT_DEMO_TOKEN_ADDRESS=0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E
+MERCHANT_ADDRESS=0x000000000000000000000000000000000000beef
+UNKNOWN_MERCHANT_ADDRESS=0x0000000000000000000000000000000000000bad
+MAX_PER_TX_WEI=1000000000000000000
+PERIOD_LIMIT_WEI=3000000000000000000
+AUDIT_STORE_DRIVER=turso
+TURSO_DATABASE_URL=...
+TURSO_AUTH_TOKEN=...
+```
+
+## Optional Node Runner Backup
 
 Deploy the runner as a Node service:
 

@@ -289,9 +289,11 @@ type SpendEvent = {
    Config + assets — unchanged
    ──────────────────────────────────────────────────────────────────────── */
 
+const envRunnerUrl = import.meta.env.VITE_AGENT_RUNNER_URL as string | undefined;
 const configuredRunnerUrl =
-  import.meta.env.VITE_AGENT_RUNNER_URL ??
-  (import.meta.env.PROD ? "/api" : "http://127.0.0.1:10000");
+  envRunnerUrl?.includes("onrender.com")
+    ? "/api"
+    : envRunnerUrl ?? (import.meta.env.PROD ? "/api" : "http://127.0.0.1:10000");
 
 const config = {
   chainId: Number(import.meta.env.VITE_CHAIN_ID ?? "46630"),

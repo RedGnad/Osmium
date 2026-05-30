@@ -34,8 +34,8 @@
   },
   "source": {
     "repository": "https://github.com/RedGnad/Osmium",
-    "commitHashAtManifestCreation": "2c3359c",
-    "note": "Run git rev-parse HEAD on the submitted branch for the final immutable submission commit."
+    "phase4ImplementationCommit": "120869f",
+    "note": "This manifest records the Phase 4 implementation commit. The manifest-only commit that updates this field may be newer."
   },
   "status": "production-oriented testnet deployment, not audited mainnet production"
 }

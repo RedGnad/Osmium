@@ -1,0 +1,13 @@
+{
+  "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
+  "asset": "TSLA",
+  "resource": "market-data",
+  "merchant": "0x000000000000000000000000000000000000beef",
+  "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
+  "maxAmount": "0.25",
+  "periodLimit": "3.00",
+  "validUntil": "2026-06-30T23:59:59.000Z",
+  "purpose": "Buy verified TSLA market data only",
+  "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
+  "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
+}

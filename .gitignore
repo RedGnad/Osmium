@@ -6,5 +6,6 @@ dist/
 .env
 .DS_Store
 deployments/*.json
+!deployments/robinhood-testnet.json
 .osmium/
 .vercel

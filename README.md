@@ -179,7 +179,7 @@ Most recent validated clearance case:
 | --- | --- |
 | Case | Valid TSLA mandate |
 | Policy | `#2` · TSLA on Robinhood Chain Testnet |
-| Settlement tx | `0xd5e4…cdd5` |
+| Settlement tx | `0xc49c…3120` |
 | Result | Cleared · Filed · **Replay denied** · Data unlocked |
 
 Earlier full-hash live TSLA settlement run:
@@ -299,6 +299,46 @@ The policy attack-mode invalid-context case is intentionally not a merchant 500
 and not a vague LLM refusal. It is a PolicyEngine verdict: `ContextMismatch`,
 no funds moved.
 
+## External agent example
+
+`examples/external-agent-tsla/` shows the other side of the integration: a
+builder-owned agent receives a bounded TSLA mandate, requests the standalone
+merchant resource, and can unlock data only with an Osmium-filed receipt.
+
+```bash
+pnpm external-agent:demo
+pnpm external-agent:test
+```
+
+The test proves:
+
+- no clearance -> `402 Payment Required`;
+- missing receipt -> no unlock;
+- wrong context -> no unlock;
+- fake `paymentId + receiptHash` -> no unlock;
+- valid Osmium receipt -> `200 + data`.
+
+The agent can decide and explain. It cannot bypass Osmium because the merchant
+checks `paymentId + receiptHash` against the runner and the runner anchors the
+receipt to onchain settlement.
+
+## Production-oriented testnet deployment
+
+Osmium is positioned as a production-oriented testnet deployment, not audited
+mainnet infrastructure. The submission package includes:
+
+- deployed Robinhood Chain Testnet contracts;
+- same-origin Vercel runner API with Turso audit persistence;
+- public proof matrix with one live TSLA settlement row;
+- external merchant reference kit and standalone TSLA merchant test;
+- external agent reference integration;
+- explicit trust boundaries, access control and audit scope docs;
+- deployment manifest at `deployments/robinhood-testnet.json`.
+
+Mainnet hardening path: independent audit, multisig/timelock operations,
+scoped runner keys, merchant onboarding/KYB, durable indexer, package publishing
+and richer service discovery metadata.
+
 ## What is on-chain / off-chain / simulated
 
 | Layer | Status |
@@ -313,7 +353,8 @@ no funds moved.
 
 ## Limitations
 
-- Testnet alpha — a hackathon prototype, not audited production infrastructure.
+- Testnet alpha — production-oriented testnet deployment, not audited production
+  infrastructure.
 - `osmium-exact` is a custom Osmium facilitator. It is x402-compatible at the
   HTTP layer; it does not claim CDP facilitator support.
 - AMD / AMZN are quote-supported service proofs; only TSLA has live settlement.
@@ -339,6 +380,11 @@ no funds moved.
   npm package.
 - Third-party provider path demonstrated: no clearance -> 402, valid clearance
   -> 200 + data, missing receipt / wrong context -> no unlock.
+- External agent path demonstrated: mandate -> protected merchant -> Osmium
+  receipt -> data unlock, with fake proof blocked.
+- Security docs included: trust boundaries, threat model, access control, audit
+  scope.
+- Deployment manifest included for Robinhood Chain Testnet.
 - On-chain: policy checks, settlement, receipts/replay in contracts.
 - Off-chain: merchant resource, EIP-712 service receipt, audit display.
 - Simulated/demo-grade: AP2-inspired mandate, custom x402-compatible
@@ -357,6 +403,8 @@ pnpm sdk:typecheck
 pnpm agent:live-settlement   # full onchain settlement proof
 pnpm agent:attacks           # valid mandate + blocked attempt smoke test
 pnpm agent:proofs            # write proofs/latest-agent-clearance.json
+pnpm merchant:test           # external merchant proof
+pnpm external-agent:test     # external agent proof
 ```
 
 ## More
@@ -366,3 +414,7 @@ pnpm agent:proofs            # write proofs/latest-agent-clearance.json
 - [`docs/agent-runner.md`](docs/agent-runner.md) — runner service detail
 - [`docs/threat-model.md`](docs/threat-model.md) — threat model
 - [`docs/demo-script.md`](docs/demo-script.md) — demo walkthrough
+- [`security/TRUST_BOUNDARIES.md`](security/TRUST_BOUNDARIES.md) — onchain/offchain/agent boundaries
+- [`security/ACCESS_CONTROL.md`](security/ACCESS_CONTROL.md) — role table and production plan
+- [`security/AUDIT_SCOPE.md`](security/AUDIT_SCOPE.md) — future audit scope
+- [`deployments/robinhood-testnet.json`](deployments/robinhood-testnet.json) — live deployment manifest

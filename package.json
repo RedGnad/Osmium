@@ -22,7 +22,9 @@
     "web:typecheck": "pnpm --filter @osmium/web run typecheck",
     "sdk:typecheck": "apps/web/node_modules/.bin/tsc -p packages/osmium-sdk/tsconfig.json --noEmit",
     "merchant:demo": "pnpm --filter @osmium/agent-runner exec tsx ../../examples/merchant-tsla-data/server.ts",
-    "merchant:test": "pnpm --filter @osmium/agent-runner exec tsx ../../examples/merchant-tsla-data/test.ts"
+    "merchant:test": "pnpm --filter @osmium/agent-runner exec tsx ../../examples/merchant-tsla-data/test.ts",
+    "external-agent:demo": "pnpm --filter @osmium/agent-runner exec tsx ../../examples/external-agent-tsla/agent.ts",
+    "external-agent:test": "pnpm --filter @osmium/agent-runner exec tsx ../../examples/external-agent-tsla/test.ts"
   },
   "packageManager": "pnpm@10.33.0",
   "engines": {

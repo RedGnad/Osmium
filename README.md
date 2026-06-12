@@ -3,6 +3,13 @@
 > Osmium is the policy clearance layer for autonomous finance payments on Robinhood Chain.
 > x402 lets agents pay. Osmium proves they were allowed to.
 
+[![Foundry tests](https://img.shields.io/badge/foundry_tests-14%2F14_passing-brightgreen)](#commands)
+[![Integration proofs](https://img.shields.io/badge/integration_proofs-9%2F9_passing-brightgreen)](#commands)
+[![PolicyEngine](https://img.shields.io/badge/PolicyEngine-Stylus_(Rust%2FWASM)-orange)](contracts/osmium-stylus)
+[![SettlementRouter](https://img.shields.io/badge/SettlementRouter-Solidity-blue)](contracts/solidity)
+[![Chain](https://img.shields.io/badge/chain-eip155%3A46630-9cf)](https://explorer.testnet.chain.robinhood.com)
+[![Live demo](https://img.shields.io/badge/demo-live-success)](https://osmium-agent-runner.vercel.app)
+
 **Agents request. Osmium clears. The router settles. The ledger proves.**
 
 A normal agent wallet hands an LLM a private key and hopes for the best:
@@ -20,6 +27,85 @@ agent intent -> SettlementRouter -> Stylus PolicyEngine -> allow / deny -> settl
 The agent can request a paid resource, but it cannot move funds until an
 onchain policy verifies merchant, token, amount, receipt, intent/context, and
 replay protection — and a clearance step authorises settlement.
+
+## For judges
+
+**Pitch (≤30 words):** Agents pay for data and services through x402; an
+onchain Stylus PolicyEngine — not the LLM — decides whether each payment
+matches a bounded mandate before funds move.
+
+**What is categorically new here:**
+
+- Payment **clearance as its own onchain layer** — not an AI wallet, not a
+  multisig: an agent can hold zero spend authority and still pay merchants.
+- The policy decision runs in a **Stylus (Rust/WASM) contract** on Robinhood
+  Chain (an Arbitrum Orbit chain), composed with a Solidity settlement router.
+- A **custom x402-compatible facilitator** for `eip155:46630` — a network the
+  Coinbase CDP facilitator does not route — with the divergence declared in
+  the protocol envelope, not hidden.
+
+**Live demo (no wallet needed):** open
+[osmium-agent-runner.vercel.app](https://osmium-agent-runner.vercel.app), stay
+in **Demo mode**, click Request → Verify → Clear and settle. The
+[Proofs tab](https://osmium-agent-runner.vercel.app/proofs) shows the latest
+judge matrix; the same artifact is committed at
+[`proofs/latest-agent-clearance.json`](proofs/latest-agent-clearance.json).
+
+### Verify on-chain in 30 seconds
+
+```bash
+# 1. PolicyEngine is live Stylus code on Robinhood Chain (Stylus WASM prefix 0xeff000):
+cast code 0x5e30622c7639aa5edc43313830c9a01341585728 \
+  --rpc-url https://rpc.testnet.chain.robinhood.com | head -c 10
+
+# 2. A real agent payment cleared and settled by the router (status 1):
+cast receipt 0x00b976c289c3f049a323aba509018fae68221310721f94db1522995c1d9c35fa \
+  --rpc-url https://rpc.testnet.chain.robinhood.com
+
+# 3. The x402 surface answers 402 + PAYMENT-REQUIRED right now, no setup:
+curl -si "https://osmium-agent-runner.vercel.app/api/merchant/market-data?asset=TSLA" | head -3
+```
+
+### Contracts (Robinhood Chain Testnet · eip155:46630)
+
+| Contract | Address | Language |
+| --- | --- | --- |
+| `PolicyEngine` | [`0x5e30622c7639aa5edc43313830c9a01341585728`](https://explorer.testnet.chain.robinhood.com/address/0x5e30622c7639aa5edc43313830c9a01341585728) | Stylus (Rust/WASM) |
+| `SettlementRouter` | [`0x1CD04cbD3348D5fa28B30776902464752e878ac7`](https://explorer.testnet.chain.robinhood.com/address/0x1CD04cbD3348D5fa28B30776902464752e878ac7) | Solidity |
+| TSLA stock token | [`0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E`](https://explorer.testnet.chain.robinhood.com/address/0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E) | Robinhood faucet asset |
+
+Full manifest with deployment tx hashes:
+[`deployments/robinhood-testnet.json`](deployments/robinhood-testnet.json).
+
+### Six attack cases, demonstrated live
+
+| # | Case | PolicyEngine verdict | Funds moved | Proof type |
+| --- | --- | --- | --- | --- |
+| A | Valid TSLA mandate | Cleared | yes | on-chain tx [`0x00b9…35fa`](https://explorer.testnet.chain.robinhood.com/tx/0x00b976c289c3f049a323aba509018fae68221310721f94db1522995c1d9c35fa) |
+| B | Replay same `paymentId` | Denied · `Replay` | no | pre-settlement denial |
+| C | Unknown merchant | Denied · `UnknownMerchant` | no | pre-settlement denial |
+| D | Missing `receiptHash` | Denied · `MissingReceipt` | no | pre-settlement denial |
+| E | Wrong context (AMZN under TSLA mandate) | Denied · `ContextMismatch` | no | pre-settlement denial |
+| F | Over max amount | Denied · `OverMaxTx` | no | pre-settlement denial |
+
+Run them yourself in the app ("Blocked clearance proofs" / Agent Console →
+attack matrix) or locally with `pnpm agent:attacks`.
+
+## Who needs this today
+
+Anyone shipping an agent that pays per request — for market data, an API call,
+an MCP tool — faces the same choice today: hand the agent a funded private key
+and hope, or put a human in the loop and lose the autonomy. Osmium is the
+third option for that builder: the agent requests, an onchain policy clears,
+and only mandate-matching payments settle.
+
+The other side of the trade needs it too: a merchant selling data to agents
+has no way to know the buying agent was authorised. Osmium's receipt + replay
+model gives the merchant a verifiable clearance trail
+(see [`examples/merchant-tsla-data`](examples/merchant-tsla-data)).
+
+On Robinhood Chain specifically, the assets are tokenized stocks — exactly the
+setting where "the LLM held the key" is not an acceptable post-mortem.
 
 ## What is Osmium?
 
@@ -50,17 +136,6 @@ before funds moved:
 
 The LLM can choose and explain. It is never the security boundary. The
 `PolicyEngine` and `SettlementRouter` decide whether value can move.
-
-## Threats blocked
-
-| Threat | Expected result |
-| --- | --- |
-| Valid TSLA mandate | cleared |
-| Replay same `paymentId` | denied |
-| Unknown merchant | denied |
-| Missing `receiptHash` | denied |
-| Wrong context, e.g. AMZN with TSLA mandate | denied |
-| Over max amount / budget | denied |
 
 ## Live demo
 
@@ -112,7 +187,7 @@ payment.
   "token": "0x...",
   "maxAmount": "0.25",
   "periodLimit": "3.00",
-  "validUntil": "2026-05-26T12:00:00.000Z",
+  "validUntil": "2026-07-12T12:00:00.000Z",
   "purpose": "Buy verified TSLA market data only",
   "contextHash": "0x...",
   "intentHash": "0x..."
@@ -178,8 +253,8 @@ Most recent validated clearance case:
 | Field | Value |
 | --- | --- |
 | Case | Valid TSLA mandate |
-| Policy | `#2` · TSLA on Robinhood Chain Testnet |
-| Settlement tx | `0xc49c…3120` |
+| Policy | `#7` · TSLA on Robinhood Chain Testnet |
+| Settlement tx | [`0x00b9…35fa`](https://explorer.testnet.chain.robinhood.com/tx/0x00b976c289c3f049a323aba509018fae68221310721f94db1522995c1d9c35fa) |
 | Result | Cleared · Filed · **Replay denied** · Data unlocked |
 
 Earlier full-hash live TSLA settlement run:

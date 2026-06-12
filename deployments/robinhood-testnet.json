@@ -29,7 +29,7 @@
     "healthUrl": "https://osmium-agent-runner.vercel.app/api/health"
   },
   "proofs": {
-    "latestProofTx": "0xc49c9164968a2e3c034668ec83c72c7793e62e9e120f4abf8f85bd7bcc153120",
+    "latestProofTx": "0x00b976c289c3f049a323aba509018fae68221310721f94db1522995c1d9c35fa",
     "latestProofArtifact": "proofs/latest-agent-clearance.json",
     "publicProofRoute": "https://osmium-agent-runner.vercel.app/proofs"
   },

@@ -34,9 +34,9 @@ replay protection — and a clearance step authorises settlement.
 onchain Stylus PolicyEngine — not the LLM — decides whether each payment
 matches a bounded spending policy before funds move.
 
-**What is categorically new here:**
+**What is new :**
 
-- **Policy firewalls guard what an agent trades. Osmium clears what an agent
+- **Osmium clears what an agent
   *pays*** — merchant identity, mandate, limits, replay — before settlement,
   x402-compatible, live on Robinhood Chain.
 - Payment **clearance as its own onchain layer** — not an AI wallet, not a

@@ -849,6 +849,25 @@ button, input { font: inherit; color: inherit; }
   opacity: 0.4;
   cursor: not-allowed;
 }
+/* The button that owns the in-flight action keeps full contrast while it
+   spins — only the *other* disabled buttons dim, so the operator can see
+   which step is actually working. */
+.btn:disabled.working {
+  opacity: 1;
+  cursor: progress;
+}
+.btnSpinner {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: btnSpin 0.7s linear infinite;
+}
+@keyframes btnSpin {
+  to { transform: rotate(360deg); }
+}
 .btn:focus-visible {
   outline: 2px solid var(--paper);
   outline-offset: 2px;

@@ -1621,11 +1621,18 @@ function ClearView({
         tone: "ready",
         button: (
           <button
-            className="btn primary"
+            className={busy === "x402-request" ? "btn primary working" : "btn primary"}
+            aria-busy={busy === "x402-request"}
             disabled={busy !== ""}
             onClick={onRequest}
           >
-            Request paid data <ArrowRight size={14} />
+            {busy === "x402-request" ? (
+              <WorkingLabel label="Requesting · waiting for 402…" />
+            ) : (
+              <>
+                Request paid data <ArrowRight size={14} />
+              </>
+            )}
           </button>
         ),
       }
@@ -1642,11 +1649,18 @@ function ClearView({
           tone: "pending",
           button: (
             <button
-              className="btn primary"
+              className={busy === "x402-verify" ? "btn primary working" : "btn primary"}
+              aria-busy={busy === "x402-verify"}
               disabled={busy !== ""}
               onClick={onVerify}
             >
-              Verify clearance <ArrowRight size={14} />
+              {busy === "x402-verify" ? (
+                <WorkingLabel label="Verifying · PolicyEngine preview…" />
+              ) : (
+                <>
+                  Verify clearance <ArrowRight size={14} />
+                </>
+              )}
             </button>
           ),
         }
@@ -1676,11 +1690,18 @@ function ClearView({
               tone: "pending",
               button: (
                 <button
-                  className="btn primary"
+                  className={busy === "x402-unlock" ? "btn primary working" : "btn primary"}
+                  aria-busy={busy === "x402-unlock"}
                   disabled={busy !== ""}
                   onClick={onUnlock}
                 >
-                  Unlock data <ArrowRight size={14} />
+                  {busy === "x402-unlock" ? (
+                    <WorkingLabel label="Unlocking · receipt check…" />
+                  ) : (
+                    <>
+                      Unlock data <ArrowRight size={14} />
+                    </>
+                  )}
                 </button>
               ),
             }
@@ -1696,11 +1717,18 @@ function ClearView({
               tone: "cleared",
               button: (
                 <button
-                  className="btn primary"
+                  className={busy === "x402-request" ? "btn primary working" : "btn primary"}
+                  aria-busy={busy === "x402-request"}
                   disabled={busy !== ""}
                   onClick={onRequest}
                 >
-                  Start a new case <ArrowRight size={14} />
+                  {busy === "x402-request" ? (
+                    <WorkingLabel label="Requesting · waiting for 402…" />
+                  ) : (
+                    <>
+                      Start a new case <ArrowRight size={14} />
+                    </>
+                  )}
                 </button>
               ),
             };
@@ -2081,20 +2109,32 @@ function AgentConsole({
         </div>
         <div className="agentConsoleActions">
           <button
-            className="btn primary"
+            className={busy === "agent-loop" ? "btn primary working" : "btn primary"}
+            aria-busy={busy === "agent-loop"}
             disabled={busy !== ""}
             onClick={onRunAgentLoop}
             type="button"
           >
-            Run agent loop <ArrowRight size={14} />
+            {busy === "agent-loop" ? (
+              <WorkingLabel label="Agent running · clearing and settling onchain…" />
+            ) : (
+              <>
+                Run agent loop <ArrowRight size={14} />
+              </>
+            )}
           </button>
           <button
-            className="btn ghost"
+            className={busy === "agent-attacks" ? "btn ghost working" : "btn ghost"}
+            aria-busy={busy === "agent-attacks"}
             disabled={busy !== ""}
             onClick={onRunAttackMode}
             type="button"
           >
-            Run attack mode
+            {busy === "agent-attacks" ? (
+              <WorkingLabel label="Running attack matrix…" />
+            ) : (
+              "Run attack mode"
+            )}
           </button>
         </div>
       </div>
@@ -2756,17 +2796,28 @@ function OperatorClearancePacket({
 
       <div className="packetActions">
         <button
-          className="btn primary"
+          className={settling ? "btn primary working" : "btn primary"}
+          aria-busy={settling}
           disabled={busy !== "" || !canSettle}
           onClick={isSelfServe ? onSelfServeSettle : onSettle}
           type="button"
         >
-          {settling
-            ? "Settling…"
-            : isSelfServe
-              ? `Sign settleWithIntent · ${amountLabel}`
-              : `Clear and settle · ${amountLabel}`}{" "}
-          {settling ? null : <ArrowRight size={14} />}
+          {settling ? (
+            <WorkingLabel
+              label={
+                isSelfServe
+                  ? "Settling · confirm in your wallet, then onchain…"
+                  : "Settling onchain · moving funds…"
+              }
+            />
+          ) : (
+            <>
+              {isSelfServe
+                ? `Sign settleWithIntent · ${amountLabel}`
+                : `Clear and settle · ${amountLabel}`}{" "}
+              <ArrowRight size={14} />
+            </>
+          )}
         </button>
         <button
           className="btn danger"
@@ -2778,6 +2829,17 @@ function OperatorClearancePacket({
         </button>
       </div>
     </section>
+  );
+}
+
+/* Every async action takes seconds (runner round-trip, often an onchain tx).
+   A silent disabled button reads as "nothing happened" — the in-flight button
+   must say what it is doing. */
+function WorkingLabel({ label }: { label: string }) {
+  return (
+    <>
+      <span className="btnSpinner" aria-hidden="true" /> {label}
+    </>
   );
 }
 
@@ -2793,7 +2855,8 @@ function DenialChip({
   return (
     <button
       type="button"
-      className="btn ghost"
+      className={busy ? "btn ghost working" : "btn ghost"}
+      aria-busy={busy}
       onClick={onClick}
       disabled={busy}
       style={{
@@ -2803,7 +2866,7 @@ function DenialChip({
       }}
     >
       <span style={{ letterSpacing: "0.08em" }}>{label}</span>
-      <ArrowRight size={13} />
+      {busy ? <span className="btnSpinner" aria-hidden="true" /> : <ArrowRight size={13} />}
     </button>
   );
 }
@@ -2856,15 +2919,23 @@ function ProofsView({
         </div>
         <div className="proofActions">
           <button
-            className="btn primary"
+            className={busy === "agent-proof-preview" ? "btn primary working" : "btn primary"}
+            aria-busy={busy === "agent-proof-preview"}
             disabled={busy !== ""}
             onClick={onRefresh}
             type="button"
           >
-            Refresh proofs <ArrowRight size={14} />
+            {busy === "agent-proof-preview" ? (
+              <WorkingLabel label="Refreshing proof matrix…" />
+            ) : (
+              <>
+                Refresh proofs <ArrowRight size={14} />
+              </>
+            )}
           </button>
           <button
-            className="btn ghost"
+            className={busy === "agent-proof-live" ? "btn ghost working" : "btn ghost"}
+            aria-busy={busy === "agent-proof-live"}
             disabled={busy !== "" || !operatorKey.trim()}
             onClick={onCaptureLive}
             title={
@@ -2874,7 +2945,11 @@ function ProofsView({
             }
             type="button"
           >
-            Capture live tx proof
+            {busy === "agent-proof-live" ? (
+              <WorkingLabel label="Settling live tx onchain…" />
+            ) : (
+              "Capture live tx proof"
+            )}
           </button>
         </div>
       </section>

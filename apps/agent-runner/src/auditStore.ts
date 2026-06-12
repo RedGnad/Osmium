@@ -3,10 +3,11 @@ import { dirname, resolve } from "node:path";
 import { createClient } from "@libsql/client";
 import type { Address, Hex } from "viem";
 import type { MerchantReceiptAttestation } from "./merchantReceipt.js";
+import type { MerchantAsset } from "./merchant.js";
 
 export type SettlementAuditRecord = {
   paymentId: Hex;
-  asset: "TSLA" | "AMD" | "AMZN";
+  asset: MerchantAsset;
   token: Address;
   receiptHash: Hex;
   txHash: Hex;

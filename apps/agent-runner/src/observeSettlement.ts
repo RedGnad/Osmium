@@ -15,7 +15,7 @@ import { publicClient } from "./client.js";
 import type { RunnerConfig } from "./config.js";
 import { settlementRouterAbi } from "./settlementAbi.js";
 import { recordSettlement } from "./auditStore.js";
-import { marketDataQuote, type MerchantAsset } from "./merchant.js";
+import { marketDataQuote, merchantAssetForToken, type MerchantAsset } from "./merchant.js";
 
 type ObserveBody = {
   txHash?: string;
@@ -53,13 +53,7 @@ function isHex32(value: string | undefined): value is Hex {
 }
 
 function knownAssetSymbol(token: Address): MerchantAsset | null {
-  /* small hardcoded reverse lookup against the three demo assets;
-     keeps observe self-contained without bloating MerchantAsset */
-  const t = token.toLowerCase();
-  if (t === "0xc9f9c86933092bbbfff3ccb4b105a4a94bf3bd4e") return "TSLA";
-  if (t === "0x71178bac73cbeb415514eb542a8995b82669778d") return "AMD";
-  if (t === "0x5884ad2f920c162cfbbacc88c9c51aa75ec09e02") return "AMZN";
-  return null;
+  return merchantAssetForToken(token);
 }
 
 export async function observeSettlement(

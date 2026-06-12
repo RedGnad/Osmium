@@ -283,6 +283,9 @@ export default async function handler(request: VercelRequestLike, response: Verc
        runtime fault. Env var *names* are safe to surface; no secret values
        are ever included in the message. */
     const isConfigError = /missing required env var/i.test(message);
+    /* A caller asking for a symbol outside the merchant catalog is a bad
+       request, not a runner fault — it must not surface as a 500. */
+    const isBadRequest = /unsupported merchant asset/i.test(message);
 
     /* loadConfig() may have thrown before setCors() ran, so set a minimal
        CORS header here too — otherwise a cross-origin frontend cannot even
@@ -292,9 +295,9 @@ export default async function handler(request: VercelRequestLike, response: Verc
     response.setHeader("Vary", "Origin");
     response.setHeader("content-type", "application/json");
 
-    response.status(500).json({
+    response.status(isBadRequest ? 400 : 500).json({
       ok: false,
-      error: isConfigError ? "runner_config_error" : "runner_error",
+      error: isBadRequest ? "bad_request" : isConfigError ? "runner_config_error" : "runner_error",
       message
     });
   }

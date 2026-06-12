@@ -26,17 +26,41 @@ const robinhoodAssets = {
     title: "AMZN corporate-action alert",
     resourceKind: "corporate_action",
     responseLabel: "corporate_action_alert_demo"
+  },
+  PLTR: {
+    token: "0x1FBE1a0e43594b3455993B5dE5Fd0A7A266298d0" as Address,
+    service: "contract_award_alert",
+    title: "PLTR contract-award alert",
+    resourceKind: "contract_award",
+    responseLabel: "contract_award_alert_demo"
+  },
+  NFLX: {
+    token: "0x3b8262A63d25f0477c4DDE23F83cfe22Cb768C93" as Address,
+    service: "streaming_demand_snapshot",
+    title: "NFLX streaming-demand snapshot",
+    resourceKind: "streaming_demand",
+    responseLabel: "streaming_demand_snapshot_demo"
   }
 } as const;
 
 export type MerchantAsset = keyof typeof robinhoodAssets;
 
+export const merchantAssetSymbols = Object.keys(robinhoodAssets) as MerchantAsset[];
+
+export function merchantAssetForToken(token: string): MerchantAsset | null {
+  const t = token.toLowerCase();
+  for (const symbol of merchantAssetSymbols) {
+    if (robinhoodAssets[symbol].token.toLowerCase() === t) return symbol;
+  }
+  return null;
+}
+
 function normalizeAsset(asset: unknown): MerchantAsset {
   const symbol = String(asset ?? "TSLA").toUpperCase();
-  if (symbol !== "TSLA" && symbol !== "AMD" && symbol !== "AMZN") {
+  if (!(symbol in robinhoodAssets)) {
     throw new Error("unsupported merchant asset");
   }
-  return symbol;
+  return symbol as MerchantAsset;
 }
 
 export function marketDataQuote(config: RunnerConfig, rawAsset: unknown) {

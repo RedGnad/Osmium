@@ -5,7 +5,7 @@ import type { RunnerConfig } from "./config.js";
 import { publicClient } from "./client.js";
 import { blockReasons, osmiumPolicyEngineAbi } from "./abi.js";
 import { runLiveSettlement, LIVE_SETTLEMENT_CONTEXT_HASH } from "./liveSettlement.js";
-import { marketDataQuote, type MerchantAsset } from "./merchant.js";
+import { marketDataQuote, merchantAssetSymbols, type MerchantAsset } from "./merchant.js";
 
 export const OSMIUM_X402_VERSION = 2;
 export const OSMIUM_X402_SCHEME = "osmium-exact";
@@ -372,7 +372,7 @@ export function supportedX402(config: RunnerConfig) {
         x402Version: OSMIUM_X402_VERSION,
         scheme: OSMIUM_X402_SCHEME,
         network: networkId(config),
-        assets: ["TSLA", "AMD", "AMZN"],
+        assets: merchantAssetSymbols,
         settlement: OSMIUM_X402_SETTLEMENT
       }
     ],

@@ -148,7 +148,7 @@ Test TSLA comes from the [Robinhood Chain faucet](https://faucet.testnet.chain.r
 | Wallet connect | not required | required |
 | Vault | team-funded | user-funded |
 | Settlement signer | runner (operator key) | the user's wallet |
-| Policy | Osmium-managed `#2` | user-created onchain |
+| Policy | Osmium-managed `#7` | user-created onchain |
 | Custody | partially custodial | **non-custodial** |
 
 Both lanes share the same x402 envelope, the same `PolicyEngine`, and the same
@@ -357,7 +357,7 @@ and richer service discovery metadata.
   infrastructure.
 - `osmium-exact` is a custom Osmium facilitator. It is x402-compatible at the
   HTTP layer; it does not claim CDP facilitator support.
-- AMD / AMZN are quote-supported service proofs; only TSLA has live settlement.
+- AMD / AMZN / PLTR / NFLX are quote-supported service proofs; only TSLA has live settlement.
 - Policy templates beyond TSLA-strict, a custom policy editor, workspace API
   keys, and a merchant SDK package are roadmap — shown in the UI as visibly
   disabled "coming soon" surfaces, never as working features.

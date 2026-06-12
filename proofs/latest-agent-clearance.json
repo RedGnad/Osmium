@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-30T23:36:33.682Z",
+  "generatedAt": "2026-06-12T12:17:33.165Z",
   "chainId": 46630,
   "runner": "deployed-runner",
   "summary": {
@@ -16,7 +16,7 @@
     "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
     "maxAmount": "0.25",
     "periodLimit": "3.00",
-    "validUntil": "2026-05-30T23:51:24.854Z",
+    "validUntil": "2026-06-12T12:32:25.253Z",
     "purpose": "Buy verified TSLA market data only",
     "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
     "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -32,9 +32,9 @@
       "denialReason": "None",
       "fundsMoved": true,
       "proofType": "on-chain tx",
-      "txHash": "0xc49c9164968a2e3c034668ec83c72c7793e62e9e120f4abf8f85bd7bcc153120",
-      "auditId": "0xc49c9164968a2e3c034668ec83c72c7793e62e9e120f4abf8f85bd7bcc153120",
-      "explorerUrl": "https://explorer.testnet.chain.robinhood.com/tx/0xc49c9164968a2e3c034668ec83c72c7793e62e9e120f4abf8f85bd7bcc153120",
+      "txHash": "0x00b976c289c3f049a323aba509018fae68221310721f94db1522995c1d9c35fa",
+      "auditId": "0x00b976c289c3f049a323aba509018fae68221310721f94db1522995c1d9c35fa",
+      "explorerUrl": "https://explorer.testnet.chain.robinhood.com/tx/0x00b976c289c3f049a323aba509018fae68221310721f94db1522995c1d9c35fa",
       "rawJson": {
         "mandate": {
           "agent": "0xc256f4721DB25616147CEFffc751f93E40Eb37e3",
@@ -44,7 +44,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-30T23:51:24.854Z",
+          "validUntil": "2026-06-12T12:32:25.253Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -54,8 +54,8 @@
         "x402": {
           "status": 402,
           "protocol": "x402-compatible-osmium",
-          "paymentId": "0xd3d512bd54f24de62ed5bd59753f1df55e66f18474e4a3a2fb641a20cc79c800",
-          "receiptHash": "0xb0b9276f782030c7871f817788d5304e75a3491a5311f264102595b73362ab8c",
+          "paymentId": "0xf85096e4106bf6a13517cc2594e835c112b357fa7dc4c1770c9e68900a3d61cf",
+          "receiptHash": "0x75042b4be5a6fba73746ff635d2f70083999eeee951260f3c555b497b9eb2306",
           "amount": "250000000000000000"
         },
         "clearance": {
@@ -66,9 +66,9 @@
         "settlement": {
           "attempted": true,
           "fundsMoved": true,
-          "txHash": "0xc49c9164968a2e3c034668ec83c72c7793e62e9e120f4abf8f85bd7bcc153120",
-          "paymentId": "0xd3d512bd54f24de62ed5bd59753f1df55e66f18474e4a3a2fb641a20cc79c800",
-          "receiptHash": "0xb0b9276f782030c7871f817788d5304e75a3491a5311f264102595b73362ab8c"
+          "txHash": "0x00b976c289c3f049a323aba509018fae68221310721f94db1522995c1d9c35fa",
+          "paymentId": "0xf85096e4106bf6a13517cc2594e835c112b357fa7dc4c1770c9e68900a3d61cf",
+          "receiptHash": "0x75042b4be5a6fba73746ff635d2f70083999eeee951260f3c555b497b9eb2306"
         },
         "unlock": {
           "unlocked": true,
@@ -88,7 +88,7 @@
       "fundsMoved": false,
       "proofType": "pre-settlement denial",
       "txHash": null,
-      "auditId": "latestSettlementPaymentId:0xd3d512bd54f24de62ed5bd59753f1df55e66f18474e4a3a2fb641a20cc79c800",
+      "auditId": "latestSettlementPaymentId:0xf85096e4106bf6a13517cc2594e835c112b357fa7dc4c1770c9e68900a3d61cf",
       "explorerUrl": null,
       "rawJson": {
         "id": "B",
@@ -101,7 +101,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-30T23:51:33.425Z",
+          "validUntil": "2026-06-12T12:32:32.986Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -109,7 +109,7 @@
         "x402Step": "reuse paymentId -> PolicyEngine replay check",
         "policyVerdict": "Denied",
         "reasonName": "Replay",
-        "proof": "latestSettlementPaymentId:0xd3d512bd54f24de62ed5bd59753f1df55e66f18474e4a3a2fb641a20cc79c800",
+        "proof": "latestSettlementPaymentId:0xf85096e4106bf6a13517cc2594e835c112b357fa7dc4c1770c9e68900a3d61cf",
         "txHash": null,
         "fundsMoved": false,
         "finalStatus": "Denied",
@@ -140,7 +140,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-30T23:51:33.425Z",
+          "validUntil": "2026-06-12T12:32:32.986Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -179,7 +179,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-30T23:51:33.425Z",
+          "validUntil": "2026-06-12T12:32:32.986Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -218,7 +218,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-30T23:51:33.425Z",
+          "validUntil": "2026-06-12T12:32:32.986Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"
@@ -257,7 +257,7 @@
           "token": "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E",
           "maxAmount": "0.25",
           "periodLimit": "3.00",
-          "validUntil": "2026-05-30T23:51:33.425Z",
+          "validUntil": "2026-06-12T12:32:32.986Z",
           "purpose": "Buy verified TSLA market data only",
           "contextHash": "0xfe379680c7539ad60130da0268a5f375215ae7e42cf3fc8fe6c5510accd23c5c",
           "intentHash": "0xe6218d7c116bae7967308b207b2df2a7d571f81a5b4af0017cea59a21e51a811"

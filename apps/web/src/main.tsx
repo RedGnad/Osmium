@@ -2102,7 +2102,7 @@ function AgentConsole({
             The agent tries to pay. <em>Osmium decides.</em>
           </h2>
           <p>
-            A mandate-bound finance agent requests paid TSLA data, receives an
+            A policy-bound finance agent requests paid TSLA data, receives an
             x402 payment challenge, asks Osmium for clearance, then settles
             only if the onchain policy allows it.
           </p>

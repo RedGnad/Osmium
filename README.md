@@ -32,14 +32,19 @@ replay protection — and a clearance step authorises settlement.
 
 **Pitch (≤30 words):** Agents pay for data and services through x402; an
 onchain Stylus PolicyEngine — not the LLM — decides whether each payment
-matches a bounded mandate before funds move.
+matches a bounded spending policy before funds move.
 
 **What is categorically new here:**
 
+- **Policy firewalls guard what an agent trades. Osmium clears what an agent
+  *pays*** — merchant identity, mandate, limits, replay — before settlement,
+  x402-compatible, live on Robinhood Chain.
 - Payment **clearance as its own onchain layer** — not an AI wallet, not a
   multisig: an agent can hold zero spend authority and still pay merchants.
-- The policy decision runs in a **Stylus (Rust/WASM) contract** on Robinhood
-  Chain (an Arbitrum Orbit chain), composed with a Solidity settlement router.
+- The clearance decision is one onchain call into a **Stylus (Rust/WASM)
+  PolicyEngine**: merchant, token, amount, receipt, context and replay
+  evaluated in a single deterministic Rust code path, composed with a
+  Solidity settlement router.
 - A **custom x402-compatible facilitator** for `eip155:46630` — a network the
   Coinbase CDP facilitator does not route — with the divergence declared in
   the protocol envelope, not hidden.
@@ -110,7 +115,9 @@ setting where "the LLM held the key" is not an acceptable post-mortem.
 ## What is Osmium?
 
 The wedge is narrow on purpose. Osmium is **not** an AI wallet and **not** a
-generic treasury firewall. It is the clearing layer for a specific user:
+trading guardrail: execution firewalls decide what an agent may *trade*;
+Osmium clears what an agent *pays*. It is the clearing layer for a specific
+user:
 
 > A team building an AI finance agent that needs to pay for data, APIs, MCP
 > tools, or tokenized-asset services — without handing the agent an

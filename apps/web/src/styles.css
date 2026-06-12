@@ -1994,6 +1994,12 @@ button, input { font: inherit; color: inherit; }
   opacity: 0.45;
   cursor: not-allowed;
 }
+.walletOptionIcon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: contain;
+}
 .walletOption strong {
   display: block;
   font-family: var(--font-display);

@@ -8,6 +8,12 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useWallet } from "./WalletProvider";
+import {
+  discoveredWallets,
+  onWalletDiscovery,
+  requestWalletDiscovery,
+  type DiscoveredWallet,
+} from "./walletAdapter";
 import { RH_CHAIN_ID, robinhoodTestnet } from "./contracts";
 
 type DetectedInjected =
@@ -45,9 +51,21 @@ const labels: Record<DetectedInjected["kind"], string> = {
 export function ConnectModal() {
   const { modal, adapter, state, walletConnectAvailable } = useWallet();
   const [injected, setInjected] = useState<DetectedInjected>({ kind: "none" });
+  const [wallets, setWallets] = useState<DiscoveredWallet[]>(() =>
+    discoveredWallets(),
+  );
 
   useEffect(() => {
     setInjected(detectInjected());
+    if (!modal.open) return;
+    /* EIP-6963: list every installed extension wallet, not just the one
+       that won the window.ethereum injection race. */
+    setWallets(discoveredWallets());
+    const off = onWalletDiscovery(() => setWallets(discoveredWallets()));
+    requestWalletDiscovery();
+    return () => {
+      off();
+    };
   }, [modal.open]);
 
   /* close on ESC */
@@ -135,7 +153,9 @@ export function ConnectModal() {
               </div>
               <div className="walletAccountRow">
                 <span className="walletAccountLabel">Connector</span>
-                <span className="walletAccountValue">{connected.connector}</span>
+                <span className="walletAccountValue">
+                  {connected.walletName ?? connected.connector}
+                </span>
               </div>
             </div>
 
@@ -178,25 +198,59 @@ export function ConnectModal() {
             </p>
 
             <div className="walletOptions">
-              <button
-                type="button"
-                className="walletOption"
-                disabled={injected.kind === "none" || connectingInjected}
-                onClick={() => void adapter.connect("injected")}
-              >
-                <WalletIcon size={18} />
-                <div>
-                  <strong>{labels[injected.kind]}</strong>
-                  <span>
-                    {injected.kind === "none"
-                      ? "Install MetaMask, Rabby or Coinbase Wallet"
-                      : "Sign with the browser-injected provider"}
+              {wallets.length > 0 ? (
+                wallets.map((w) => {
+                  const connectingThis =
+                    connectingInjected &&
+                    state.status === "connecting" &&
+                    state.rdns === w.info.rdns;
+                  return (
+                    <button
+                      key={w.info.rdns}
+                      type="button"
+                      className="walletOption"
+                      disabled={connectingInjected}
+                      onClick={() =>
+                        void adapter.connect("injected", w.info.rdns)
+                      }
+                    >
+                      <img
+                        className="walletOptionIcon"
+                        src={w.info.icon}
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <strong>{w.info.name}</strong>
+                        <span>Sign with the {w.info.name} extension</span>
+                      </div>
+                      <span className="walletOptionTag">
+                        {connectingThis ? "Connecting…" : "EIP-6963"}
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <button
+                  type="button"
+                  className="walletOption"
+                  disabled={injected.kind === "none" || connectingInjected}
+                  onClick={() => void adapter.connect("injected")}
+                >
+                  <WalletIcon size={18} />
+                  <div>
+                    <strong>{labels[injected.kind]}</strong>
+                    <span>
+                      {injected.kind === "none"
+                        ? "Install MetaMask, Rabby or Coinbase Wallet"
+                        : "Sign with the browser-injected provider"}
+                    </span>
+                  </div>
+                  <span className="walletOptionTag">
+                    {connectingInjected ? "Connecting…" : "EIP-1193"}
                   </span>
-                </div>
-                <span className="walletOptionTag">
-                  {connectingInjected ? "Connecting…" : "EIP-1193"}
-                </span>
-              </button>
+                </button>
+              )}
 
               <button
                 type="button"

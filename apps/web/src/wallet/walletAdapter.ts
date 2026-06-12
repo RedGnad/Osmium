@@ -28,8 +28,8 @@ export type ConnectorKind = "injected" | "walletconnect";
 
 export type WalletState =
   | { status: "idle" }
-  | { status: "connecting"; connector: ConnectorKind }
-  | { status: "error"; connector: ConnectorKind; error: string }
+  | { status: "connecting"; connector: ConnectorKind; rdns?: string }
+  | { status: "error"; connector: ConnectorKind; error: string; rdns?: string }
   | {
       status: "connected";
       connector: ConnectorKind;
@@ -37,6 +37,8 @@ export type WalletState =
       chainId: number;
       onWrongChain: boolean;
       provider: EIP1193Provider;
+      rdns?: string;
+      walletName?: string;
     };
 
 export type WalletAdapter = {
@@ -44,12 +46,87 @@ export type WalletAdapter = {
   publicClient: PublicClient;
   walletClient: WalletClient | null;
   nativeBalance: string;
-  connect: (kind: ConnectorKind) => Promise<void>;
+  connect: (kind: ConnectorKind, rdns?: string) => Promise<void>;
   disconnect: () => Promise<void>;
   switchToOsmiumChain: () => Promise<void>;
   refreshBalance: () => Promise<void>;
   onChange: (cb: (state: WalletState) => void) => () => void;
 };
+
+/* ────────────────────────────────────────────────────────────────────────
+   EIP-6963 multi-injected provider discovery
+
+   `window.ethereum` only ever exposes the extension that won the injection
+   race. EIP-6963 lets every installed wallet announce itself (name + icon +
+   provider), so the connect modal can list MetaMask AND Rabby AND whatever
+   else is installed, instead of just the winner.
+   ──────────────────────────────────────────────────────────────────────── */
+
+export type Eip6963ProviderInfo = {
+  uuid: string;
+  name: string;
+  icon: string;
+  rdns: string;
+};
+
+export type DiscoveredWallet = {
+  info: Eip6963ProviderInfo;
+  provider: EIP1193Provider;
+};
+
+const discovered = new Map<string, DiscoveredWallet>();
+const discoveryListeners = new Set<() => void>();
+
+if (typeof window !== "undefined") {
+  window.addEventListener("eip6963:announceProvider", (event) => {
+    const detail = (event as CustomEvent<DiscoveredWallet>).detail;
+    if (!detail?.info?.rdns || !detail.provider) return;
+    discovered.set(detail.info.rdns, detail);
+    discoveryListeners.forEach((cb) => cb());
+  });
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+}
+
+export function discoveredWallets(): DiscoveredWallet[] {
+  return [...discovered.values()];
+}
+
+/* Wallets announce in response to this event; call again when the connect
+   modal opens in case an extension initialised after page load. */
+export function requestWalletDiscovery() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+}
+
+export function onWalletDiscovery(cb: () => void): () => void {
+  discoveryListeners.add(cb);
+  return () => discoveryListeners.delete(cb);
+}
+
+/* Extensions usually announce synchronously after the request event, but a
+   persisted-session reconnect at module-eval time can race them. */
+async function waitForDiscovered(
+  rdns: string,
+  timeoutMs = 1500,
+): Promise<DiscoveredWallet | null> {
+  const existing = discovered.get(rdns);
+  if (existing) return existing;
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      off();
+      resolve(discovered.get(rdns) ?? null);
+    }, timeoutMs);
+    const off = onWalletDiscovery(() => {
+      const hit = discovered.get(rdns);
+      if (hit) {
+        clearTimeout(timer);
+        off();
+        resolve(hit);
+      }
+    });
+    requestWalletDiscovery();
+  });
+}
 
 const STORAGE_KEY = "osmium.wallet";
 const WC_PROJECT_ID =
@@ -60,6 +137,9 @@ export const walletConnectAvailable = Boolean(WC_PROJECT_ID);
 type Persisted = {
   connector: ConnectorKind;
   account: Address;
+  /* EIP-6963 rdns of the wallet that was connected, so a reload reconnects
+     to the same extension instead of whichever owns window.ethereum. */
+  rdns?: string;
 };
 
 function readPersisted(): Persisted | null {
@@ -204,12 +284,14 @@ export function createWalletAdapter(): WalletAdapter {
     p.on?.("disconnect", onDisconnect);
   }
 
-  async function doConnect(kind: ConnectorKind) {
-    setState({ status: "connecting", connector: kind });
+  async function doConnect(kind: ConnectorKind, rdns?: string) {
+    setState({ status: "connecting", connector: kind, rdns });
     try {
+      const pick =
+        kind === "injected" && rdns ? (discovered.get(rdns) ?? null) : null;
       const provider =
         kind === "injected"
-          ? getInjected()
+          ? (pick?.provider ?? getInjected())
           : await getOrCreateWalletConnect();
       if (!provider) {
         throw new Error(
@@ -237,7 +319,7 @@ export function createWalletAdapter(): WalletAdapter {
       const chainId = Number(BigInt(chainIdHex));
 
       walletClient = makeWalletClient(provider);
-      writePersisted({ connector: kind, account });
+      writePersisted({ connector: kind, account, rdns: pick?.info.rdns });
       const next: WalletState = {
         status: "connected",
         connector: kind,
@@ -245,6 +327,9 @@ export function createWalletAdapter(): WalletAdapter {
         chainId,
         onWrongChain: chainId !== RH_CHAIN_ID,
         provider,
+        rdns: pick?.info.rdns,
+        walletName:
+          kind === "walletconnect" ? "WalletConnect" : pick?.info.name,
       };
       setState(next);
       attachProviderListeners(provider);
@@ -255,6 +340,7 @@ export function createWalletAdapter(): WalletAdapter {
       setState({
         status: "error",
         connector: kind,
+        rdns,
         error:
           err instanceof Error
             ? err.message
@@ -325,9 +411,13 @@ export function createWalletAdapter(): WalletAdapter {
       return;
     }
     try {
+      const pick =
+        persisted.connector === "injected" && persisted.rdns
+          ? await waitForDiscovered(persisted.rdns)
+          : null;
       const provider =
         persisted.connector === "injected"
-          ? getInjected()
+          ? (pick?.provider ?? getInjected())
           : await getOrCreateWalletConnect();
       if (!provider) {
         writePersisted(null);
@@ -353,6 +443,11 @@ export function createWalletAdapter(): WalletAdapter {
         chainId,
         onWrongChain: chainId !== RH_CHAIN_ID,
         provider,
+        rdns: pick?.info.rdns,
+        walletName:
+          persisted.connector === "walletconnect"
+            ? "WalletConnect"
+            : pick?.info.name,
       };
       setState(next);
       attachProviderListeners(provider);
